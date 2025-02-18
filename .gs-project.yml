@@ -1,1 +1,15 @@
-productGuid: "product::491430"
+area:
+  producer: "com.gs.workflow.ai"
+  package: "workflow-ai-core-library"
+  artifactPaths:
+  - "**/artifacts/*.jar"
+  - "**/artifacts/*.pom"
+
+etch:
+  namespace: "WFAICORE"
+  distributionList: "gs-workflow-low-code-dev@internal.email.gs.com"
+  testResultPaths:
+    - type: "JUNIT"
+      paths:
+        - "test-reports/junit/*.xml"
+  eddAnnotationMapping: "test-reports/edd-annotation-mapping/*.csv"
