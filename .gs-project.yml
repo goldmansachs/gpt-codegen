@@ -1,7 +1,7 @@
 productGuid: "product::491430"
 
 area:
-  producer: "com.gs.workflow.ai"
+  producer: "com.gs.workflow.ai.core"
   package: "workflow-ai-core-library"
   artifactPaths:
   - "**/artifacts/*.jar"
