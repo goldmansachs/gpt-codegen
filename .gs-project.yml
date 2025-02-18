@@ -1,3 +1,5 @@
+productGuid: "product::491430"
+
 area:
   producer: "com.gs.workflow.ai"
   package: "workflow-ai-core-library"
