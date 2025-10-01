@@ -1,9 +1,5 @@
 package org.rj.modelgen.bpmn.generation;
 
-import reactor.netty.udp.UdpServer;
-
-import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Pattern;
 
 public class BpmnConstants {
@@ -43,6 +39,8 @@ public class BpmnConstants {
         public static final String END_EVENT = "endEvent";
 
         public static final String SEQUENCE_FLOW = "sequenceFlow";
+
+        public static final String PROCESS_CONFIG = "processConfig";
     }
 
     public static class Patterns {
@@ -57,5 +55,4 @@ public class BpmnConstants {
         // Matches ${variableName} but not ${payload.variableName}
         public static final Pattern INTERPOLATION_PATTERN = Pattern.compile("\\$\\{(?!payload\\.)([^}]+)\\}");
     }
-
 }
