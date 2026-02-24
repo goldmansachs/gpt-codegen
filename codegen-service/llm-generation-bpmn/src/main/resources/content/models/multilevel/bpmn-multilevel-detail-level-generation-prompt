@@ -149,11 +149,11 @@ RULES FOR THE DETAILED MODEL GENERATION
 
 7. Connections
    a. processConfig node must have no inbound or outbound connections.
-   a. Every non-endEvent node must have at least one outbound connection.
-   b. Every non-startEvent node must have at least one inbound connection.
-   c. endEvent must have zero outbound connections.
-   d. startEvent must have zero inbound connections.
-   e. Ensure a single connected model with no orphan nodes (except processConfig).
+   b. Every non-endEvent node must have at least one outbound connection.
+   c. Every non-startEvent node must have at least one inbound connection.
+   d. endEvent must have zero outbound connections.
+   e. startEvent must have zero inbound connections.
+   f. Ensure a single connected model with no orphan nodes (except processConfig).
 
 CODE GENERATION & SCRIPTING INSTRUCTIONS
 

@@ -17,6 +17,7 @@ import org.rj.modelgen.bpmn.intrep.model.*;
 import org.rj.modelgen.llm.validation.beans.IntermediateModelValidationError;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
@@ -306,6 +307,7 @@ public class ValidateBpmnModel {
         try {
             AstBuilder astBuilder = new AstBuilder();
             List<ASTNode> astNodes = astBuilder.buildFromString(CompilePhase.CONVERSION, expression);
+
             var astNode = astNodes.get(0);
             List<Statement> statements = ((BlockStatement) astNode).getStatements();
 

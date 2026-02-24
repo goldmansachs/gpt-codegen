@@ -2,6 +2,10 @@ package org.rj.modelgen.bpmn.generation;
 
 import java.util.regex.Pattern;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Pattern;
+
 public class BpmnConstants {
     public static class NodeTypes {
         public static class Comparable {
@@ -55,4 +59,5 @@ public class BpmnConstants {
         // Matches ${variableName} but not ${payload.variableName}
         public static final Pattern INTERPOLATION_PATTERN = Pattern.compile("\\$\\{(?!payload\\.)([^}]+)\\}");
     }
+
 }
