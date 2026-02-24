@@ -1,22 +1,33 @@
 package org.rj.modelgen.bpmn.intrep.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
+import org.camunda.bpm.model.bpmn.BpmnModelInstance;
+import org.camunda.bpm.model.bpmn.builder.AbstractFlowNodeBuilder;
+import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
+import org.camunda.bpm.model.bpmn.instance.FlowNode;
+import org.camunda.bpm.model.bpmn.instance.Task;
+import org.rj.modelgen.bpmn.intrep.model.rendering.*;
 import org.rj.modelgen.llm.intrep.graph.GraphNode;
 
 import java.util.*;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.CUSTOM,
+        include = JsonTypeInfo.As.EXISTING_PROPERTY,
+        property = "elementType",
+        visible = true)
+@JsonTypeIdResolver(ElementNodeTypeIdResolver.class)
 public class ElementNode implements GraphNode<String, String, ElementConnection> {
-    private String id;
-    private String name;
-    private String elementType;
-    private String description;
-    private List<ElementConnection> connectedTo;
-    private Map<String, Object> properties;
-    private List<ElementNodeInput> inputs;
-    private List<ElementNodeOutput> outputs;
+    protected String id;
+    protected String name;
+    protected String elementType;
+    protected String description;
+    protected List<ElementConnection> connectedTo;
+    protected Map<String, Object> properties;
+    protected List<ElementNodeInput> inputs;
+    protected List<ElementNodeOutput> outputs;
 
     public ElementNode() {
     }
@@ -83,24 +94,18 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
         this.properties = properties;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public List<ElementNodeInput> getInputs() {
-        if (inputs == null) {
-            return Collections.emptyList();
-        }
         return inputs;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public void setInputs(List<ElementNodeInput> inputs) {
         this.inputs = inputs;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public List<ElementNodeOutput> getOutputs() {
-        if (outputs == null) {
-            return Collections.emptyList();
-        }
         return outputs;
     }
 
@@ -113,7 +118,7 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
         return outputs.get(index);
     }
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public void setOutputs(List<ElementNodeOutput> outputs) {
         this.outputs = outputs;
     }
@@ -132,7 +137,7 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
 
     @JsonIgnore
     public Optional<ElementNodeInput> findInput(String name) {
-        if (name == null) return Optional.empty();
+        if (name == null || inputs == null) return Optional.empty();
         return getInputs().stream()
                 .filter(input -> name.equals(input.getName()))
                 .findFirst();
@@ -140,10 +145,30 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
 
     @JsonIgnore
     public Optional<ElementNodeOutput> findOutput(String name) {
-        if (name == null) return Optional.empty();
+        if (name == null || outputs == null) return Optional.empty();
         return getOutputs().stream()
                 .filter(outputs -> name.equals(outputs.getName()))
                 .findFirst();
+    }
+
+    @JsonIgnore
+    public <B extends AbstractFlowNodeBuilder<B, E>, E extends FlowNode> BpmnModelInstance render(AbstractFlowNodeBuilder<B, E> builder, String namespace) {
+        return builder.manualTask(id).name(name).done();
+    }
+
+    @JsonIgnore
+    protected String getAttrName(ElementNodeInput input) {
+        return input.getName();
+    }
+
+    @JsonIgnore
+    protected ExtensionElements getExtensionElements(Task task) {
+        ExtensionElements extensionElements = task.getExtensionElements();
+        if (extensionElements == null) {
+            extensionElements = task.getModelInstance().newInstance(ExtensionElements.class);
+            task.setExtensionElements(extensionElements);
+        }
+        return extensionElements;
     }
 
     @Override
