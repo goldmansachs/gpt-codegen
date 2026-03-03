@@ -63,6 +63,14 @@ public class ValidateFormModelCorrectness extends ModelInterfaceState {
 
         getPayload().put(StandardModelData.ModelValidationMessages, validationMessages);
 
+        // If there are validation errors, signal failure so the pipeline can loop back for regeneration
+        if (!validationMessages.isEmpty()) {
+            LOG.warn("A2UI validation failed with {} error(s); signalling for regeneration", validationMessages.size());
+            return outboundSignal(FormGenerationSignals.OutputValidationFailed)
+                    .withPayloadData(StandardModelData.ModelValidationMessages, validationMessages)
+                    .mono();
+        }
+
         return outboundSignal(FormGenerationSignals.OutputValidated)
                 .withPayloadData(StandardModelData.ModelValidationMessages, validationMessages)
                 .mono();

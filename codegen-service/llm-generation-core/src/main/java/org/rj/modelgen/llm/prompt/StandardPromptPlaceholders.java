@@ -5,5 +5,6 @@ public interface StandardPromptPlaceholders {
     PromptPlaceholder CURRENT_STATE = new PromptPlaceholder("CURRENT_STATE");
     PromptPlaceholder PROMPT = new PromptPlaceholder("PROMPT");
     PromptPlaceholder COMPONENT_LIBRARY = new PromptPlaceholder("COMPONENT_LIBRARY");
+    PromptPlaceholder CATALOG_CONTENT = new PromptPlaceholder("CATALOG_CONTENT");
     PromptPlaceholder RETURN_TO_HIGH_LEVEL = new PromptPlaceholder("RETURN_TO_HIGH_LEVEL");
 }

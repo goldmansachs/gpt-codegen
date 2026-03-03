@@ -11,6 +11,7 @@ public enum FormGenerationSignals implements StringSerializable {
     IntentFormalised,
     A2UIGenerated,
     OutputValidated,
+    OutputValidationFailed,
     CompleteGeneration;
 
     @Override
@@ -18,4 +19,3 @@ public enum FormGenerationSignals implements StringSerializable {
         return Character.toLowerCase(name().charAt(0)) + name().substring(1);
     }
 }
-

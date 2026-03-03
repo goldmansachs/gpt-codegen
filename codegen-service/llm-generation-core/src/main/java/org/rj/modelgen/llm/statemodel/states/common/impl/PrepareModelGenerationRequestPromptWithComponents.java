@@ -1,6 +1,5 @@
 package org.rj.modelgen.llm.statemodel.states.common.impl;
 
-import org.rj.modelgen.llm.component.Component;
 import org.rj.modelgen.llm.component.ComponentLibrary;
 import org.rj.modelgen.llm.component.ComponentLibrarySelector;
 import org.rj.modelgen.llm.component.ComponentLibrarySerializer;
@@ -12,6 +11,8 @@ import org.rj.modelgen.llm.schema.ModelSchema;
 import org.rj.modelgen.llm.statemodel.states.common.PrepareModelGenerationRequest;
 
 import java.util.List;
+
+import static org.rj.modelgen.llm.prompt.StandardPromptPlaceholders.CATALOG_CONTENT;
 
 public abstract class PrepareModelGenerationRequestPromptWithComponents<TComponentLibrary extends ComponentLibrary<?>> extends PrepareModelGenerationRequest {
     private final TComponentLibrary componentLibrary;
@@ -38,9 +39,11 @@ public abstract class PrepareModelGenerationRequestPromptWithComponents<TCompone
     protected List<PromptSubstitution> generateAdditionalPromptSubstitutions(ModelSchema modelSchema, Context context, String request) {
         final var filteredLibrary = componentLibrarySelector.getFilteredLibrary(componentLibrary, getPayload());
         final var serializedLibrary = componentLibrarySerializer.serialize(filteredLibrary);
+        final String catalogContent = componentLibrarySerializer.serialize(componentLibrary);
 
         return List.of(
-                new PromptSubstitution(StandardPromptPlaceholders.COMPONENT_LIBRARY, serializedLibrary)
+                new PromptSubstitution(StandardPromptPlaceholders.COMPONENT_LIBRARY, serializedLibrary),
+                new PromptSubstitution(CATALOG_CONTENT, catalogContent)
         );
     }
 

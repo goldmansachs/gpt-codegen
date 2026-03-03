@@ -1,6 +1,5 @@
 package org.rj.modelgen.llm.models.generation.multilevel;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.rj.modelgen.llm.component.ComponentLibrary;
 import org.rj.modelgen.llm.context.provider.ContextProvider;
 import org.rj.modelgen.llm.generation.ModelGenerationFunction;
@@ -22,18 +21,13 @@ import org.rj.modelgen.llm.state.ModelInterfaceTransitionRules;
 import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.llm.statemodel.states.common.PrepareAndSubmitLlmGenericRequest;
-import org.rj.modelgen.llm.statemodel.states.common.ValidateLlmIntermediateModelResponse;
 import org.rj.modelgen.llm.statemodel.states.common.impl.GenerateModelFromIntermediateModelTransformer;
 import org.rj.modelgen.llm.subproblem.config.SubproblemDecompositionConfig;
 import org.rj.modelgen.llm.subproblem.data.SubproblemDecompositionSignals;
-import org.rj.modelgen.llm.subproblem.states.GenerateSubproblems;
-import org.rj.modelgen.llm.subproblem.states.impl.CombineSubproblemsNaive;
-import org.rj.modelgen.llm.subproblem.states.impl.GenerateSubproblemsNaive;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public abstract class MultiLevelGenerationModel<THighLevelModel extends IntermediateModel,
                                                 TDetailLevelModel extends IntermediateModel,

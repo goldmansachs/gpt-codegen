@@ -1,26 +1,12 @@
 package org.rj.modelgen.service;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
-import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.intrep.schema.BpmnIntermediateModelSchema;
-import org.rj.modelgen.bpmn.models.generation.base.BpmnGenerationBaseExecutionModel;
 import org.rj.modelgen.bpmn.models.generation.BpmnGenerationExecutionModelOptions;
-import org.rj.modelgen.bpmn.models.generation.BpmnGenerationResult;
+import org.rj.modelgen.bpmn.models.generation.base.BpmnGenerationBaseExecutionModel;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
-import org.rj.modelgen.forms.models.generation.multilevel.FormMultiLevelGenerationModel;
+import org.rj.modelgen.forms.models.generation.pipeline.FormPipelineGenerationModel;
 import org.rj.modelgen.llm.integrations.openai.OpenAIModelInterface;
-import org.rj.modelgen.llm.models.generation.multilevel.MultiLevelGenerationModelOptions;
-import org.rj.modelgen.llm.models.generation.multilevel.MultiLevelGenerationModelStates;
-import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelGenerationModelPromptGenerator;
-import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelModelPromptType;
-import org.rj.modelgen.llm.schema.ModelSchema;
-import org.rj.modelgen.llm.state.ModelInterfaceStateMachineCustomization;
-import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
-import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
-import org.rj.modelgen.llm.statemodel.states.common.ExecuteLogic;
-import org.rj.modelgen.llm.util.Result;
-import org.rj.modelgen.llm.util.StringSerializable;
 import org.rj.modelgen.llm.util.Util;
 import org.rj.modelgen.service.beans.BpmnGenerationPrompt;
 import org.rj.modelgen.service.beans.BpmnGenerationSessionData;
@@ -39,7 +25,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import static org.rj.modelgen.llm.util.FuncUtil.*;
+
+import static org.rj.modelgen.llm.util.FuncUtil.doVoid;
 
 @SpringBootApplication
 @ComponentScan(basePackages = "org.rj")
@@ -48,7 +35,7 @@ public class CodegenServiceApplication {
 	private final ConcurrentMap<String, BpmnGenerationSessionData> sessions;
 	private final ConcurrentMap<String, FormGenerationSessionData> formSessions;
 	private final BpmnMultiLevelGenerationModel bpmnGenerationModel;
-	private final FormMultiLevelGenerationModel formGenerationModel;
+	private final FormPipelineGenerationModel formGenerationModel;
 
 	@Value("${app.tokenPath}")
 	private String tokenPath;
@@ -80,14 +67,14 @@ public class CodegenServiceApplication {
 		return BpmnMultiLevelGenerationModel.create(modelInterface, options);
 	}
 
-	private FormMultiLevelGenerationModel buildFormGenerationModel() {
+	private FormPipelineGenerationModel buildFormGenerationModel() {
 		final var modelInterface = new OpenAIModelInterface.Builder()
 				.withApiKeyGenerator(() -> Util.loadStringResource(tokenPath))
 				.build();
 
-		final var options = FormMultiLevelGenerationModel.defaultOptions();
+		final var options = FormPipelineGenerationModel.defaultOptions();
 
-		return FormMultiLevelGenerationModel.create(modelInterface, options);
+		return FormPipelineGenerationModel.create(modelInterface, options);
 	}
 
 	// ---- BPMN Generation Endpoints ----
@@ -155,15 +142,15 @@ public class CodegenServiceApplication {
 				.doOnSuccess(result -> {
 					if (result.isSuccessful()) {
 						System.out.println("Form Result.success = " + result.isSuccessful());
-						System.out.println("Form Result.generated = " + result.getGeneratedForm());
+						System.out.println("Form Result.generated = " + result.getA2UIOutput());
 						System.out.println("Form Result.validation = " + String.join(", ", result.getFormValidationMessages()));
 					}
 					else {
 						System.err.println("Form generation failed with error: " + result.getLastError().orElse("<unknown error>"));
 					}
 				})
-				.map(res -> Optional.ofNullable(res.getGeneratedForm()).orElse(""))
-				.map(generatedForm -> doVoid(generatedForm, form -> getOrCreateFormSession(id).setCurrentFormData(generatedForm)))
+				.map(res -> Optional.ofNullable(res.getA2UIOutput()).orElse(""))
+				.map(generatedForm -> doVoid(generatedForm, form -> getOrCreateFormSession(id).setCurrentA2UIData(generatedForm)))
 				.map(__ -> getOrCreateFormSession(id));
 	}
 

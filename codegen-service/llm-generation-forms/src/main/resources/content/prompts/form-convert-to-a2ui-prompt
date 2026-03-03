@@ -22,47 +22,7 @@ Every message you produce must be a JSON object containing a "version" field set
 - CheckRule: {"condition": <DynamicBoolean>, "message": "<error string>"}.
 - AccessibilityAttributes: {"label": <DynamicString>, "description": <DynamicString>}.
 
---- COMPONENT CATALOG (basic_catalog.json) ---
-Available components (use the "component" field to specify type):
-
-| Component | Required Fields | Key Optional Fields |
-|---|---|---|
-| Text | component, text (DynamicString) | variant: h1/h2/h3/h4/h5/caption/body |
-| Image | component, url (DynamicString) | fit: contain/cover/fill/none/scaleDown; variant: icon/avatar/smallFeature/mediumFeature/largeFeature/header |
-| Icon | component, name (enum or {path}) | — |
-| Video | component, url (DynamicString) | — |
-| AudioPlayer | component, url (DynamicString) | description (DynamicString) |
-| Row | component, children (ChildList) | justify: center/end/spaceAround/spaceBetween/spaceEvenly/start/stretch; align: start/center/end/stretch |
-| Column | component, children (ChildList) | justify: start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch; align: center/end/start/stretch |
-| List | component, children (ChildList) | direction: vertical/horizontal; align: start/center/end/stretch |
-| Card | component, child (ComponentId) | — |
-| Tabs | component, tabs (array of {title: DynamicString, child: ComponentId}) | — |
-| Modal | component, trigger (ComponentId), content (ComponentId) | — |
-| Divider | component | axis: horizontal/vertical |
-| Button | component, child (ComponentId), action (Action) | variant: primary/borderless; checks (array of CheckRule) |
-| TextField | component, label (DynamicString) | value (DynamicString), variant: longText/number/shortText/obscured, checks |
-| CheckBox | component, label (DynamicString), value (DynamicBoolean) | checks |
-| ChoicePicker | component, options (array of {label, value}), value (DynamicStringList) | variant: multipleSelection/mutuallyExclusive; label, displayStyle: checkbox/chips; filterable |
-| Slider | component, value (DynamicNumber), min (number), max (number) | label (DynamicString), checks |
-| DateTimeInput | component, value (DynamicString) | enableDate, enableTime, min, max, label, checks |
-
-Available functions (used in FunctionCall objects):
-| Function | Args | Returns |
-|---|---|---|
-| required | value | boolean |
-| regex | value (DynamicString), pattern (string) | boolean |
-| length | value (DynamicString), min/max (integer) | boolean |
-| numeric | value (DynamicNumber), min/max (number) | boolean |
-| email | value (DynamicString) | boolean |
-| formatString | value (DynamicString with \${...} interpolation) | string |
-| formatNumber | value (DynamicNumber), decimals?, grouping? | string |
-| formatCurrency | value (DynamicNumber), currency (DynamicString), decimals?, grouping? | string |
-| formatDate | value (DynamicValue), format (DynamicString, Unicode TR35 pattern) | string |
-| pluralize | value (DynamicNumber), other (DynamicString), zero?, one?, two?, few?, many? | string |
-| openUrl | url (string URI) | void |
-| and | values (array of DynamicBoolean, minItems 2) | boolean |
-| or | values (array of DynamicBoolean, minItems 2) | boolean |
-| not | value (DynamicBoolean) | boolean |
+${CATALOG_CONTENT}
 
 === CRITICAL RULES ===
 1. Components are a FLAT LIST (adjacency list model). Tree structure is built via ID references. NEVER nest component definitions inline.
