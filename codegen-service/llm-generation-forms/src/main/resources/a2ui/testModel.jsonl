@@ -1,0 +1,2 @@
+{"version": "v0.9", "createSurface": {"surfaceId": "min-001", "catalogId": "https://a2ui.org/catalogs/v1/basic.json"}}
+{"version": "v0.9", "updateComponents": {"surfaceId": "min-001", "components": [{"id": "root", "component": "Text", "text": "Hello, World"}]}}

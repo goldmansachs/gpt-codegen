@@ -37,6 +37,7 @@
 		<maven-source-plugin.version>3.3.0</maven-source-plugin.version>
 		<junit.version>5.10.0</junit.version>
 		<freemarker.version>2.3.23</freemarker.version>
+		<networknt.version>2.0.1</networknt.version>
 	</properties>
 
 	<build>
@@ -121,6 +122,12 @@
 				<groupId>org.freemarker</groupId>
 				<artifactId>freemarker</artifactId>
 				<version>${freemarker.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.networknt</groupId>
+				<artifactId>json-schema-validator</artifactId>
+				<version>${networknt.version}</version>
+				<scope>compile</scope>
 			</dependency>
 
 			<!-- Jackson -->
