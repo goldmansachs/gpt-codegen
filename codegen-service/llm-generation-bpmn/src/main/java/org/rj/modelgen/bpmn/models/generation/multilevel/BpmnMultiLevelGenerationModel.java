@@ -20,6 +20,7 @@ import org.rj.modelgen.bpmn.models.generation.multilevel.prompt.BpmnGenerationMu
 import org.rj.modelgen.bpmn.models.generation.multilevel.schema.BpmnGenerationMultiLevelSchemaDetailLevel;
 import org.rj.modelgen.bpmn.models.generation.multilevel.schema.BpmnGenerationMultiLevelSchemaHighLevel;
 import org.rj.modelgen.bpmn.models.generation.multilevel.states.*;
+import org.rj.modelgen.bpmn.models.generation.validation.ValidateBpmnModel;
 import org.rj.modelgen.bpmn.subproblem.BpmnCombineSubproblems;
 import org.rj.modelgen.bpmn.subproblem.BpmnGenerateSubproblems;
 import org.rj.modelgen.llm.component.DefaultComponentLibrarySelector;
@@ -57,11 +58,12 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
     private final BpmnComponentLibrary componentLibrary;
 
     public static BpmnMultiLevelGenerationModel create(ModelInterface modelInterface, BpmnMultiLevelGenerationModelOptions options) {
-        return create(modelInterface, options, new BpmnModelGenerationFunction(), BpmnComponentLibrary.defaultLibrary(), BpmnGlobalVariableLibrary.defaultLibrary());
+        return create(modelInterface, options, new BpmnModelGenerationFunction(), new ValidateBpmnModel(BpmnComponentLibrary.defaultLibrary(), BpmnGlobalVariableLibrary.defaultLibrary()),
+                BpmnComponentLibrary.defaultLibrary(), BpmnGlobalVariableLibrary.defaultLibrary());
     }
 
     public static BpmnMultiLevelGenerationModel create(ModelInterface modelInterface, BpmnMultiLevelGenerationModelOptions options, BpmnModelGenerationFunction modelGenerationFunction,
-                                                       BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+                                                       ValidateBpmnModel bpmnModelValidator, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
         final var promptGenerator = new BpmnGenerationMultiLevelPromptGenerator();
         final var contextProvider = new DefaultContextProvider();
 
@@ -93,7 +95,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
 
         return (BpmnMultiLevelGenerationModel) new BpmnMultiLevelGenerationModel(BpmnMultiLevelGenerationModel.class, modelInterface, promptGenerator, contextProvider, componentLibrary, preprocessingConfig,
                 highLevelConfig, detailLevelConfig, modelGenerationFunction, renderedModelSerializer, subproblemDecompositionConfig, completionState, options)
-                .withModelCustomization(data -> addBpmnModelCustomization(data, options, promptGenerator, contextProvider, componentLibrary, globalVariableLibrary));
+                .withModelCustomization(data -> addBpmnModelCustomization(data, options, promptGenerator, contextProvider, componentLibrary, globalVariableLibrary, bpmnModelValidator));
     }
 
     protected BpmnMultiLevelGenerationModel(Class<? extends BpmnMultiLevelGenerationModel> modelClass,
@@ -125,14 +127,14 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 .map(BpmnGenerationResult::fromModelExecutionResult);
     }
 
-    private static ModelInterfaceStateMachineCustomization addBpmnModelCustomization(ModelCustomizationData modelData, BpmnMultiLevelGenerationModelOptions options,
-                                                                                     BpmnGenerationMultiLevelPromptGenerator promptGenerator, ContextProvider contextProvider, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+    private static ModelInterfaceStateMachineCustomization addBpmnModelCustomization(ModelCustomizationData modelData, BpmnMultiLevelGenerationModelOptions options, BpmnGenerationMultiLevelPromptGenerator promptGenerator, ContextProvider contextProvider,
+                                                                                     BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator) {
         final List<BiFunction<ModelInterfaceStateMachineCustomization, ModelCustomizationData, ModelInterfaceStateMachineCustomization>> customizations = List.of(
                 (customization, data) -> initializeBpmnPayload(customization, contextProvider, promptGenerator, componentLibrary),
                 (customization, data) -> initializeBpmnData(customization, data, componentLibrary, globalVariableLibrary, options),
                 (customization, data) -> preProcessingInsertSyntheticComponents(customization, data, options),
                 (customization, data) -> processHighLevelModelDataForDetailLevelGeneration(customization, data, globalVariableLibrary),
-                (customization, data) -> validateDetailLevelModel(customization, data, globalVariableLibrary),
+                (customization, data) -> validateDetailLevelModel(customization, data, globalVariableLibrary, bpmnModelValidator),
                 BpmnMultiLevelGenerationModel::postProcessingResolveSyntheticComponents,
                 (customization, data) -> postProcessingPrepareForRendering(customization, data, globalVariableLibrary),
                 BpmnMultiLevelGenerationModel::validateBpmnModelCorrectness
@@ -189,9 +191,9 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 .withNewStateInsertedAfter(processHighLevelData, MultiLevelGenerationModelStates.ValidateHighLevel.toString());
     }
 
-    private static ModelInterfaceStateMachineCustomization validateDetailLevelModel(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData, BpmnGlobalVariableLibrary globalVariableLibrary) {
+    private static ModelInterfaceStateMachineCustomization validateDetailLevelModel(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator) {
 
-        final var validateBpmnDetailLevelIntermediateModel = new ValidateBpmnLlmDetailLevelIntermediateModelResponse(globalVariableLibrary)
+        final var validateBpmnDetailLevelIntermediateModel = new ValidateBpmnLlmDetailLevelIntermediateModelResponse(globalVariableLibrary, bpmnModelValidator)
                 .withOverriddenId(BpmnAdditionalModelStates.DetailLevelBpmnIRModelValidation);
 
         validateBpmnDetailLevelIntermediateModel.setInvokeLimit(3);

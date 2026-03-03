@@ -28,6 +28,7 @@
     "react-scripts": {
       "tough-cookie": "4.1.3"
     },
+    "rollup": "^3.29.5",
     "form-data": "3.0.4"
   },
   "scripts": {
