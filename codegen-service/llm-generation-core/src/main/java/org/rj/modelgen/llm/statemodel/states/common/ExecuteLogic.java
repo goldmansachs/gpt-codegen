@@ -90,7 +90,7 @@ public abstract class ExecuteLogic extends ModelInterfaceState {
     }
 
     private <TNodeUnresolvedInput extends NodeUnresolvedInput,
-        TIntermediateModelAssets extends IntermediateModelAssets<TNodeUnresolvedInput>>
+            TIntermediateModelAssets extends IntermediateModelAssets<TNodeUnresolvedInput>>
     Result<Void, String> saveModelAssets(TIntermediateModelAssets modelAssets) {
         if (modelAssets == null) return Result.Err("Cannot save null model assets");
 

@@ -100,7 +100,7 @@
       "requiredInputs": [
         {
           "name": "serviceUrl",
-          "description": "Direct HTTP/HTTPS URL of the target service (e.g., https://api.example.com). Use this when the service endpoint is known and accessible via a direct URL. Choose either serviceUrl OR discoveryPath, not both",
+          "description": "Direct HTTP/HTTPS URL of the target service (e.g., https://api.example.com). Use this when the service endpoint is known and accessible via a direct URL",
           "alias": "httpRootUrl",
           "type": "string",
           "mandatory": false,
@@ -193,7 +193,7 @@
         },
         {
           "name": "inputExpression",
-          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request. Not required for GET requests",
+          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request (e.g ${payload.requestDetails}). Not required for GET requests",
           "type": "string",
           "mandatory": false,
           "keyValue": false,
@@ -338,7 +338,7 @@
       "requiredInputs": [
         {
           "name": "serviceUrl",
-          "description": "Direct HTTP/HTTPS URL of the target service (e.g., https://api.example.com). Use this when the service endpoint is known and accessible via a direct URL. Choose either serviceUrl OR discoveryPath, not both",
+          "description": "Direct HTTP/HTTPS URL of the target service (e.g., https://api.example.com). Use this when the service endpoint is known and accessible via a direct URL",
           "alias": "httpRootUrl",
           "type": "string",
           "mandatory": false,
@@ -359,7 +359,7 @@
         {
           "name": "httpMethod",
           "description": "HTTP Method of the request to be invoked on the REST service called by this task",
-          "alias": "httpServiceMethod",
+          "alias": "httpSendMethod",
           "type": "string",
           "mandatory": true,
           "keyValue": true,
@@ -429,7 +429,7 @@
         },
         {
           "name": "inputExpression",
-          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request. Not required for GET requests",
+          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request (e.g ${payload.requestDetails}). Not required for GET requests",
           "type": "string",
           "mandatory": false,
           "keyValue": false,

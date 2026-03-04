@@ -61,7 +61,7 @@ public class ElementNodeUnresolvedInput extends NodeUnresolvedInput {
                     "Input '%s' is required for element '%s' (%s) but is missing in your process description, therefore it was " +
                             (defaultValue != null
                                     ? "defaulted to '" + defaultValue
-                                    : "inferred from context to  be '" + getValue()) +
+                                    : "inferred from context to be '" + getValue()) +
                             "'. Please review the provided value.",
                     path, getNodeId(), getType());
             default -> "";// Not needed for other resolution strategies, as they will be filled in with inferred values by LLM

@@ -129,6 +129,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                 
                 inputValue = resolveVariableReads(inputValue, true, model, getComponentLibrary());
                 inputValue = resolveGlobalVariableReads(inputValue, globalVariableLibrary, true);
+                inputValue = stripQuotes(inputValue);
             }
 
             if (inputSource.equals(GLOBAL.toString())) {
