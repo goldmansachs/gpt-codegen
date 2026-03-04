@@ -1,4 +1,4 @@
-package org.rj.modelgen.forms.models.generation.pipeline;
+package org.rj.modelgen.ui.models.generation.pipeline;
 
 import org.rj.modelgen.llm.util.StringSerializable;
 
