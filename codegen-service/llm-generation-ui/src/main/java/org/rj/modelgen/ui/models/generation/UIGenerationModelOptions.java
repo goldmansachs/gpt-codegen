@@ -14,8 +14,9 @@ public class UIGenerationModelOptions<T extends UIGenerationModelOptions<T>> ext
         super();
     }
 
-    public static UIGenerationModelOptions<?> defaultOptions() {
-        return new UIGenerationModelOptions<>();
+    @SuppressWarnings("unchecked")
+    public static <T extends UIGenerationModelOptions<T>> T defaultOptions() {
+        return (T) new UIGenerationModelOptions<>();
     }
 }
 

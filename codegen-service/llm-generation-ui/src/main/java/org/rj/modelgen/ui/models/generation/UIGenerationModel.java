@@ -3,6 +3,8 @@ package org.rj.modelgen.ui.models.generation;
 import org.rj.modelgen.llm.context.provider.ContextProvider;
 import org.rj.modelgen.llm.model.ModelInterface;
 import org.rj.modelgen.llm.models.generation.GenerationModel;
+import org.rj.modelgen.llm.models.generation.GenerationResult;
+import org.rj.modelgen.llm.state.ModelInterfaceExecutionResult;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRules;
@@ -23,9 +25,9 @@ import java.util.Optional;
  * Implementations execute the UI generation which sanitizes input,
  * formalises intent, and converts to the target UI format.
  */
-public abstract class UIGenerationModel extends GenerationModel<UIGenerationResult> {
+public abstract class UIGenerationModel<R extends GenerationResult> extends GenerationModel<R> {
 
-    protected UIGenerationModel(Class<? extends UIGenerationModel> modelClass,
+    protected UIGenerationModel(Class<? extends UIGenerationModel<?>> modelClass,
                                 ModelInterface modelInterface,
                                 ModelData modelData) {
         super(modelClass, modelInterface, modelData.getStates(), modelData.getRules());
@@ -45,7 +47,7 @@ public abstract class UIGenerationModel extends GenerationModel<UIGenerationResu
     protected static ModelData buildBaseModelData(UIGenerationPromptGenerator promptGenerator,
                                                   ContextProvider contextProvider,
                                                   UIGenerationTargetConfig targetConfig,
-                                                  UIGenerationModelOptions options) {
+                                                  UIGenerationModelOptions<?> options) {
         final var modelOptions = Optional.ofNullable(options).orElseGet(UIGenerationModelOptions::defaultOptions);
         final var modelPromptGenerator = modelOptions.applyPromptGeneratorCustomization(promptGenerator);
 
@@ -105,14 +107,16 @@ public abstract class UIGenerationModel extends GenerationModel<UIGenerationResu
         return new ModelData(allStates, new ModelInterfaceTransitionRules(allRules));
     }
 
+    protected abstract R fromModelInterfaceExecutionResult(ModelInterfaceExecutionResult result);
+
     @Override
-    public Mono<UIGenerationResult> executeModel(String sessionId, String request, Map<String, Object> data) {
+    public Mono<R> executeModel(String sessionId, String request, Map<String, Object> data) {
         final var initialState = UIGenerationModelStates.StartUIGeneration.toString();
 
         UIGenerationModelInputPayload input = new UIGenerationModelInputPayload(sessionId, request);
         if (data != null) input.putAllIfAbsent(data);
 
         return this.execute(initialState, StandardSignals.SUCCESS, input)
-                .map(UIGenerationResult::fromModelExecutionResult);
+                .map(this::fromModelInterfaceExecutionResult);
     }
 }

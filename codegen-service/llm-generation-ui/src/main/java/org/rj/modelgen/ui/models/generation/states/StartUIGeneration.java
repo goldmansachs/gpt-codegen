@@ -1,6 +1,5 @@
 package org.rj.modelgen.ui.models.generation.states;
 
-import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.llm.statemodel.states.common.StartGeneration;
 
 /**
@@ -17,8 +16,4 @@ public class StartUIGeneration extends StartGeneration {
         return "Begin UI generation pipeline";
     }
 
-    @Override
-    public String getSuccessSignalId() {
-        return StandardSignals.SUCCESS;
-    }
 }

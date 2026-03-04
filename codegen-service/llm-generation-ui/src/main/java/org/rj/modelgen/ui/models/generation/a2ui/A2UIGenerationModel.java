@@ -3,12 +3,14 @@ package org.rj.modelgen.ui.models.generation.a2ui;
 import org.rj.modelgen.llm.context.provider.ContextProvider;
 import org.rj.modelgen.llm.context.provider.impl.DefaultContextProvider;
 import org.rj.modelgen.llm.model.ModelInterface;
+import org.rj.modelgen.llm.state.ModelInterfaceExecutionResult;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.ui.component.A2UIComponentLibrary;
 import org.rj.modelgen.ui.models.generation.UIGenerationModel;
+import org.rj.modelgen.ui.models.generation.UIGenerationResult;
 import org.rj.modelgen.ui.models.generation.UIGenerationTargetConfig;
 import org.rj.modelgen.ui.models.generation.data.UIGenerationModelInputPayload;
 import org.rj.modelgen.ui.models.generation.signals.UIGenerationSignals;
@@ -42,7 +44,7 @@ import java.util.List;
  *                                                       └────────────────────┘
  * </pre>
  */
-public class A2UIGenerationModel extends UIGenerationModel {
+public class A2UIGenerationModel extends UIGenerationModel<UIGenerationResult> {
 
     private static final int DEFAULT_VALIDATION_RETRY_LIMIT = 2;
 
@@ -115,6 +117,11 @@ public class A2UIGenerationModel extends UIGenerationModel {
         );
 
         return new UIGenerationTargetConfig(targetStates, targetRules);
+    }
+
+    @Override
+    protected UIGenerationResult fromModelInterfaceExecutionResult(ModelInterfaceExecutionResult result) {
+        return UIGenerationResult.fromModelExecutionResult(result);
     }
 
     public static A2UIModelOptions defaultOptions() {
