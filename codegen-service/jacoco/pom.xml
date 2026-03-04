@@ -26,7 +26,7 @@
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <artifactId>llm-generation-forms</artifactId>
+            <artifactId>llm-generation-ui</artifactId>
             <groupId>${project.parent.groupId}</groupId>
             <version>${project.parent.version}</version>
         </dependency>

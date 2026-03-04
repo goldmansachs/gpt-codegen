@@ -1,9 +1,8 @@
-package org.rj.modelgen.forms.component;
+package org.rj.modelgen.ui.component;
 
 import java.util.Map;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Definition of an A2UI function

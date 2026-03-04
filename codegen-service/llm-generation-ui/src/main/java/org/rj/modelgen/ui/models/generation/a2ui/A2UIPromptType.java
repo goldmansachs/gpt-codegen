@@ -1,13 +1,12 @@
-package org.rj.modelgen.ui.models.generation.pipeline;
+package org.rj.modelgen.ui.models.generation.a2ui;
 
 import org.rj.modelgen.llm.util.StringSerializable;
 
 /**
- * Prompt types used by each stage of the A2UI generation pipeline.
+ * A2UI-specific prompt types. Generic prompt types (SanitizeInput, FormaliseIntent) are
+ * defined in {@link org.rj.modelgen.ui.models.generation.UIGenerationModelPromptType}.
  */
-public enum A2UIPipelinePromptType implements StringSerializable {
-    SanitizeInput,
-    FormaliseIntent,
+public enum A2UIPromptType implements StringSerializable {
     ConvertToA2UI;
 
     @Override
@@ -15,4 +14,3 @@ public enum A2UIPipelinePromptType implements StringSerializable {
         return Character.toLowerCase(name().charAt(0)) + name().substring(1);
     }
 }
-

@@ -1,23 +1,21 @@
-package org.rj.modelgen.ui.models.generation.pipeline;
+package org.rj.modelgen.ui.models.generation.a2ui;
 
 import org.rj.modelgen.llm.util.StringSerializable;
 
 /**
- * Defines the states in the A2UI generation pipeline.
+ * Defines the A2UI-specific states in the UI generation pipeline.
+ * Generic states (Start, SanitizeInput, FormaliseIntent, Complete) are defined in
+ * {@link org.rj.modelgen.ui.models.generation.UIGenerationModelStates}.
  *
- * The pipeline follows three key stages:
- * 1. Sanitize - Correct spelling and grammar in user input without changing intent
- * 2. Formalise Intent - Structure the user's intent into a clear description of UI elements,
- *    including any elements that can be confidently inferred
- * 3. Convert to A2UI - Transform the structured intent into A2UI (Agent 2 UI) format
+ * <p>These states handle the A2UI-specific processing:</p>
+ * <ol>
+ *   <li><b>ConvertToA2UI</b> — Transform the structured intent into A2UI (Agent 2 UI) format</li>
+ *   <li><b>ValidateOutput</b> — Validate the generated A2UI output against the schema</li>
+ * </ol>
  */
-public enum A2UIPipelineStates implements StringSerializable {
-    StartUIGeneration,
-    SanitizeInput,
-    FormaliseIntent,
+public enum A2UIStates implements StringSerializable {
     ConvertToA2UI,
-    ValidateOutput,
-    Complete;
+    ValidateOutput;
 
     @Override
     public String toString() {
@@ -26,13 +24,8 @@ public enum A2UIPipelineStates implements StringSerializable {
 
     public String description() {
         return switch (this) {
-            case StartUIGeneration -> "Starting UI generation pipeline";
-            case SanitizeInput -> "Sanitizing user input (correcting spelling and grammar)";
-            case FormaliseIntent -> "Formalising user intent into structured UI elements";
             case ConvertToA2UI -> "Converting structured intent into A2UI format";
             case ValidateOutput -> "Validating the generated A2UI output";
-            case Complete -> "UI generation pipeline complete";
         };
     }
 }
-

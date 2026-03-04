@@ -1,7 +1,7 @@
-package org.rj.modelgen.forms.models.generation.states;
+package org.rj.modelgen.ui.models.generation.states;
 
-import org.rj.modelgen.forms.component.A2UIComponentLibrary;
-import org.rj.modelgen.forms.component.A2UIComponentLibrarySerializer;
+import org.rj.modelgen.ui.component.A2UIComponentLibrary;
+import org.rj.modelgen.ui.component.A2UIComponentLibrarySerializer;
 import org.rj.modelgen.llm.component.ComponentLibrarySelector;
 import org.rj.modelgen.llm.component.DefaultComponentLibrarySelector;
 import org.rj.modelgen.llm.context.Context;
@@ -30,7 +30,7 @@ import java.util.Optional;
  * @param <TPromptGenerator>   the prompt generator type used to resolve and render templates
  * @param <TComponentLibrary>  the A2UI component library type (must extend {@link A2UIComponentLibrary})
  */
-public class PrepareA2UIConversionRequest<TPromptGenerator extends TemplatedPromptGenerator<TPromptGenerator>, TComponentLibrary extends A2UIComponentLibrary>
+public class PrepareA2UIConversionRequest<TPromptGenerator extends TemplatedPromptGenerator<?>, TComponentLibrary extends A2UIComponentLibrary>
         extends PrepareModelGenerationRequest {
 
     private final TPromptGenerator promptGenerator;
@@ -56,7 +56,7 @@ public class PrepareA2UIConversionRequest<TPromptGenerator extends TemplatedProm
      * callers to control how the component library is filtered and rendered into the prompt.
      *
      * @param contextProvider            provides and manages conversation context
-     * @param promptGenerator            resolves prompt templates for the current pipeline stage
+     * @param promptGenerator            resolves prompt templates for the current a2ui stage
      * @param promptType                 selector key for the prompt template to use
      * @param componentLibrary           the full A2UI component catalog
      * @param componentLibrarySelector   filters the catalog per-request based on payload data

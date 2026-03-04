@@ -5,13 +5,13 @@ import org.rj.modelgen.bpmn.intrep.schema.BpmnIntermediateModelSchema;
 import org.rj.modelgen.bpmn.models.generation.BpmnGenerationExecutionModelOptions;
 import org.rj.modelgen.bpmn.models.generation.base.BpmnGenerationBaseExecutionModel;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
-import org.rj.modelgen.forms.models.generation.pipeline.FormPipelineGenerationModel;
+import org.rj.modelgen.ui.models.generation.a2ui.A2UIGenerationModel;
 import org.rj.modelgen.llm.integrations.openai.OpenAIModelInterface;
 import org.rj.modelgen.llm.util.Util;
 import org.rj.modelgen.service.beans.BpmnGenerationPrompt;
 import org.rj.modelgen.service.beans.BpmnGenerationSessionData;
-import org.rj.modelgen.service.beans.FormGenerationPrompt;
-import org.rj.modelgen.service.beans.FormGenerationSessionData;
+import org.rj.modelgen.service.beans.UIGenerationPrompt;
+import org.rj.modelgen.service.beans.UIGenerationSessionData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -33,18 +33,18 @@ import static org.rj.modelgen.llm.util.FuncUtil.doVoid;
 @RestController
 public class CodegenServiceApplication {
 	private final ConcurrentMap<String, BpmnGenerationSessionData> sessions;
-	private final ConcurrentMap<String, FormGenerationSessionData> formSessions;
+	private final ConcurrentMap<String, UIGenerationSessionData> uiSessions;
 	private final BpmnMultiLevelGenerationModel bpmnGenerationModel;
-	private final FormPipelineGenerationModel formGenerationModel;
+	private final A2UIGenerationModel uiGenerationModel;
 
 	@Value("${app.tokenPath}")
 	private String tokenPath;
 
 	public CodegenServiceApplication() {
 		this.sessions = new ConcurrentHashMap<>();
-		this.formSessions = new ConcurrentHashMap<>();
+		this.uiSessions = new ConcurrentHashMap<>();
 		this.bpmnGenerationModel = buildMultiPhaseModel();
-		this.formGenerationModel = buildFormGenerationModel();
+		this.uiGenerationModel = buildUIGenerationModel();
 	}
 
 	private BpmnGenerationBaseExecutionModel buildModel() {
@@ -67,14 +67,14 @@ public class CodegenServiceApplication {
 		return BpmnMultiLevelGenerationModel.create(modelInterface, options);
 	}
 
-	private FormPipelineGenerationModel buildFormGenerationModel() {
+	private A2UIGenerationModel buildUIGenerationModel() {
 		final var modelInterface = new OpenAIModelInterface.Builder()
 				.withApiKeyGenerator(() -> Util.loadStringResource(tokenPath))
 				.build();
 
-		final var options = FormPipelineGenerationModel.defaultOptions();
+		final var options = A2UIGenerationModel.defaultOptions();
 
-		return FormPipelineGenerationModel.create(modelInterface, options);
+		return A2UIGenerationModel.create(modelInterface, options);
 	}
 
 	// ---- BPMN Generation Endpoints ----
@@ -116,42 +116,42 @@ public class CodegenServiceApplication {
 				.map(__ -> getOrCreateSession(id));
 	}
 
-	// ---- Form Generation Endpoints ----
+	// ---- UI Generation Endpoints ----
 
-	@GetMapping("/api/forms/generation/session/{id}")
-	public FormGenerationSessionData getFormSessionData(
+	@GetMapping("/api/ui/generation/session/{id}")
+	public UIGenerationSessionData getUISessionData(
 			@PathVariable("id") String id
 	) {
-		return getFormSession(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No form session exists with that ID"));
+		return getUISession(id)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No UI session exists with that ID"));
 	}
 
-	@PutMapping("/api/forms/generation/session/{id}")
-	public FormGenerationSessionData getOrCreateFormSessionData(
+	@PutMapping("/api/ui/generation/session/{id}")
+	public UIGenerationSessionData getOrCreateUISessionData(
 			@PathVariable("id") String id
 	) {
-		return getOrCreateFormSession(id);
+		return getOrCreateUISession(id);
 	}
 
-	@PostMapping("/api/forms/generation/session/{id}/prompt")
-	public Mono<FormGenerationSessionData> formPrompt(
+	@PostMapping("/api/ui/generation/session/{id}/prompt")
+	public Mono<UIGenerationSessionData> uiPrompt(
 			@PathVariable("id") String id,
-			@RequestBody FormGenerationPrompt prompt
+			@RequestBody UIGenerationPrompt prompt
 	) {
-		return formGenerationModel.executeModel(id, prompt.getPrompt(), Map.of())
+		return uiGenerationModel.executeModel(id, prompt.getPrompt(), Map.of())
 				.doOnSuccess(result -> {
 					if (result.isSuccessful()) {
-						System.out.println("Form Result.success = " + result.isSuccessful());
-						System.out.println("Form Result.generated = " + result.getA2UIOutput());
-						System.out.println("Form Result.validation = " + String.join(", ", result.getFormValidationMessages()));
+						System.out.println("UI Result.success = " + result.isSuccessful());
+						System.out.println("UI Result.generated = " + result.getUIOutput());
+						System.out.println("UI Result.validation = " + String.join(", ", result.getUIValidationMessages()));
 					}
 					else {
-						System.err.println("Form generation failed with error: " + result.getLastError().orElse("<unknown error>"));
+						System.err.println("UI generation failed with error: " + result.getLastError().orElse("<unknown error>"));
 					}
 				})
-				.map(res -> Optional.ofNullable(res.getA2UIOutput()).orElse(""))
-				.map(generatedForm -> doVoid(generatedForm, form -> getOrCreateFormSession(id).setCurrentA2UIData(generatedForm)))
-				.map(__ -> getOrCreateFormSession(id));
+				.map(res -> Optional.ofNullable(res.getUIOutput()).orElse(""))
+				.map(generatedUI -> doVoid(generatedUI, form -> getOrCreateUISession(id).setCurrentUIData(generatedUI)))
+				.map(__ -> getOrCreateUISession(id));
 	}
 
 	// ---- BPMN Session Management ----
@@ -164,14 +164,14 @@ public class CodegenServiceApplication {
 		return sessions.computeIfAbsent(id, BpmnGenerationSessionData::new);
 	}
 
-	// ---- Form Session Management ----
+	// ---- UI Session Management ----
 
-	private Optional<FormGenerationSessionData> getFormSession(String id) {
-		return Optional.ofNullable(formSessions.getOrDefault(id, null));
+	private Optional<UIGenerationSessionData> getUISession(String id) {
+		return Optional.ofNullable(uiSessions.getOrDefault(id, null));
 	}
 
-	private FormGenerationSessionData getOrCreateFormSession(String id) {
-		return formSessions.computeIfAbsent(id, FormGenerationSessionData::new);
+	private UIGenerationSessionData getOrCreateUISession(String id) {
+		return uiSessions.computeIfAbsent(id, UIGenerationSessionData::new);
 	}
 
 	public static void main(String[] args) {

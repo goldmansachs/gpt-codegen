@@ -1,4 +1,4 @@
-package org.rj.modelgen.forms.models.generation.context;
+package org.rj.modelgen.ui.models.generation.context;
 
 import org.rj.modelgen.llm.prompt.PromptPlaceholder;
 import org.rj.modelgen.llm.prompt.StandardPromptPlaceholders;

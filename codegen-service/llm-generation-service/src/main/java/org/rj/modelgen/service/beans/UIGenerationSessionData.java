@@ -1,11 +1,11 @@
 package org.rj.modelgen.service.beans;
 
-public class FormGenerationSessionData {
+public class UIGenerationSessionData {
     private final String id;
     private String currentIntentData;
-    private String currentA2UIData;
+    private String currentUIData;
 
-    public FormGenerationSessionData(String id) {
+    public UIGenerationSessionData(String id) {
         this.id = id;
     }
 
@@ -13,12 +13,12 @@ public class FormGenerationSessionData {
         return id;
     }
 
-    public String getCurrentA2UIData() {
-        return currentA2UIData;
+    public String getCurrentUIData() {
+        return currentUIData;
     }
 
-    public void setCurrentA2UIData(String currentA2UIData) {
-        this.currentA2UIData = currentA2UIData;
+    public void setCurrentUIData(String currentUIData) {
+        this.currentUIData = currentUIData;
     }
 
     public String getCurrentIntentData() {

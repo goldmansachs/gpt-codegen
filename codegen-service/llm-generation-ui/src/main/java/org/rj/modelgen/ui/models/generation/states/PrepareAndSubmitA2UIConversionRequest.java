@@ -1,9 +1,9 @@
-package org.rj.modelgen.forms.models.generation.states;
+package org.rj.modelgen.ui.models.generation.states;
 
 
-import org.rj.modelgen.forms.component.A2UIComponentLibrary;
-import org.rj.modelgen.forms.component.A2UIComponentLibrarySerializer;
-import org.rj.modelgen.forms.models.generation.pipeline.FormPipelinePromptGenerator;
+import org.rj.modelgen.ui.component.A2UIComponentLibrary;
+import org.rj.modelgen.ui.component.A2UIComponentLibrarySerializer;
+import org.rj.modelgen.ui.models.generation.a2ui.A2UIPromptGenerator;
 import org.rj.modelgen.llm.component.ComponentLibrarySelector;
 import org.rj.modelgen.llm.component.DefaultComponentLibrarySelector;
 import org.rj.modelgen.llm.context.provider.ContextProvider;
@@ -23,7 +23,7 @@ public class PrepareAndSubmitA2UIConversionRequest
 
     public PrepareAndSubmitA2UIConversionRequest(
             ContextProvider contextProvider,
-            FormPipelinePromptGenerator promptGenerator,
+            A2UIPromptGenerator promptGenerator,
             StringSerializable promptType,
             A2UIComponentLibrary componentLibrary) {
         this(contextProvider, promptGenerator, promptType, componentLibrary,
@@ -33,7 +33,7 @@ public class PrepareAndSubmitA2UIConversionRequest
 
     public PrepareAndSubmitA2UIConversionRequest(
             ContextProvider contextProvider,
-            FormPipelinePromptGenerator promptGenerator,
+            A2UIPromptGenerator promptGenerator,
             StringSerializable promptType,
             A2UIComponentLibrary componentLibrary,
             ComponentLibrarySelector<A2UIComponentLibrary> componentLibrarySelector,
@@ -44,9 +44,9 @@ public class PrepareAndSubmitA2UIConversionRequest
                 buildSubmissionPhase());
     }
 
-    private static PrepareA2UIConversionRequest<FormPipelinePromptGenerator, A2UIComponentLibrary>
+    private static PrepareA2UIConversionRequest<A2UIPromptGenerator, A2UIComponentLibrary>
     buildPreparePhase(ContextProvider contextProvider,
-                      FormPipelinePromptGenerator promptGenerator,
+                      A2UIPromptGenerator promptGenerator,
                       StringSerializable promptType,
                       A2UIComponentLibrary componentLibrary,
                       ComponentLibrarySelector<A2UIComponentLibrary> componentLibrarySelector,

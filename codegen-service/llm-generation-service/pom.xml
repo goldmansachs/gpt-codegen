@@ -68,7 +68,7 @@
         </dependency>
         <dependency>
             <groupId>com.gs.workflow.ai.core</groupId>
-            <artifactId>llm-generation-forms</artifactId>
+            <artifactId>llm-generation-ui</artifactId>
             <version>${project.version}</version>
         </dependency>
 

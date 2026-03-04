@@ -1,4 +1,4 @@
-package org.rj.modelgen.forms.component;
+package org.rj.modelgen.ui.component;
 
 import org.rj.modelgen.llm.component.Component;
 

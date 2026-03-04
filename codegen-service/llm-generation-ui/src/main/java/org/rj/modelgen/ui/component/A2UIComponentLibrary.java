@@ -1,4 +1,4 @@
-package org.rj.modelgen.forms.component;
+package org.rj.modelgen.ui.component;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
