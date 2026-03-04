@@ -12,15 +12,15 @@
 	<description>Libraries and example services for LLM-augmented model generation and interpretation</description>
 
 	<modules>
-        <module>llm-generation-core</module>
+    <module>llm-generation-core</module>
 		<module>llm-generation-bpmn</module>
 		<module>llm-generation-forms</module>
 		<module>llm-generation-service</module>
 		<module>jacoco</module>
-        <module>llm-generation-models</module>
-    </modules>
+    <module>llm-generation-models</module>
+  </modules>
 
-    <properties>
+  <properties>
 		<maven.compiler.release>17</maven.compiler.release>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 

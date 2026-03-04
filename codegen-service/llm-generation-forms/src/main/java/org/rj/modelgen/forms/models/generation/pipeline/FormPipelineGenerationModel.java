@@ -117,8 +117,6 @@ public class FormPipelineGenerationModel extends GenerationModel<FormGenerationR
         //    Uses the A2UI component library for structured schema injection into the prompt.
         final var a2uiLibrary = A2UIComponentLibrary.defaultLibrary();
 
-
-
         final var stateConvertToA2UI = new PrepareAndSubmitA2UIConversionRequest(
                 contextProvider, modelPromptGenerator, FormPipelinePromptType.ConvertToA2UI, a2uiLibrary)
                 .withResponseOutputKey(FormGenerationModelInputPayload.A2UI_OUTPUT)
@@ -192,4 +190,3 @@ public class FormPipelineGenerationModel extends GenerationModel<FormGenerationR
         return FormPipelineModelOptions.defaultOptions();
     }
 }
-
