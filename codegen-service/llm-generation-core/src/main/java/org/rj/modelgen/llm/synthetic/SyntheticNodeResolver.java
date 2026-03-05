@@ -49,11 +49,9 @@ public class SyntheticNodeResolver<TNodeId,
     public void unresolve(String type, TNode node, TModel model) {
         if (config == null) return;
 
-        final var syntheticNodeClass = config.getNode(type);
-        if (syntheticNodeClass.isEmpty()) return;
-
         try {
-            final var syntheticNode = syntheticNodeClass.get().getDeclaredConstructor().newInstance();
+            final var syntheticNodeClass = (Class<? extends TSyntheticNode>) Class.forName(type);
+            final var syntheticNode = syntheticNodeClass.getDeclaredConstructor().newInstance();
             syntheticNode.unresolve(model, node);
         }
         catch (Exception ex) {
