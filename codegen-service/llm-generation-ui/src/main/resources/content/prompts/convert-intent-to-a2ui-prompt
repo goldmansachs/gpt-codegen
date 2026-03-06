@@ -59,6 +59,6 @@ Generate the output as a JSONL stream:
 - Line 3 (if needed): updateDataModel message to initialize form/data state
 
 === USER REQUEST ===
-${sanitizedRequest}
+${formalisedIntent}
 
 Generate the A2UI JSONL output now.

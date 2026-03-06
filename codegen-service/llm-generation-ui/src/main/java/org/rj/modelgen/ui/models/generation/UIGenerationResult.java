@@ -33,7 +33,7 @@ public class UIGenerationResult extends GenerationResult {
         );
     }
 
-    private UIGenerationResult(boolean successful, String formalisedIntent, String uiOutput,
+    protected UIGenerationResult(boolean successful, String formalisedIntent, String uiOutput,
                                  List<String> uiValidationMessages, ModelInterfaceExecutionResult executionResults) {
         this.successful = successful;
         this.formalisedIntent = formalisedIntent;
