@@ -45,6 +45,7 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
                     .mapPrefix("catalog.json", "classpath:schemas/basic_catalog.json")
                     .mapPrefix("common_types.json", "classpath:schemas/common_types.json")
             );
+
         });
 
         this.primarySchema = schemaRegistry.getSchema(SchemaLocation.of("classpath:schemas/server_to_client.json"));
