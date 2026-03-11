@@ -53,6 +53,10 @@ public class ModelInterfaceStateMachineAuditLog {
     }
 
     private String getAppropriateFileExtension(String content) {
+        if (isJsonLines(content)) {
+            return "jsonl";
+        }
+
         if (Util.tryParseJson(content).isOk()) {
             return "json";
         }
@@ -60,6 +64,17 @@ public class ModelInterfaceStateMachineAuditLog {
         return "txt";
     }
 
+    private boolean isJsonLines(String content) {
+        if (content == null || content.isBlank()) return false;
+
+        final var lines = content.lines()
+                .filter(line -> !line.isBlank())
+                .toList();
+
+        if (lines.isEmpty()) return false;
+
+        return lines.stream().allMatch(line -> line.startsWith("{") && line.endsWith("}"));
+    }
 
     public String getRecordLocation() {
         return recordLocation;

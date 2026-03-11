@@ -16,10 +16,10 @@ public class A2UIComponentLibrarySerializer implements ComponentLibrarySerialize
         final var componentSection = serializeComponents(library.getComponents());
         final var functionSection = serializeFunctions(library.getFunctions());
 
-        return "--- COMPONENT CATALOG ---\n"
+        return "--- AVAILABLE COMPONENTS ---\n"
                 + "Available components (use the \"component\" field to specify type):\n\n"
                 + componentSection
-                + "\n\n--- FUNCTION CATALOG ---\n"
+                + "\n\n--- AVAILABLE FUNCTIONS ---\n"
                 + "Available functions (used in FunctionCall objects):\n\n"
                 + functionSection;
     }

@@ -1,5 +1,6 @@
 package org.rj.modelgen.ui.models.generation.states;
 
+import org.rj.modelgen.llm.beans.Prompt;
 import org.rj.modelgen.ui.component.A2UIComponentLibrary;
 import org.rj.modelgen.ui.component.A2UIComponentLibrarySerializer;
 import org.rj.modelgen.llm.component.ComponentLibrarySelector;
