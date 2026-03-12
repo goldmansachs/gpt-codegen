@@ -167,8 +167,8 @@ public class ValidateBpmnModel {
                     invalidMessages.add(new IntermediateModelValidationError(String.format("Node '%s' has a primitive type input '%s' but the input definition is an object type with properties", node.getId(), path), node.getId()));
                     continue;
                 }
-                // Input value can be empty only if its default value is defined as empty
-                if (input.getValue().isEmpty() && (inputDefinition.getDefaultValue() == null || !inputDefinition.getDefaultValue().isEmpty())) {
+                // Input value can be empty only if it's explicitly provided as empty string in the runbook or if its default value is empty string
+                if (input.getValue().isEmpty() && !input.getIsProvided() && (inputDefinition.getDefaultValue() == null || !inputDefinition.getDefaultValue().isEmpty())) {
                     invalidMessages.add(new IntermediateModelValidationError(String.format("Node '%s' has an empty value for input '%s'", node.getId(), path), node.getId()));
                 }
                 // If the input is enum and constant, it must have a valid value
