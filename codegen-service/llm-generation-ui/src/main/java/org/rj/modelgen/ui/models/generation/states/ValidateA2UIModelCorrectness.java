@@ -16,10 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Validates the correctness of the generated A2UI output.
@@ -27,26 +24,45 @@ import java.util.Set;
  */
 public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
     private static final Logger LOG = LoggerFactory.getLogger(ValidateA2UIModelCorrectness.class);
+    private static final String BASIC_CATALOG_RESOURCE = "classpath:schemas/basic_catalog.json";
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Schema primarySchema;
 
-    public ValidateA2UIModelCorrectness() throws Exception {
+    /**
+     * Default catalog URI prefix mappings used when no custom catalogs are provided.
+     */
+    private static final Map<String, String> DEFAULT_CATALOG_MAPPINGS = Map.of(
+            "https://a2ui.org/specification/v0_9/basic_catalog.json", BASIC_CATALOG_RESOURCE,
+            "https://a2ui.org/specification/v0_9/catalog.json",       BASIC_CATALOG_RESOURCE,
+            "basic_catalog.json",                                      BASIC_CATALOG_RESOURCE,
+            "catalog.json",                                            BASIC_CATALOG_RESOURCE,
+            "https://a2ui.org/specification/v0_9/common_types.json",  "classpath:schemas/common_types.json",
+            "common_types.json",                                       "classpath:schemas/common_types.json"
+    );
+
+    /**
+     * Default constructor — uses the standard A2UI catalog mappings.
+     */
+    public ValidateA2UIModelCorrectness() {
+        this(DEFAULT_CATALOG_MAPPINGS);
+    }
+
+    /**
+     * Constructor that merges additional custom catalog URI mappings on top of the defaults.
+     * Subclasses can call this to register extra or replacement catalog schemas.
+     *
+     * @param additionalCatalogMappings extra URI prefix → classpath resource mappings
+     */
+    protected ValidateA2UIModelCorrectness(Map<String, String> additionalCatalogMappings) {
         super(ValidateA2UIModelCorrectness.class);
 
-        SchemaRegistry schemaRegistry = SchemaRegistry.withDefaultDialect(Dialects.getDraft202012(), builder -> {
-            // Register URI Mappings (Indirection)
-            // Maps the logical URI used in $ref to the physical classpath location
-            builder.schemaIdResolvers(resolvers -> resolvers
-                    .mapPrefix("https://a2ui.org/specification/v0_9/basic_catalog.json", "classpath:schemas/basic_catalog.json")
-                    .mapPrefix("https://a2ui.org/specification/v0_9/common_types.json", "classpath:schemas/common_types.json")
-                    .mapPrefix("https://a2ui.org/specification/v0_9/catalog.json", "classpath:schemas/basic_catalog.json")
-                    .mapPrefix("basic_catalog.json", "classpath:schemas/basic_catalog.json")
-                    .mapPrefix("catalog.json", "classpath:schemas/basic_catalog.json")
-                    .mapPrefix("common_types.json", "classpath:schemas/common_types.json")
-            );
+        final Map<String, String> mergedMappings = new LinkedHashMap<>(DEFAULT_CATALOG_MAPPINGS);
+        mergedMappings.putAll(additionalCatalogMappings);
 
-        });
+        SchemaRegistry schemaRegistry = SchemaRegistry.withDefaultDialect(Dialects.getDraft202012(), builder ->
+                builder.schemaIdResolvers(resolvers -> mergedMappings.forEach(resolvers::mapPrefix))
+        );
 
         this.primarySchema = schemaRegistry.getSchema(SchemaLocation.of("classpath:schemas/server_to_client.json"));
     }

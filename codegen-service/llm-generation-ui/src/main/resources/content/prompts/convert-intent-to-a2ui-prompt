@@ -24,7 +24,9 @@ No additional properties are allowed on any envelope message beyond "version" an
 - CheckRule: {"condition": <DynamicBoolean>, "message": "<error string>"}. The "condition" field wraps the function call; the "message" must be a plain string.
 - AccessibilityAttributes: {"label": <DynamicString>, "description": <DynamicString>}.
 
-${CATALOG_CONTENT}
+```
+${COMPONENT_LIBRARY}
+```
 
 All validation functions return boolean. Formatting functions return string. openUrl returns void.
 
@@ -102,16 +104,19 @@ Generate the output as a JSONL stream:
 - Line 4 (only if explicitly requested): deleteSurface message
 
 === USER REQUEST ===
+```
 ${formalisedIntent}
+```
 
 <#if modelValidationMessages?has_content>
 === PREVIOUS GENERATION VALIDATION ERRORS ===
 The previous generation attempt failed validation. You MUST fix the following issues in your new output:
 
+```
 ${modelValidationMessages}
+```
 
 Carefully review each error above and ensure your new output addresses all of them before generating.
-
 </#if>
 
 Generate the A2UI JSONL output now.

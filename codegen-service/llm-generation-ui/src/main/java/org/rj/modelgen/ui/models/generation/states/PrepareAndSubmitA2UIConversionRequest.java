@@ -3,6 +3,7 @@ package org.rj.modelgen.ui.models.generation.states;
 
 import org.rj.modelgen.ui.component.A2UIComponentLibrary;
 import org.rj.modelgen.ui.component.A2UIComponentLibrarySerializer;
+import org.rj.modelgen.ui.models.generation.UIGenerationPromptGenerator;
 import org.rj.modelgen.ui.models.generation.a2ui.A2UIPromptGenerator;
 import org.rj.modelgen.llm.component.ComponentLibrarySelector;
 import org.rj.modelgen.llm.component.DefaultComponentLibrarySelector;
@@ -15,7 +16,7 @@ import org.rj.modelgen.llm.util.StringSerializable;
  * Specialized prepare-and-submit state for A2UI conversion that injects the A2UI component
  * library into the prompt context via a structured serializer.
  *
- * <p>This allows the component catalog to be filtered per-request (via the selector) and
+ * <p>This allows the component library to be filtered per-request (via the selector) and
  * serialized in a format appropriate for the current generation context.</p>
  */
 public class PrepareAndSubmitA2UIConversionRequest
@@ -28,7 +29,7 @@ public class PrepareAndSubmitA2UIConversionRequest
             A2UIComponentLibrary componentLibrary) {
         this(contextProvider, promptGenerator, promptType, componentLibrary,
                 new DefaultComponentLibrarySelector<>(),
-                new A2UIComponentLibrarySerializer());
+                new A2UIComponentLibrarySerializer<>());
     }
 
     public PrepareAndSubmitA2UIConversionRequest(
@@ -37,20 +38,20 @@ public class PrepareAndSubmitA2UIConversionRequest
             StringSerializable promptType,
             A2UIComponentLibrary componentLibrary,
             ComponentLibrarySelector<A2UIComponentLibrary> componentLibrarySelector,
-            A2UIComponentLibrarySerializer componentLibrarySerializer) {
+            A2UIComponentLibrarySerializer<A2UIComponentLibrary> componentLibrarySerializer) {
         super(PrepareAndSubmitA2UIConversionRequest.class,
                 buildPreparePhase(contextProvider, promptGenerator, promptType,
                         componentLibrary, componentLibrarySelector, componentLibrarySerializer),
                 buildSubmissionPhase());
     }
 
-    private static PrepareA2UIConversionRequest<A2UIPromptGenerator, A2UIComponentLibrary>
+    private static PrepareA2UIConversionRequest<UIGenerationPromptGenerator, A2UIComponentLibrary>
     buildPreparePhase(ContextProvider contextProvider,
                       A2UIPromptGenerator promptGenerator,
                       StringSerializable promptType,
                       A2UIComponentLibrary componentLibrary,
                       ComponentLibrarySelector<A2UIComponentLibrary> componentLibrarySelector,
-                      A2UIComponentLibrarySerializer componentLibrarySerializer) {
+                      A2UIComponentLibrarySerializer<A2UIComponentLibrary> componentLibrarySerializer) {
         return new PrepareA2UIConversionRequest<>(
                 contextProvider, promptGenerator, promptType,
                 componentLibrary, componentLibrarySelector, componentLibrarySerializer);

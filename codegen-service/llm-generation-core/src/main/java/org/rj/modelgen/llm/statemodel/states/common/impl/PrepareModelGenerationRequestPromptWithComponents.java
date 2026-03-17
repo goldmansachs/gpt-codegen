@@ -12,21 +12,19 @@ import org.rj.modelgen.llm.statemodel.states.common.PrepareModelGenerationReques
 
 import java.util.List;
 
-import static org.rj.modelgen.llm.prompt.StandardPromptPlaceholders.CATALOG_CONTENT;
-
 public abstract class PrepareModelGenerationRequestPromptWithComponents<TComponentLibrary extends ComponentLibrary<?>> extends PrepareModelGenerationRequest {
     private final TComponentLibrary componentLibrary;
     private final ComponentLibrarySelector<TComponentLibrary> componentLibrarySelector;
     private final ComponentLibrarySerializer<TComponentLibrary> componentLibrarySerializer;
 
-    public PrepareModelGenerationRequestPromptWithComponents(ModelSchema modelSchema, ContextProvider contextProvider, TComponentLibrary componentLibrary,
+    protected PrepareModelGenerationRequestPromptWithComponents(ModelSchema modelSchema, ContextProvider contextProvider, TComponentLibrary componentLibrary,
                                                              ComponentLibrarySelector<TComponentLibrary> componentLibrarySelector,
                                                              ComponentLibrarySerializer<TComponentLibrary> componentLibrarySerializer) {
         this(PrepareModelGenerationRequestPromptWithComponents.class, modelSchema, contextProvider, componentLibrary,
                 componentLibrarySelector,componentLibrarySerializer);
     }
 
-    public PrepareModelGenerationRequestPromptWithComponents(Class<? extends PrepareModelGenerationRequest> cls, ModelSchema modelSchema, ContextProvider contextProvider,
+    protected PrepareModelGenerationRequestPromptWithComponents(Class<? extends PrepareModelGenerationRequest> cls, ModelSchema modelSchema, ContextProvider contextProvider,
                                                              TComponentLibrary componentLibrary, ComponentLibrarySelector<TComponentLibrary> componentLibrarySelector,
                                                              ComponentLibrarySerializer<TComponentLibrary> componentLibrarySerializer) {
         super(cls, modelSchema, contextProvider);
@@ -39,11 +37,9 @@ public abstract class PrepareModelGenerationRequestPromptWithComponents<TCompone
     protected List<PromptSubstitution> generateAdditionalPromptSubstitutions(ModelSchema modelSchema, Context context, String request) {
         final var filteredLibrary = componentLibrarySelector.getFilteredLibrary(componentLibrary, getPayload());
         final var serializedLibrary = componentLibrarySerializer.serialize(filteredLibrary);
-        final String catalogContent = componentLibrarySerializer.serialize(componentLibrary);
 
         return List.of(
-                new PromptSubstitution(StandardPromptPlaceholders.COMPONENT_LIBRARY, serializedLibrary),
-                new PromptSubstitution(CATALOG_CONTENT, catalogContent)
+                new PromptSubstitution(StandardPromptPlaceholders.COMPONENT_LIBRARY, serializedLibrary)
         );
     }
 

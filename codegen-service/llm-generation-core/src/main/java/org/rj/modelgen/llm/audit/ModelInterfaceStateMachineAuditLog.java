@@ -73,7 +73,7 @@ public class ModelInterfaceStateMachineAuditLog {
 
         if (lines.isEmpty()) return false;
 
-        return lines.stream().allMatch(line -> line.startsWith("{") && line.endsWith("}"));
+        return lines.size() > 1 && lines.stream().allMatch(line -> line.startsWith("{") && line.endsWith("}"));
     }
 
     public String getRecordLocation() {

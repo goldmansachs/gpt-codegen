@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
  * Serializes the A2UI component library (components + functions) into a single
  * string block suitable for injection into the prompt via a single substitution placeholder.
  */
-public class A2UIComponentLibrarySerializer implements ComponentLibrarySerializer<A2UIComponentLibrary> {
+public class A2UIComponentLibrarySerializer<TComponentLibrary extends A2UIComponentLibrary> implements ComponentLibrarySerializer<TComponentLibrary> {
 
     @Override
     public String serialize(A2UIComponentLibrary library) {
