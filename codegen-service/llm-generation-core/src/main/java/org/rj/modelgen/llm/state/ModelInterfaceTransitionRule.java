@@ -79,6 +79,11 @@ public class ModelInterfaceTransitionRule {
     }
 
     @JsonIgnore
+    public boolean matchesCurrentOrNext(ModelInterfaceState state) {
+        return  this.currentState.isSameStateType(state) || this.nextState.isSameStateType(state);
+    }
+
+    @JsonIgnore
     public boolean isValid() {
         return  currentState != null &&
                 outputSignalId != null &&

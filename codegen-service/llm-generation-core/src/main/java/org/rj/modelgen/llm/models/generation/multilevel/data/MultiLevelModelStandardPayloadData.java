@@ -11,7 +11,9 @@ public enum MultiLevelModelStandardPayloadData {
     AddPlaceholdersForUnknownActions,
     SerializedReverseRender,
     ReverseRenderedIntermediateModel,
-    InitialValidations;
+    InitialValidations,
+    ModelFactory,
+    UIComponents;
 
     @Override
     public String toString() {

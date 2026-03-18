@@ -398,6 +398,9 @@ public class ValidateBpmnModel {
     private void validateScriptInput(ElementNode node, ElementNodeInput input, String inputPath, Set<PayloadVariable> startingPayload, Set<PayloadVariable> nodePayload) {
         String script = input.getValue();
 
+        // Replace literal "\n" sequences with actual newlines; LLM may generate scripts with literal escape sequences for readability which are not valid in Groovy source
+        script = script.replace("\\n", "\n");
+
         // Check for variable writes
         List<PayloadVariable> writtenVariables = retrieveWriteVariables(script);
         script = resolveVariableWrites(script);

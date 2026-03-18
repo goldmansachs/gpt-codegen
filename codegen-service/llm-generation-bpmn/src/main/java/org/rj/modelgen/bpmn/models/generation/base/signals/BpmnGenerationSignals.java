@@ -7,6 +7,7 @@ public enum BpmnGenerationSignals {
     ValidateLlmResponse,
     IntermediateModelIsInvalid,
     IntermediateModelIsValid,
+    SkipUIGeneration,
     GenerateBpmnXmlFromLlmResponse,
     ValidateBpmnXml,
     CompleteGeneration

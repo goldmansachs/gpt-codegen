@@ -7,6 +7,7 @@ import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
 import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnUIComponent;
 import org.rj.modelgen.bpmn.intrep.model.assets.ElementNodeUnresolvedInput;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
 import org.rj.modelgen.llm.component.ComponentInputResolutionStrategy;
@@ -63,7 +64,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                 () -> eliminateDuplicateConnections(model),
                 () -> identifyOrphanedSubgraphs(model, node -> !NODES_TO_IGNORE.contains(node.getElementType())),
                 () -> resolveInputs(model),
-                () -> identifyUnresolvableInputs(model, modelAssets)
+                () -> updateModelAssets(model, modelAssets)
         );
 
         return execute(model, modelAssets, operations);
@@ -140,7 +141,16 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
         }
     }
 
-    private void identifyUnresolvableInputs(BpmnIntermediateModel model, BpmnModelAssets modelAssets) {
+    private void updateModelAssets(BpmnIntermediateModel model, BpmnModelAssets modelAssets) {
+        List<BpmnUIComponent> uiComponents = getPayload().get(MultiLevelModelStandardPayloadData.UIComponents);
+        List<ElementNodeUnresolvedInput> unresolvedInputs = identifyUnresolvedInputs(model);
+
+        modelAssets.setUiComponents(uiComponents);
+        modelAssets.setUnresolvedInputs(unresolvedInputs);
+        getPayload().put(StandardModelData.ModelAssets.toString(), modelAssets);
+    }
+
+    private List<ElementNodeUnresolvedInput> identifyUnresolvedInputs(BpmnIntermediateModel model) {
         List<ElementNodeUnresolvedInput> unresolvedInputs = new ArrayList<>();
         for (final var node : model.getNodes()) {
             if (node.getInputs() == null) continue;
@@ -150,16 +160,16 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
 
             for (final var input : node.getInputs()) {
                 String path = input.getName();
-                identifyUnresolvableInputsProperties(component.get(), node, input, path, unresolvedInputs);
+                identifyUnresolvedInputsProperties(component.get(), node, input, path, unresolvedInputs);
             }
         }
-        modelAssets.setUnresolvedInputs(unresolvedInputs);
+        return unresolvedInputs;
     }
 
-    private void identifyUnresolvableInputsProperties(BpmnComponent component, ElementNode node, ElementNodeInput input, String path, List<ElementNodeUnresolvedInput> unresolvedInputs) {
+    private void identifyUnresolvedInputsProperties(BpmnComponent component, ElementNode node, ElementNodeInput input, String path, List<ElementNodeUnresolvedInput> unresolvedInputs) {
         if (input.hasProperties()) {
             for (var prop : input.getProperties()) {
-                identifyUnresolvableInputsProperties(component, node, prop, path + "." + prop.getName(), unresolvedInputs);
+                identifyUnresolvedInputsProperties(component, node, prop, path + "." + prop.getName(), unresolvedInputs);
             }
         } else if (!input.getIsProvided()) {
             var inputDefinition = component.getInputVariable(input.getName());

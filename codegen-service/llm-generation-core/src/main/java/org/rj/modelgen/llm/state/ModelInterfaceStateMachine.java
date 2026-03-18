@@ -123,6 +123,11 @@ public class ModelInterfaceStateMachine {
         final var currentState = new ModelCustomizationData(this, new ModelData(this.states.values().stream().toList(), this.rules));
         final var changes = modification.apply(currentState);
 
+        // Replace states
+        if (changes.getReplaceState() != null) {
+            changes.getReplaceState().forEach(change -> replaceState(change.getLeft(), change.getRight()));
+        }
+
         // Insert states between existing states first, since subsequent changes may change existing states
         if (changes.getInsertStateAfter() != null) {
             changes.getInsertStateAfter().forEach(change -> insertStateAfter(change.getLeft(), change.getRight()));
@@ -182,6 +187,25 @@ public class ModelInterfaceStateMachine {
            final var postNode = preConnection.getNextState();
            preConnection.setNextState(state);                                                        // Connect A->X
            addRule(new ModelInterfaceTransitionRule(state, state.getSuccessSignalId(), postNode));   // Connect X->B
+        });
+    }
+
+    private void replaceState(ModelInterfaceState state, String replaceStateId) {
+        if (state == null || StringUtils.isEmpty(replaceStateId)) return;
+
+        final var existingState = states.getOrDefault(replaceStateId, null);
+        if (existingState == null) return;
+
+        // Replace the state
+        addState(state);
+
+        // If the existingState has any ingoing/outgoing connections, reroute through the new node (A->X->B)
+        rules.findAll(existingState).forEach(existingRule -> {
+            final var preNode = existingRule.getCurrentState().isSameStateType(existingState) ? state : existingRule.getCurrentState();
+            final var postNode = existingRule.getNextState().isSameStateType(existingState)   ? state : existingRule.getNextState();
+
+            existingRule.setCurrentState(preNode);
+            existingRule.setNextState(postNode);
         });
     }
 

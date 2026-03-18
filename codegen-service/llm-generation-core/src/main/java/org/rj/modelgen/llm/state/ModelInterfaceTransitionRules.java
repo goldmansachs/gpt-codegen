@@ -53,6 +53,14 @@ public class ModelInterfaceTransitionRules {
     }
 
     @JsonIgnore
+    public List<ModelInterfaceTransitionRule> findAll(ModelInterfaceState state) {
+        if (state == null) return List.of();
+        return this.rules.stream()
+                .filter(rule -> rule.matchesCurrentOrNext(state))
+                .toList();
+    }
+
+    @JsonIgnore
     public boolean hasRule(ModelInterfaceState currentState, String outputSignal) {
         return find(currentState, outputSignal).isPresent();
     }

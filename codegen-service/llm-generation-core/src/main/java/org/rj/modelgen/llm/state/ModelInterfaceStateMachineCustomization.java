@@ -13,6 +13,7 @@ public class ModelInterfaceStateMachineCustomization {
     private List<ModelInterfaceTransitionRule.Reference> newRules;
     private List<ModelInterfaceTransitionRule.Reference> removedRules;
     private List<Pair<ModelInterfaceState, String>> insertStateAfter;
+    private List<Pair<ModelInterfaceState, String>> replaceState;
 
     public ModelInterfaceStateMachineCustomization() { }
 
@@ -61,6 +62,23 @@ public class ModelInterfaceStateMachineCustomization {
         insertStateAfter.add(ImmutablePair.of(state, insertAfter));
 
         return this;
+    }
+
+    public ModelInterfaceStateMachineCustomization withReplacedState(ModelInterfaceState state, String oldState) {
+        if (state == null || StringUtils.isEmpty(oldState)) return this;
+
+        if (replaceState == null) replaceState = new ArrayList<>();
+        replaceState.add(ImmutablePair.of(state, oldState));
+
+        return this;
+    }
+
+    public List<Pair<ModelInterfaceState, String>> getReplaceState() {
+        return replaceState;
+    }
+
+    public void setReplaceState(List<Pair<ModelInterfaceState, String>> replaceState) {
+        this.replaceState = replaceState;
     }
 
     public List<ModelInterfaceState> getNewStates() {
