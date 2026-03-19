@@ -15,7 +15,7 @@ public class BpmnComponentLibraryDetailLevelSelector implements ComponentLibrary
     public BpmnComponentLibrary getFilteredLibrary(BpmnComponentLibrary baseLibrary, ModelInterfacePayload payload) {
         final var model = getLatestHighLevelModel(payload);
 
-        // Filter down to only the types in use in the high level model
+        // Filter down to only the type in use in the high level model
         final var typesInUse = model.getNodes().stream()
                 .map(ElementHighLevelNode::getElementType)
                 .collect(Collectors.toSet());

@@ -180,9 +180,9 @@ public class ValidateBpmnModel {
                     invalidMessages.add(new IntermediateModelValidationError(String.format("Node '%s' has an input '%s' which tries to use a global variable '%s' that does not exist in the global variable library",
                             node.getId(), path, input.getValue()), node.getId()));
                 }
-                // Input's source type must be among the component allowed source types
+                // Input's source type must be among the component allowed source type
                 if (!inputDefinition.isAllowedInputSourceType(input.getVariableSource())) {
-                    invalidMessages.add(new IntermediateModelValidationError(String.format("Node '%s' has an input '%s' with invalid variable source type '%s'. Allowed source types for this input are: %s",
+                    invalidMessages.add(new IntermediateModelValidationError(String.format("Node '%s' has an input '%s' with invalid variable source type '%s'. Allowed source type for this input are: %s",
                             node.getId(), path, input.getVariableSource(), String.join(", ", inputDefinition.getAllowedInputSourceTypes().stream().map(BpmnComponentInputSourceType::toString).toList())), node.getId()));
                 }
             }

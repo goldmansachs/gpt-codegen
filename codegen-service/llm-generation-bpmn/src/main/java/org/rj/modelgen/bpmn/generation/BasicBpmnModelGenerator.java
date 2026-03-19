@@ -173,7 +173,7 @@ public class BasicBpmnModelGenerator {
     private FlowNode addElement(ElementNode element, Process process) {
         if (element == null) throw new RuntimeException("Cannot generate definition for null BPMN element");
 
-        // Not differentiating between all element types for now
+        // Not differentiating between all element type for now
         final var type = element.getElementType();
         final var generatedElement = switch (type)
         {

@@ -10,7 +10,7 @@ import java.util.*;
 
 /**
  * Component library representing the A2UI Protocol v0.9 catalog of available
- * components, common types, functions, and structural rules.
+ * components, common type, functions, and structural rules.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class A2UIComponentLibrary extends ComponentLibrary<A2UIComponent> {

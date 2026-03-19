@@ -41,7 +41,7 @@ public class InitializeBpmnData extends ExecuteLogic {
             getPayload().put(PROMPT_RELEVANT_GLOBAL_VARIABLES.getValue(), promptRelevantGlobalVariables.defaultSerialize());
         }
 
-        // Enable use of placeholders for unknown action types if required
+        // Enable use of placeholders for unknown action type if required
         if (options.shouldAddPlaceholderForUnknownComponents()) {
             getPayload().put(MultiLevelModelStandardPayloadData.AddPlaceholdersForUnknownActions, true);
         }

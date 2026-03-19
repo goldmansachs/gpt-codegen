@@ -3,7 +3,7 @@ package org.rj.modelgen.ui.models.generation.a2ui;
 import org.rj.modelgen.llm.util.StringSerializable;
 
 /**
- * A2UI-specific prompt types. Generic prompt types (SanitizeInput, FormaliseIntent) are
+ * A2UI-specific prompt type. Generic prompt type (SanitizeInput, FormaliseIntent) are
  * defined in {@link org.rj.modelgen.ui.models.generation.UIGenerationModelPromptType}.
  */
 public enum A2UIPromptType implements StringSerializable {

@@ -256,7 +256,7 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
 
             System.exit(messages.isEmpty() ? 0 : 1);
         } catch (Exception e) {
-            System.err.println("Failed to initialise validator: " + e.getMessage());
+            LOG.error("Failed to initialise validator: " + e.getMessage());
             System.exit(2);
         }
     }
