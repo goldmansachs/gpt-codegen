@@ -1,13 +1,25 @@
 package org.rj.modelgen.ui.model.a2ui.component;
 
+import org.json.JSONObject;
 import org.rj.modelgen.ui.model.a2ui.A2UIComponent;
 import org.rj.modelgen.ui.model.a2ui.type.ChildList;
 import org.rj.modelgen.ui.model.a2ui.util.A2UIComponentVisitor;
+import org.rj.modelgen.ui.model.a2ui.util.DynamicTypeDeserializer;
 
 public class RowComponent extends A2UIComponent<RowComponent> {
+    private static final String COMPONENT_TYPE = "Row";
+
     ChildList children;    // required - array of ComponentId strings or a template object
     String justify;        // optional - enum: center, end, spaceAround, spaceBetween, spaceEvenly, start, stretch
     String align;          // optional - enum: start, center, end, stretch
+
+    private RowComponent(String id, ChildList children, String justify, String align) {
+        super(COMPONENT_TYPE);
+        this.setId(id);
+        this.children = children;
+        this.justify = justify;
+        this.align = align;
+    }
 
     public String getAlign() {
         return align;
@@ -31,6 +43,14 @@ public class RowComponent extends A2UIComponent<RowComponent> {
 
     public void setChildren(ChildList children) {
         this.children = children;
+    }
+
+    public static RowComponent parse(JSONObject json) {
+        String id = json.getString("id");
+        ChildList children = DynamicTypeDeserializer.deserializeChildList(json.get("children"));
+        String justify = json.optString("justify", null);
+        String align = json.optString("align", null);
+        return new RowComponent(id, children, justify, align);
     }
 
     @Override

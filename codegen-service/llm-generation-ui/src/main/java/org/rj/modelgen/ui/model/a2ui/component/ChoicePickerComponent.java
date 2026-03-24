@@ -1,13 +1,21 @@
 package org.rj.modelgen.ui.model.a2ui.component;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.rj.modelgen.ui.model.a2ui.A2UIComponent;
 import org.rj.modelgen.ui.model.a2ui.type.CheckRule;
 import org.rj.modelgen.ui.model.a2ui.type.DynamicString;
 import org.rj.modelgen.ui.model.a2ui.type.DynamicStringList;
+import org.rj.modelgen.ui.model.a2ui.util.A2UIComponentVisitor;
+import org.rj.modelgen.ui.model.a2ui.util.CheckableDeserializer;
+import org.rj.modelgen.ui.model.a2ui.util.DynamicTypeDeserializer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ChoicePickerComponent extends A2UIComponent<ChoicePickerComponent> {
+    private static final String COMPONENT_TYPE = "ChoicePicker";
+
     DynamicString label;           // optional
     String variant;                // optional - enum: multipleSelection, mutuallyExclusive
     List<ChoiceOption> options;    // required
@@ -15,6 +23,19 @@ public class ChoicePickerComponent extends A2UIComponent<ChoicePickerComponent> 
     String displayStyle;           // optional - enum: checkbox, chips
     Boolean filterable;            // optional - if true, shows a search input
     List<CheckRule> checks;        // optional (from Checkable)
+
+    private ChoicePickerComponent(String id, DynamicString label, String variant, List<ChoiceOption> options,
+                                  DynamicStringList value, String displayStyle, Boolean filterable, List<CheckRule> checks) {
+        super(COMPONENT_TYPE);
+        this.setId(id);
+        this.label = label;
+        this.variant = variant;
+        this.options = options;
+        this.value = value;
+        this.displayStyle = displayStyle;
+        this.filterable = filterable;
+        this.checks = checks;
+    }
 
     public List<CheckRule> getChecks() {
         return checks;
@@ -71,5 +92,29 @@ public class ChoicePickerComponent extends A2UIComponent<ChoicePickerComponent> 
     public void setLabel(DynamicString label) {
         this.label = label;
     }
-}
 
+    public static ChoicePickerComponent parse(JSONObject json) {
+        String id = json.getString("id");
+        DynamicString label = json.has("label")
+                ? DynamicTypeDeserializer.deserializeDynamicString(json.get("label"))
+                : null;
+        String variant = json.optString("variant", null);
+        JSONArray optionsArray = json.getJSONArray("options");
+        List<ChoiceOption> options = new ArrayList<>(optionsArray.length());
+        for (int i = 0; i < optionsArray.length(); i++) {
+            options.add(ChoiceOption.parse(optionsArray.getJSONObject(i)));
+        }
+        DynamicStringList value = DynamicTypeDeserializer.deserializeDynamicStringList(json.get("value"));
+        String displayStyle = json.optString("displayStyle", null);
+        Boolean filterable = json.has("filterable") ? json.getBoolean("filterable") : null;
+        List<CheckRule> checks = json.has("checks")
+                ? CheckableDeserializer.parseChecks(json.getJSONArray("checks"))
+                : List.of();
+        return new ChoicePickerComponent(id, label, variant, options, value, displayStyle, filterable, checks);
+    }
+
+    @Override
+    public <T> T accept(A2UIComponentVisitor<T> visitor) {
+        return visitor.visitChoicePicker(this);
+    }
+}

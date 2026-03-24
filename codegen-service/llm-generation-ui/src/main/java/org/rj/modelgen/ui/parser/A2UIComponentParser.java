@@ -1,7 +1,6 @@
 package org.rj.modelgen.ui.parser;
 
 import org.json.JSONObject;
-import org.rj.modelgen.llm.util.Util;
 import org.rj.modelgen.ui.model.a2ui.A2UIComponent;
 import org.rj.modelgen.ui.model.a2ui.component.*;
 import org.slf4j.Logger;
@@ -10,59 +9,9 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class A2UIComponentParser {
     private static final Logger LOG = LoggerFactory.getLogger(A2UIComponentParser.class);
-
-    // Maps the "component" discriminator string to the Java class
-    private static final Map<String, Class<? extends A2UIComponent<?>>> COMPONENT_REGISTRY =
-            Map.ofEntries(
-                    Map.entry("Text", TextComponent.class),
-                    Map.entry("Image", ImageComponent.class),
-                    Map.entry("Icon", IconComponent.class),
-                    Map.entry("Video", VideoComponent.class),
-                    Map.entry("AudioPlayer", AudioPlayerComponent.class),
-                    Map.entry("Row", RowComponent.class),
-                    Map.entry("Column", ColumnComponent.class),
-                    Map.entry("List", ListComponent.class),
-                    Map.entry("Card", CardComponent.class),
-                    Map.entry("Tabs", TabsComponent.class),
-                    Map.entry("Modal", ModalComponent.class),
-                    Map.entry("Divider", DividerComponent.class),
-                    Map.entry("Button", ButtonComponent.class),
-                    Map.entry("TextField", TextFieldComponent.class),
-                    Map.entry("CheckBox", CheckBoxComponent.class),
-                    Map.entry("ChoicePicker", ChoicePickerComponent.class),
-                    Map.entry("Slider", SliderComponent.class),
-                    Map.entry("DateTimeInput", DateTimeInputComponent.class)
-            );
-
-    /**
-     * Parses a single component JSON object into the appropriate
-     * A2UIComponent subclass using the "component" discriminator.
-     */
-    public Optional<A2UIComponent<?>> parseComponent(JSONObject json) {
-        String type = json.getString("component");
-        if (type == null) {
-            return Optional.empty();
-        }
-
-        Class<? extends A2UIComponent<?>> clazz = COMPONENT_REGISTRY.get(type);
-        if (clazz == null) {
-            // Unknown component type - log warning and skip
-            LOG.error("Unknown component type: [{}]", type);
-            return Optional.empty();
-        }
-
-        try {
-            A2UIComponent<?> component = Util.deserializeJsonOrThrow(json, clazz);
-            return Optional.of(component);
-        } catch (Exception e) {
-            LOG.error("Failed to parse component: [{}] - {}", type, e.getMessage());
-            return Optional.empty();
-        }
-    }
 
     /**
      * Parses a list of component JSON objects and returns a map
@@ -72,19 +21,23 @@ public class A2UIComponentParser {
         Map<String, A2UIComponent<?>> componentMap = new HashMap<>();
 
         for (JSONObject json : componentJsonList) {
-            parseComponent(json).ifPresent(component -> {
-                if (component.getId() == null || component.getId().isBlank()) {
-                    LOG.error("Component missing required 'id' field, skipping.");
-                } else {
-                    componentMap.put(component.getId(), component);
-                }
-            });
+            A2UIComponent<?> component = parseComponent(json);
+
+            if (component.getId() == null || component.getId().isBlank()) {
+                LOG.error("Component missing required 'id' field, skipping.");
+            } else {
+                componentMap.put(component.getId(), component);
+            }
         }
 
         return componentMap;
     }
 
-    public static A2UIComponent<?> parseComponent(JSONObject json) {
+    /**
+     * Parses a single component JSON object into the appropriate
+     * A2UIComponent subclass using the "component" discriminator.
+     */
+    public A2UIComponent<?> parseComponent(JSONObject json) {
         String type = json.getString("component");
 
         return switch (type) {

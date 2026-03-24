@@ -28,7 +28,7 @@ public class CardComponent extends A2UIComponent<CardComponent> {
         String id = json.getString("id");
         String child = json.getString("child");
 
-        CardComponent component = new CardComponent(id, child)
+        return new CardComponent(id, child);
     }
 
     @Override
