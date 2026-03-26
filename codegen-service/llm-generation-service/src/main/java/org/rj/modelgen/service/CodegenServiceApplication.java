@@ -138,7 +138,7 @@ public class CodegenServiceApplication {
 			@PathVariable("id") String id,
 			@RequestBody UIGenerationPrompt prompt
 	) {
-		return uiGenerationModel.executeModel(id, prompt.getPrompt(), Map.of())
+		return uiGenerationModel.executeModel(id, prompt.getPrompt(), null, Map.of())
 				.doOnSuccess(result -> {
 					if (result.isSuccessful()) {
 						System.out.println("UI Result.success = " + result.isSuccessful());

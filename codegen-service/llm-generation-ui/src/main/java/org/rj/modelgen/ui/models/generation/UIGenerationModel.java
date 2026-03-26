@@ -110,7 +110,7 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
     protected abstract R fromModelInterfaceExecutionResult(ModelInterfaceExecutionResult result);
 
     @Override
-    public Mono<R> executeModel(String sessionId, String request, Map<String, Object> data) {
+    public Mono<R> executeModel(String sessionId, String request, String canvasaModel, Map<String, Object> data) {
         final var initialState = UIGenerationModelStates.StartUIGeneration.toString();
 
         UIGenerationModelInputPayload input = new UIGenerationModelInputPayload(sessionId, request);
