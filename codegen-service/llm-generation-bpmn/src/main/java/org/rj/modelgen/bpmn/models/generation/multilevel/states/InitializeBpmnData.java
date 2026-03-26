@@ -13,11 +13,14 @@ import org.rj.modelgen.llm.util.Result;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.rj.modelgen.bpmn.models.generation.base.context.BpmnPromptPlaceholders.*;
 
 public class InitializeBpmnData extends ExecuteLogic {
+    private static final Pattern JSON_LIST_EXTRACT = Pattern.compile("^.*?(\\[.*]).*?$", Pattern.DOTALL | Pattern.MULTILINE);
+
     private final BpmnComponentLibrary componentLibrary;
     private final BpmnGlobalVariableLibrary globalVariableLibrary;
     private final BpmnMultiLevelGenerationModelOptions options;
@@ -62,11 +65,16 @@ public class InitializeBpmnData extends ExecuteLogic {
         return Mono.just(Result.Ok());
     }
 
-    private Set<PayloadVariable> initializeStartingPayload(String processVariables, BpmnComponentLibrary componentLibrary) {
+    private Set<PayloadVariable> initializeStartingPayload(String rawProcessVariablesContent, BpmnComponentLibrary componentLibrary) {
+        if (rawProcessVariablesContent == null) {
+            return Collections.emptySet();
+        }
+        String processVariablesContent = extractJsonList(rawProcessVariablesContent);
+
         List<PayloadVariable> processVariablesList;
         try {
             ObjectMapper mapper = new ObjectMapper();
-            processVariablesList = mapper.readValue(processVariables, new TypeReference<>() {});
+            processVariablesList = mapper.readValue(processVariablesContent, new TypeReference<>() {});
 
         } catch (Exception e) {
             processVariablesList = Collections.emptyList();
@@ -85,5 +93,14 @@ public class InitializeBpmnData extends ExecuteLogic {
         return processVariablesList.stream()
                 .filter(x -> !automaticallyGeneratedOutputs.contains(x) && !globalVarResolveValues.contains(x.getName()))
                 .collect(Collectors.toSet());
+    }
+
+    private String extractJsonList(String content) {
+        final var matcher = JSON_LIST_EXTRACT.matcher(content);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        return content;
     }
 }
