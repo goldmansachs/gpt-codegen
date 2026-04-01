@@ -148,7 +148,7 @@ public class BpmnComponent extends Component {
             components.add("Allowed values: " + String.join(", ", input.getAllowedValues()));
         }
         if (input.getAllowedInputSourceTypes() != null && !input.getAllowedInputSourceTypes().isEmpty()) {
-            components.add("Allowed input source type: " + input.getAllowedInputSourceTypes().stream()
+            components.add("Allowed input source types: " + input.getAllowedInputSourceTypes().stream()
                     .map(BpmnComponentInputSourceType::toString)
                     .collect(Collectors.joining(", ")));
         }

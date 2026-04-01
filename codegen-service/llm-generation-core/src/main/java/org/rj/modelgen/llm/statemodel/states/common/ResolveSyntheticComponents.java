@@ -59,8 +59,8 @@ public abstract class ResolveSyntheticComponents<TNodeId,
     }
 
     /**
-     * Resolves all resolvable node type by default.  Can be overridden by subclasses if necessary, for example in
-     * order to resolve only certain type, or enforce a certain resolution order
+     * Resolves all resolvable node types by default.  Can be overridden by subclasses if necessary, for example in
+     * order to resolve only certain types, or enforce a certain resolution order
      *
      * @param model     Current model state
      * @return          Modified model

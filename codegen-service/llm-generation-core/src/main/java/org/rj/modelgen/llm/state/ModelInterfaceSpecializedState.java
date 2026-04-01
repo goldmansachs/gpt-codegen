@@ -10,7 +10,7 @@ public abstract class ModelInterfaceSpecializedState<TInputSignal> extends Model
         super(cls, type);
     }
 
-    // Unchecked, but guaranteed by type constraints on specialized state type
+    // Unchecked, but guaranteed by type constraints on specialized state types
     @SuppressWarnings("unchecked")
     public TInputSignal asExpectedInputSignal(ModelInterfaceSignal signal) {
         return (TInputSignal)signal;

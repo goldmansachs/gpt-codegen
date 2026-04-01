@@ -35,7 +35,7 @@ public abstract class ComponentLibrary<TComponent extends Component> {
 
     /**
      * Serialize a component library into its default representation.  Should be overridden for different
-     * library type and usage scenarios (high level, detail level, ...)
+     * library types and usage scenarios (high level, detail level, ...)
      *
      * @return String serialized component library
      */
