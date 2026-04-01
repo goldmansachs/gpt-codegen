@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class A2UISurfaceManager {
     private static final Logger LOG = LoggerFactory.getLogger(A2UISurfaceManager.class);
 
-    private final A2UIComponentParser parser = new A2UIComponentParser();
+    private final A2UIComponentParser componentParser;
 
     // Per-surface state: surfaceId -> component map
     private final Map<String, Map<String, A2UIComponent<?>>> surfaces =
@@ -31,6 +31,20 @@ public class A2UISurfaceManager {
     // Per-surface metadata
     private final Map<String, CreateSurface> surfaceMetadata =
             new ConcurrentHashMap<>();
+
+    /**
+     * Default constructor uses the standard catalog parser.
+     */
+    public A2UISurfaceManager() {
+        this(new BasicCatalogA2UIComponentParser());
+    }
+
+    /**
+     * Constructor allowing injection of a custom component parser.
+     */
+    public A2UISurfaceManager(A2UIComponentParser componentParser) {
+        this.componentParser = componentParser;
+    }
 
     /**
      * Processes a batch of JSONL messages (as parsed JsonObjects).
@@ -82,7 +96,7 @@ public class A2UISurfaceManager {
 
         // Parse and merge into the existing component map
         // Per the spec: "components to be added to or updated"
-        Map<String, A2UIComponent<?>> parsed = parser.parseComponents(rawComponents);
+        Map<String, A2UIComponent<?>> parsed = componentParser.parseComponents(rawComponents);
         componentMap.putAll(parsed);
     }
 

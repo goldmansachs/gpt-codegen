@@ -31,7 +31,7 @@ public class IconComponent extends A2UIComponent<IconComponent> {
     }
 
     @Override
-    public <T> T accept(A2UIComponentVisitor<T> visitor) {
+    public <R, V extends A2UIComponentVisitor<R>> R accept(V visitor) {
         return visitor.visitIcon(this);
     }
 }

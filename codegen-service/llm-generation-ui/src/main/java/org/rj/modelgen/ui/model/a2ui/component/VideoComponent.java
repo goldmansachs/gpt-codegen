@@ -32,7 +32,7 @@ public class VideoComponent extends A2UIComponent<VideoComponent> {
     }
 
     @Override
-    public <R> R accept(A2UIComponentVisitor<R> visitor) {
+    public <R, V extends A2UIComponentVisitor<R>> R accept(V visitor) {
         return visitor.visitVideo(this);
     }
 }

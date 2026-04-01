@@ -111,7 +111,7 @@ public class DateTimeInputComponent extends A2UIComponent<DateTimeInputComponent
     }
 
     @Override
-    public <T> T accept(A2UIComponentVisitor<T> visitor) {
+    public <R, V extends A2UIComponentVisitor<R>> R accept(V visitor) {
         return visitor.visitDateTimeInput(this);
     }
 }

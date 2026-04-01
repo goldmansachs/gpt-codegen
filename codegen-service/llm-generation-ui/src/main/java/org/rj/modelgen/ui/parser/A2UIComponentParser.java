@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class A2UIComponentParser {
+public abstract class A2UIComponentParser {
     private static final Logger LOG = LoggerFactory.getLogger(A2UIComponentParser.class);
 
     /**
@@ -37,29 +37,5 @@ public class A2UIComponentParser {
      * Parses a single component JSON object into the appropriate
      * A2UIComponent subclass using the "component" discriminator.
      */
-    public A2UIComponent<?> parseComponent(JSONObject json) {
-        String type = json.getString("component");
-
-        return switch (type) {
-            case "Text"          -> TextComponent.parse(json);
-            case "Image"         -> ImageComponent.parse(json);
-            case "Icon"          -> IconComponent.parse(json);
-            case "Video"         -> VideoComponent.parse(json);
-            case "AudioPlayer"   -> AudioPlayerComponent.parse(json);
-            case "Row"           -> RowComponent.parse(json);
-            case "Column"        -> ColumnComponent.parse(json);
-            case "List"          -> ListComponent.parse(json);
-            case "Tabs"          -> TabsComponent.parse(json);
-            case "Button"        -> ButtonComponent.parse(json);
-            case "TextField"     -> TextFieldComponent.parse(json);
-            case "CheckBox"      -> CheckBoxComponent.parse(json);
-            case "ChoicePicker"  -> ChoicePickerComponent.parse(json);
-            case "Slider"        -> SliderComponent.parse(json);
-            case "DateTimeInput" -> DateTimeInputComponent.parse(json);
-            case "Card"          -> CardComponent.parse(json);
-            case "Divider"       -> DividerComponent.parse(json);
-            case "Modal"         -> ModalComponent.parse(json);
-            default -> throw new IllegalArgumentException("Unknown component type: " + type);
-        };
-    }
+    public abstract A2UIComponent<?> parseComponent(JSONObject json);
 }

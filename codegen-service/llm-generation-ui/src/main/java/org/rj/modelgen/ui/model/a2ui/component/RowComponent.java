@@ -54,7 +54,7 @@ public class RowComponent extends A2UIComponent<RowComponent> {
     }
 
     @Override
-    public <T> T accept(A2UIComponentVisitor<T> visitor) {
+    public <R, V extends A2UIComponentVisitor<R>> R accept(V visitor) {
         return visitor.visitRow(this);
     }
 }

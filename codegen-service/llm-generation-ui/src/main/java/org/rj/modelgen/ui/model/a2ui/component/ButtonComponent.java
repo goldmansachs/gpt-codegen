@@ -72,7 +72,7 @@ public class ButtonComponent extends A2UIComponent<ButtonComponent> {
     }
 
     @Override
-    public <T> T accept(A2UIComponentVisitor<T> visitor) {
+    public <R, V extends A2UIComponentVisitor<R>> R accept(V visitor) {
         return visitor.visitButton(this);
     }
 }

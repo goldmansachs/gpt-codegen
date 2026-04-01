@@ -54,7 +54,7 @@ public class ColumnComponent extends A2UIComponent<ColumnComponent> {
     }
 
     @Override
-    public <T> T accept(A2UIComponentVisitor<T> visitor) {
+    public <R, V extends A2UIComponentVisitor<R>> R accept(V visitor) {
         return visitor.visitColumn(this);
     }
 }

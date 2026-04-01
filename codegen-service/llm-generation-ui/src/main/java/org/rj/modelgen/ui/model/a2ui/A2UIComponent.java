@@ -1,7 +1,6 @@
 package org.rj.modelgen.ui.model.a2ui;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.json.JSONObject;
 import org.rj.modelgen.ui.model.a2ui.type.AccessibilityAttribute;
 import org.rj.modelgen.ui.model.a2ui.util.A2UIComponentVisitor;
 
@@ -49,5 +48,5 @@ public abstract class A2UIComponent<T extends A2UIComponent<T>> {
         return weight;
     }
 
-    public abstract <R> R accept(A2UIComponentVisitor<R> visitor);
+    public abstract <R, V extends A2UIComponentVisitor<R>> R accept(V visitor);
 }

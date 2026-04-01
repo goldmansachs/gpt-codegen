@@ -38,7 +38,7 @@ public class TabsComponent extends A2UIComponent<TabsComponent> {
     }
 
     @Override
-    public <T> T accept(A2UIComponentVisitor<T> visitor) {
+    public <R, V extends A2UIComponentVisitor<R>> R accept(V visitor) {
         return visitor.visitTabs(this);
     }
 }
