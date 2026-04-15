@@ -15,6 +15,17 @@ Inference rules:
 - Clearly distinguish between fields explicitly requested by the user and fields you have inferred
 - For inferred fields, briefly note why they were inferred (e.g. "inferred: standard for contact forms")
 
+Required/Optional rules:
+- A field is Required if the user explicitly states it is required, OR if it is strongly implied by the
+  nature of the field or form (e.g. primary identity fields like name or email, legal/consent checkboxes
+  such as terms acceptance or privacy policy agreement, or any field whose absence would prevent the
+  form from fulfilling its stated purpose).
+- A field is Optional if the user explicitly states it is optional, or if it is supplementary and the
+  form could be meaningfully submitted without it.
+- When in doubt, prefer Required for core fields and Optional for supplementary ones.
+- Always output exactly "Required" or "Optional" — never "Required (not specified)", "Unknown", or any
+  other variant.
+
 Format your response as a structured text description, for example:
 
 UI: [UI Title]

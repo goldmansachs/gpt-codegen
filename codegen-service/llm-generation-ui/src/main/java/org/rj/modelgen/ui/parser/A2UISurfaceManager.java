@@ -294,6 +294,18 @@ public class A2UISurfaceManager {
     }
 
     /**
+     * Returns the data model for a given surface.
+     * This is the nested Map structure populated by {@code updateDataModel} messages,
+     * where values are applied using JSON Pointer semantics.
+     *
+     * @param surfaceId the surface identifier
+     * @return the data model map, or an empty map if the surface is unknown
+     */
+    public Map<String, Object> getDataModel(String surfaceId) {
+        return dataModels.getOrDefault(surfaceId, Map.of());
+    }
+
+    /**
      * Returns the root component for a given surface, if available.
      */
     public Optional<A2UIComponent<?>> getRootComponent(String surfaceId) {
