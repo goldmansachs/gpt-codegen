@@ -8,7 +8,7 @@ public class ChoiceOption {
     DynamicString label;   // required - display text
     String value;          // required - stable value
 
-    private ChoiceOption(DynamicString label, String value) {
+    protected ChoiceOption(DynamicString label, String value) {
         this.label = label;
         this.value = value;
     }

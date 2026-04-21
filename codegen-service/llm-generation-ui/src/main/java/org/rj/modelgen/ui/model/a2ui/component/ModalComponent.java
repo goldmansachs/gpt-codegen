@@ -10,7 +10,7 @@ public class ModalComponent extends A2UIComponent<ModalComponent> {
     String trigger;        // required - ComponentId of the component that opens the modal
     String content;        // required - ComponentId of the component displayed inside the modal
 
-    private ModalComponent(String id, String trigger, String content) {
+    protected ModalComponent(String id, String trigger, String content) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.trigger = trigger;

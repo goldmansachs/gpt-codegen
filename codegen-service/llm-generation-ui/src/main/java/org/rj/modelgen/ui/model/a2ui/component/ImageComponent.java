@@ -13,7 +13,7 @@ public class ImageComponent extends A2UIComponent<ImageComponent> {
     String fit;            // optional - enum: contain, cover, fill, none, scaleDown
     String variant;        // optional - enum: icon, avatar, smallFeature, mediumFeature, largeFeature, header
 
-    private ImageComponent(String id, DynamicString url, String fit, String variant) {
+    protected ImageComponent(String id, DynamicString url, String fit, String variant) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.url = url;

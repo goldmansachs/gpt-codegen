@@ -126,11 +126,16 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
         this.primarySchema = schemaRegistry.getSchema(SchemaLocation.of("classpath:schemas/server_to_client.json"));
         LOG.info("Primary schema load: {}ms", (System.nanoTime() - start) / 1_000_000);
 
+        // Determine the effective catalog resource — use the merged mapping for the
+        // canonical basic catalog key, falling back to the default if not overridden.
+        String effectiveCatalogResource = mergedMappings.getOrDefault(
+                "basic_catalog.json", BASIC_CATALOG_RESOURCE);
+
         start = System.nanoTime();
         this.componentSchema = schemaRegistry.getSchema(
-                SchemaLocation.of(BASIC_CATALOG_RESOURCE + "#/$defs/anyComponent")
+                SchemaLocation.of(effectiveCatalogResource + "#/$defs/anyComponent")
         );
-        LOG.info("Component sub-schema load: {}ms", (System.nanoTime() - start) / 1_000_000);
+        LOG.info("Component sub-schema load: {}ms (catalog={})", (System.nanoTime() - start) / 1_000_000, effectiveCatalogResource);
     }
 
     @Override

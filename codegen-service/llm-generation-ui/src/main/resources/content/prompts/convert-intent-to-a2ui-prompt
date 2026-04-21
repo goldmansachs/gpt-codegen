@@ -12,17 +12,8 @@ Every message you produce must be a JSON object containing a "version" field set
 
 No additional properties are allowed on any envelope message beyond "version" and the single message type key.
 
---- COMMON TYPES (common_types.json) ---
-- ComponentId: A unique string identifier for a component.
-- DynamicString: A literal string, OR {"path": "<JSON Pointer>"}, OR a FunctionCall with returnType "string".
-- DynamicNumber: A literal number, OR {"path": "<JSON Pointer>"}, OR a FunctionCall with returnType "number".
-- DynamicBoolean: A literal boolean, OR {"path": "<JSON Pointer>"}, OR a FunctionCall with returnType "boolean".
-- DynamicStringList: A literal string array, OR {"path": "<JSON Pointer>"}, OR a FunctionCall with returnType "array".
-- ChildList: Either an array of ComponentId strings ["id1", "id2"], OR a template object {"componentId": "<ComponentId>", "path": "<data model path>"}.
-- FunctionCall: {"call": "<function_name>", "args": {...}, "returnType": "<type>"}. The "call" value must be one of the registered functions in the catalog.
-- Action: EITHER {"event": {"name": "<string>", "context": {...}}} for server events, OR {"functionCall": <FunctionCall>} for local actions. An action must be exactly ONE of these — never both.
-- CheckRule: {"condition": <DynamicBoolean>, "message": "<error string>"}. The "condition" field wraps the function call; the "message" must be a plain string.
-- AccessibilityAttributes: {"label": <DynamicString>, "description": <DynamicString>}.
+--- COMPONENT LIBRARY, COMMON TYPES, AND FUNCTIONS ---
+The following block contains the available components, common type definitions (from common_types.json), and available functions:
 
 ```
 ${COMPONENT_LIBRARY}
@@ -52,7 +43,7 @@ The formatString function supports embedded expressions in ${'$'}{...} syntax:
 6. Exactly ONE component MUST have id: "root". This is the root of the component tree.
 7. All component IDs must be UNIQUE within a surface.
 8. All child/children references must point to component IDs that exist in the components array.
-9. Card uses "child" (single ComponentId). Row, Column, List use "children" (ChildList). Button uses "child" (single ComponentId) — typically referencing a Text or Icon component. Modal uses "trigger" and "content" (both ComponentId). Tabs uses "tabs" array with "child" per tab.
+9. Card uses "child" (single ComponentId). Row, Column, List use "children" (ChildList). Modal uses "trigger" and "content" (both ComponentId). Tabs uses "tabs" array with "child" per tab.
 10. Use "weight" property ONLY on direct children of Row or Column.
 
 --- Data Binding ---
@@ -63,7 +54,7 @@ The formatString function supports embedded expressions in ${'$'}{...} syntax:
 --- Two-Way Binding & Input Components ---
 14. Input components (TextField, CheckBox, Slider, ChoicePicker, DateTimeInput) establish two-way binding when their value uses a data path. User input immediately updates the LOCAL data model — no network request is sent.
 15. Other components bound to the same path reactively update when input changes the local data model.
-16. The updated data model is sent to the server ONLY when a user action is triggered (e.g., Button click). Use the action's "context" to reference data paths that should be sent.
+16. The updated data model is sent to the server ONLY when a user action is triggered. Use the action's "context" to reference data paths that should be sent.
 
 --- Actions ---
 17. An Action must be EITHER {"event": {...}} OR {"functionCall": {...}} — never both in the same action object.
@@ -72,27 +63,31 @@ The formatString function supports embedded expressions in ${'$'}{...} syntax:
 
 --- Validation & Checks ---
 20. CheckRule uses the structure: {"condition": <DynamicBoolean>, "message": "<string>"}. The condition wraps the function call; do NOT put the function call properties (call, args) directly on the CheckRule.
-21. For Button components, checks auto-disable the button when any check fails.
-22. For input components, check failures produce error messages displayed on the component.
+20a. A field is REQUIRED if ANY of the following are true:
+     - The intent explicitly states "Required" or "required" for that field (even if followed by "(not specified)").
+     - The field is the primary purpose of the form (e.g., name fields on a personal details form).
+     - The field is a legal/consent checkbox (e.g., terms acceptance, privacy policy).
+     Always add a `required` CheckRule to every required field.
+21. For input components, check failures produce error messages displayed on the component.
 
 --- Type Conversion ---
-23. When non-string values are interpolated: numbers/booleans become their string representation, null/undefined become empty string "", objects/arrays are JSON-stringified.
+22. When non-string values are interpolated: numbers/booleans become their string representation, null/undefined become empty string "", objects/arrays are JSON-stringified.
 
 === COMPLETE EXAMPLE ===
-User request: "Create a contact form with first name, last name, email with validation, phone with regex validation, a contact preference picker, newsletter checkbox, and a submit button."
+User request: "Create a contact form with first name, last name, email with validation, phone with regex validation, a contact preference picker, newsletter checkbox."
 
 Output:
 {"version": "v0.9", "createSurface":{"surfaceId":"contact_form_1","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
-{"version": "v0.9", "updateComponents":{"surfaceId":"contact_form_1","components":[{"id":"root","component":"Card","child":"form_container"},{"id":"form_container","component":"Column","children":["header_row","name_row","email_group","phone_group","pref_group","divider_1","newsletter_checkbox","submit_button"],"justify":"start","align":"stretch"},{"id":"header_row","component":"Row","children":["header_icon","header_text"],"align":"center"},{"id":"header_icon","component":"Icon","name":"mail"},{"id":"header_text","component":"Text","text":"# Contact Us","variant":"h2"},{"id":"name_row","component":"Row","children":["first_name_group","last_name_group"],"justify":"spaceBetween"},{"id":"first_name_group","component":"Column","children":["first_name_label","first_name_field"],"weight":1},{"id":"first_name_label","component":"Text","text":"First Name","variant":"caption"},{"id":"first_name_field","component":"TextField","label":"First Name","value":{"path":"/contact/firstName"},"variant":"shortText"},{"id":"last_name_group","component":"Column","children":["last_name_label","last_name_field"],"weight":1},{"id":"last_name_label","component":"Text","text":"Last Name","variant":"caption"},{"id":"last_name_field","component":"TextField","label":"Last Name","value":{"path":"/contact/lastName"},"variant":"shortText"},{"id":"email_group","component":"Column","children":["email_label","email_field"]},{"id":"email_label","component":"Text","text":"Email Address","variant":"caption"},{"id":"email_field","component":"TextField","label":"Email","value":{"path":"/contact/email"},"variant":"shortText","checks":[{"condition":{"call":"required","args":{"value":{"path":"/contact/email"}},"returnType":"boolean"},"message":"Email is required."},{"condition":{"call":"email","args":{"value":{"path":"/contact/email"}},"returnType":"boolean"},"message":"Please enter a valid email address."}]},{"id":"phone_group","component":"Column","children":["phone_label","phone_field"]},{"id":"phone_label","component":"Text","text":"Phone Number","variant":"caption"},{"id":"phone_field","component":"TextField","label":"Phone","value":{"path":"/contact/phone"},"variant":"shortText","checks":[{"condition":{"call":"regex","args":{"value":{"path":"/contact/phone"},"pattern":"^\\d{10}$"},"returnType":"boolean"},"message":"Phone number must be 10 digits."}]},{"id":"pref_group","component":"Column","children":["pref_label","pref_picker"]},{"id":"pref_label","component":"Text","text":"Preferred Contact Method","variant":"caption"},{"id":"pref_picker","component":"ChoicePicker","variant":"mutuallyExclusive","options":[{"label":"Email","value":"email"},{"label":"Phone","value":"phone"},{"label":"SMS","value":"sms"}],"value":{"path":"/contact/preference"}},{"id":"divider_1","component":"Divider","axis":"horizontal"},{"id":"newsletter_checkbox","component":"CheckBox","label":"Subscribe to our newsletter","value":{"path":"/contact/subscribe"}},{"id":"submit_button_label","component":"Text","text":"Send Message"},{"id":"submit_button","component":"Button","child":"submit_button_label","variant":"primary","action":{"event":{"name":"submitContactForm","context":{"formId":"contact_form_1"}}}}]}}
+{"version": "v0.9", "updateComponents":{"surfaceId":"contact_form_1","components":[{"id":"root","component":"Card","child":"form_container"},{"id":"form_container","component":"Column","children":["header_row","name_row","email_group","phone_group","pref_group","divider_1","newsletter_checkbox"],"justify":"start","align":"stretch"},{"id":"header_row","component":"Row","children":["header_icon","header_text"],"align":"center"},{"id":"header_icon","component":"Icon","name":"mail"},{"id":"header_text","component":"Text","text":"# Contact Us","variant":"h2"},{"id":"name_row","component":"Row","children":["first_name_group","last_name_group"],"justify":"spaceBetween"},{"id":"first_name_group","component":"Column","children":["first_name_label","first_name_field"],"weight":1},{"id":"first_name_label","component":"Text","text":"First Name","variant":"caption"},{"id":"first_name_field","component":"TextField","label":"First Name","value":{"path":"/contact/firstName"},"variant":"shortText"},{"id":"last_name_group","component":"Column","children":["last_name_label","last_name_field"],"weight":1},{"id":"last_name_label","component":"Text","text":"Last Name","variant":"caption"},{"id":"last_name_field","component":"TextField","label":"Last Name","value":{"path":"/contact/lastName"},"variant":"shortText"},{"id":"email_group","component":"Column","children":["email_label","email_field"]},{"id":"email_label","component":"Text","text":"Email Address","variant":"caption"},{"id":"email_field","component":"TextField","label":"Email","value":{"path":"/contact/email"},"variant":"shortText","checks":[{"condition":{"call":"required","args":{"value":{"path":"/contact/email"}},"returnType":"boolean"},"message":"Email is required."},{"condition":{"call":"email","args":{"value":{"path":"/contact/email"}},"returnType":"boolean"},"message":"Please enter a valid email address."}]},{"id":"phone_group","component":"Column","children":["phone_label","phone_field"]},{"id":"phone_label","component":"Text","text":"Phone Number","variant":"caption"},{"id":"phone_field","component":"TextField","label":"Phone","value":{"path":"/contact/phone"},"variant":"shortText","checks":[{"condition":{"call":"regex","args":{"value":{"path":"/contact/phone"},"pattern":"^\\d{10}$"},"returnType":"boolean"},"message":"Phone number must be 10 digits."}]},{"id":"pref_group","component":"Column","children":["pref_label","pref_picker"]},{"id":"pref_label","component":"Text","text":"Preferred Contact Method","variant":"caption"},{"id":"pref_picker","component":"ChoicePicker","variant":"mutuallyExclusive","options":[{"label":"Email","value":"email"},{"label":"Phone","value":"phone"},{"label":"SMS","value":"sms"}],"value":{"path":"/contact/preference"}},{"id":"divider_1","component":"Divider","axis":"horizontal"},{"id":"newsletter_checkbox","component":"CheckBox","label":"Subscribe to our newsletter","value":{"path":"/contact/subscribe"}}]}}
 {"version": "v0.9", "updateDataModel":{"surfaceId":"contact_form_1","path":"/contact","value":{"firstName":"","lastName":"","email":"","phone":"","preference":[],"subscribe":false}}}
 
 === GENERATION INSTRUCTIONS ===
 Before generating, mentally plan the component hierarchy:
 1. Identify the root container type (Card, Column, Row, etc.)
 2. Break the UI into logical groups and layout containers
-3. Identify all leaf components (Text, TextField, Button, etc.)
+3. Identify all leaf components (Text, TextField, etc.)
 4. Assign unique, descriptive IDs to every component
-5. Map data fields to JSON Pointer paths for data binding
+5. Map data fields to JSON Pointer paths for data binding, and where appropriate initialize these with a default value in an updateDataModel message after the createSurface message. This default value should match the component type it is applied to (e.g., "" for TextField, false for CheckBox, [] for multi-select ChoicePicker, etc.)
 6. Add validation checks where appropriate using the CheckRule structure: {"condition": {"call": "...", "args": {...}, "returnType": "boolean"}, "message": "..."}
 7. Ensure every referenced child ID exists in the components array
 8. Verify exactly one component has id "root"

@@ -13,7 +13,7 @@ public class ColumnComponent extends A2UIComponent<ColumnComponent> {
     String justify;        // optional - enum: start, center, end, spaceBetween, spaceAround, spaceEvenly, stretch
     String align;          // optional - enum: center, end, start, stretch
 
-    private ColumnComponent(String id, ChildList children, String justify, String align) {
+    protected ColumnComponent(String id, ChildList children, String justify, String align) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.children = children;

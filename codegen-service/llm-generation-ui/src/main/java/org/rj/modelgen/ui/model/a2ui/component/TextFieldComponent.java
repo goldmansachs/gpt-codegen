@@ -19,7 +19,7 @@ public class TextFieldComponent extends A2UIComponent<TextFieldComponent> {
     String validationRegexp;   // optional - regex for client-side validation
     List<CheckRule> checks;    // optional (from Checkable)
 
-    private TextFieldComponent(String id, DynamicString label, DynamicString value, String variant, String validationRegexp, List<CheckRule> checks) {
+    protected TextFieldComponent(String id, DynamicString label, DynamicString value, String variant, String validationRegexp, List<CheckRule> checks) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.label = label;

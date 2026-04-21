@@ -10,7 +10,7 @@ public class IconComponent extends A2UIComponent<IconComponent> {
 
     Object name;           // required - either a String enum value (e.g. "mail", "search", "home", etc.) or a DataBinding with a path
 
-    private IconComponent(String id, Object name) {
+    protected IconComponent(String id, Object name) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.name = name;

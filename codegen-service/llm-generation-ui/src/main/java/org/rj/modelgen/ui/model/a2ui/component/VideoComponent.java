@@ -11,7 +11,7 @@ public class VideoComponent extends A2UIComponent<VideoComponent> {
 
     DynamicString url;     // required - URL of the video
 
-    private VideoComponent(String id, DynamicString url) {
+    protected VideoComponent(String id, DynamicString url) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.url = url;

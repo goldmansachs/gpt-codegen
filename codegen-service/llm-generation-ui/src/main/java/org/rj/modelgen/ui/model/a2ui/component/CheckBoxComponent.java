@@ -18,7 +18,7 @@ public class CheckBoxComponent extends A2UIComponent<CheckBoxComponent> {
     DynamicBoolean value;      // required
     List<CheckRule> checks;    // optional (from Checkable)
 
-    private CheckBoxComponent(String id, DynamicString label, DynamicBoolean value, List<CheckRule> checks) {
+    protected CheckBoxComponent(String id, DynamicString label, DynamicBoolean value, List<CheckRule> checks) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.label = label;

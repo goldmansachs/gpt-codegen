@@ -13,7 +13,7 @@ public class TabsComponent extends A2UIComponent<TabsComponent> {
 
     List<TabItem> tabs;    // required - array of tab definitions
 
-    private TabsComponent(String id, List<TabItem> tabs) {
+    protected TabsComponent(String id, List<TabItem> tabs) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.tabs = tabs;

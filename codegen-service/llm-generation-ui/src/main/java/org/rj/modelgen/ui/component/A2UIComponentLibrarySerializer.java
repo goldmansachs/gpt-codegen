@@ -15,13 +15,24 @@ public class A2UIComponentLibrarySerializer<TComponentLibrary extends A2UICompon
     public String serialize(A2UIComponentLibrary library) {
         final var componentSection = serializeComponents(library.getComponents());
         final var functionSection = serializeFunctions(library.getFunctions());
+        final var commonTypesSection = A2UICommonTypeSerializer.serialize(library.getCommonTypesJson());
 
-        return "--- AVAILABLE COMPONENTS ---\n"
-                + "Available components (use the \"component\" field to specify type):\n\n"
-                + componentSection
-                + "\n\n--- AVAILABLE FUNCTIONS ---\n"
-                + "Available functions (used in FunctionCall objects):\n\n"
-                + functionSection;
+        final var sb = new StringBuilder();
+        sb.append("--- AVAILABLE COMPONENTS ---\n")
+          .append("Available components (use the \"component\" field to specify type):\n\n")
+          .append(componentSection);
+
+        if (!commonTypesSection.isEmpty()) {
+            sb.append("\n\n--- COMMON TYPES ---\n")
+              .append("Common type definitions used across A2UI schemas (from common_types.json):\n\n")
+              .append(commonTypesSection);
+        }
+
+        sb.append("\n\n--- AVAILABLE FUNCTIONS ---\n")
+          .append("Available functions (used in FunctionCall objects):\n\n")
+          .append(functionSection);
+
+        return sb.toString();
     }
 
     private String serializeComponents(List<A2UIComponent> components) {
@@ -32,7 +43,7 @@ public class A2UIComponentLibrarySerializer<TComponentLibrary extends A2UICompon
                 .collect(Collectors.joining("\n\n"));
     }
 
-    private String serializeOneComponent(A2UIComponent comp) {
+    protected String serializeOneComponent(A2UIComponent comp) {
         final var sb = new StringBuilder();
         sb.append("**").append(comp.getComponentType()).append("**");
         if (comp.getDescription() != null) {
@@ -97,7 +108,7 @@ public class A2UIComponentLibrarySerializer<TComponentLibrary extends A2UICompon
         return sb.toString().stripTrailing();
     }
 
-    private String formatFieldSpec(A2UIComponent.FieldSpec field) {
+    protected String formatFieldSpec(A2UIComponent.FieldSpec field) {
         if (field.enumValues() != null && !field.enumValues().isEmpty()) {
             return field.name() + ": " + String.join("/", field.enumValues());
         }

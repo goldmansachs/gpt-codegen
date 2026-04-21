@@ -32,26 +32,40 @@ public class PrepareAndSubmitA2UIConversionRequest
                 new A2UIComponentLibrarySerializer<>());
     }
 
-    public PrepareAndSubmitA2UIConversionRequest(
+    public <TLibrary extends A2UIComponentLibrary, TSerializer extends A2UIComponentLibrarySerializer<TLibrary>>
+    PrepareAndSubmitA2UIConversionRequest(
             ContextProvider contextProvider,
             A2UIPromptGenerator promptGenerator,
             StringSerializable promptType,
-            A2UIComponentLibrary componentLibrary,
-            ComponentLibrarySelector<A2UIComponentLibrary> componentLibrarySelector,
-            A2UIComponentLibrarySerializer<A2UIComponentLibrary> componentLibrarySerializer) {
+            TLibrary componentLibrary,
+            TSerializer componentLibrarySerializer) {
+        this(contextProvider, promptGenerator, promptType, componentLibrary,
+                new DefaultComponentLibrarySelector<>(),
+                componentLibrarySerializer);
+    }
+
+    public <TLibrary extends A2UIComponentLibrary>
+    PrepareAndSubmitA2UIConversionRequest(
+            ContextProvider contextProvider,
+            A2UIPromptGenerator promptGenerator,
+            StringSerializable promptType,
+            TLibrary componentLibrary,
+            ComponentLibrarySelector<TLibrary> componentLibrarySelector,
+            A2UIComponentLibrarySerializer<TLibrary> componentLibrarySerializer) {
         super(PrepareAndSubmitA2UIConversionRequest.class,
                 buildPreparePhase(contextProvider, promptGenerator, promptType,
                         componentLibrary, componentLibrarySelector, componentLibrarySerializer),
                 buildSubmissionPhase());
     }
 
-    private static PrepareA2UIConversionRequest<UIGenerationPromptGenerator, A2UIComponentLibrary>
+    private static <TLibrary extends A2UIComponentLibrary>
+    PrepareA2UIConversionRequest<UIGenerationPromptGenerator, TLibrary>
     buildPreparePhase(ContextProvider contextProvider,
                       A2UIPromptGenerator promptGenerator,
                       StringSerializable promptType,
-                      A2UIComponentLibrary componentLibrary,
-                      ComponentLibrarySelector<A2UIComponentLibrary> componentLibrarySelector,
-                      A2UIComponentLibrarySerializer<A2UIComponentLibrary> componentLibrarySerializer) {
+                      TLibrary componentLibrary,
+                      ComponentLibrarySelector<TLibrary> componentLibrarySelector,
+                      A2UIComponentLibrarySerializer<TLibrary> componentLibrarySerializer) {
         return new PrepareA2UIConversionRequest<>(
                 contextProvider, promptGenerator, promptType,
                 componentLibrary, componentLibrarySelector, componentLibrarySerializer);

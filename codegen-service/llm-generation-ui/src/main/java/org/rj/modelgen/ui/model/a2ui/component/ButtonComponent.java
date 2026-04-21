@@ -18,7 +18,7 @@ public class ButtonComponent extends A2UIComponent<ButtonComponent> {
     Action action;         // required
     List<CheckRule> checks; // optional (from Checkable)
 
-    private ButtonComponent(String id, String child, String variant, Action action, List<CheckRule> checks) {
+    protected ButtonComponent(String id, String child, String variant, Action action, List<CheckRule> checks) {
         super(COMPONENT_TYPE);
 
         setId(id);

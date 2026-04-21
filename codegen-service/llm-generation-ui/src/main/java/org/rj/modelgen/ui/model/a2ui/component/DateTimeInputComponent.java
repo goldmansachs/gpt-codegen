@@ -21,7 +21,7 @@ public class DateTimeInputComponent extends A2UIComponent<DateTimeInputComponent
     DynamicString label;       // optional
     List<CheckRule> checks;    // optional (from Checkable)
 
-    private DateTimeInputComponent(String id, DynamicString value, Boolean enableDate, Boolean enableTime,
+    protected DateTimeInputComponent(String id, DynamicString value, Boolean enableDate, Boolean enableTime,
                                    DynamicString min, DynamicString max, DynamicString label, List<CheckRule> checks) {
         super(COMPONENT_TYPE);
         this.setId(id);

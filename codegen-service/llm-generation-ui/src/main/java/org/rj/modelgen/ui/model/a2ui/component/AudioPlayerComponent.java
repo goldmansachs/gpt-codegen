@@ -12,7 +12,7 @@ public class AudioPlayerComponent extends A2UIComponent<AudioPlayerComponent> {
     DynamicString url;         // required - URL of the audio
     DynamicString description; // optional - title or summary of the audio
 
-    private AudioPlayerComponent(String id, DynamicString url, DynamicString description) {
+    protected AudioPlayerComponent(String id, DynamicString url, DynamicString description) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.url = url;

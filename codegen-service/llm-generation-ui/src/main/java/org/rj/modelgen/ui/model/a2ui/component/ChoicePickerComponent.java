@@ -24,7 +24,7 @@ public class ChoicePickerComponent extends A2UIComponent<ChoicePickerComponent> 
     Boolean filterable;            // optional - if true, shows a search input
     List<CheckRule> checks;        // optional (from Checkable)
 
-    private ChoicePickerComponent(String id, DynamicString label, String variant, List<ChoiceOption> options,
+    protected ChoicePickerComponent(String id, DynamicString label, String variant, List<ChoiceOption> options,
                                   DynamicStringList value, String displayStyle, Boolean filterable, List<CheckRule> checks) {
         super(COMPONENT_TYPE);
         this.setId(id);

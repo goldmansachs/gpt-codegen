@@ -8,7 +8,7 @@ public class TabItem {
     DynamicString title;   // required - the tab title
     String child;          // required - ComponentId reference
 
-    private TabItem(DynamicString title, String child) {
+    protected TabItem(DynamicString title, String child) {
         this.title = title;
         this.child = child;
     }

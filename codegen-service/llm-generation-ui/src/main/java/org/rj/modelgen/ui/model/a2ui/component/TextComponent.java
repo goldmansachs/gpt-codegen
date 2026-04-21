@@ -12,7 +12,7 @@ public class TextComponent extends A2UIComponent<TextComponent> {
     DynamicString text;    // required - supports simple Markdown
     String variant;        // optional - enum: h1, h2, h3, h4, h5, caption, body
 
-    private TextComponent(String id, DynamicString text, String variant) {
+    protected TextComponent(String id, DynamicString text, String variant) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.text = text;

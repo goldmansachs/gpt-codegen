@@ -15,18 +15,23 @@ import java.util.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class A2UIComponentLibrary extends ComponentLibrary<A2UIComponent> {
 
+    private static final String DEFAULT_COMMON_TYPES_RESOURCE = "schemas/common_types.json";
+
     private List<A2UIComponent> components;
     private final List<A2UIFunctionDefinition> functions;
+    private final String commonTypesJson;
 
-    private A2UIComponentLibrary(List<A2UIComponent> components, List<A2UIFunctionDefinition> functions) {
+    protected A2UIComponentLibrary(List<A2UIComponent> components, List<A2UIFunctionDefinition> functions,
+                                 String commonTypesJson) {
         super(components);
         this.components = components != null ? new ArrayList<>(components) : new ArrayList<>();
         this.functions = functions != null ? new ArrayList<>(functions) : new ArrayList<>();
+        this.commonTypesJson = commonTypesJson != null ? commonTypesJson : "";
     }
 
     @Override
     public ComponentLibrary<A2UIComponent> constructEmpty() {
-        return new A2UIComponentLibrary(List.of(), List.of());
+        return new A2UIComponentLibrary(List.of(), List.of(), "");
     }
 
     @Override
@@ -43,30 +48,67 @@ public class A2UIComponentLibrary extends ComponentLibrary<A2UIComponent> {
         return functions;
     }
 
+    /**
+     * Returns the raw common types JSON string (the content of {@code common_types.json}
+     * or an override supplied at construction time).
+     */
+    public String getCommonTypesJson() {
+        return commonTypesJson;
+    }
+
+    /**
+     * Returns the default common types JSON loaded from the classpath
+     * ({@value #DEFAULT_COMMON_TYPES_RESOURCE}).
+     */
+    public static String defaultCommonTypes() {
+        return Util.loadStringResource(DEFAULT_COMMON_TYPES_RESOURCE);
+    }
+
     public static A2UIComponentLibrary defaultLibrary() {
         return fromCatalogResource("schemas/basic_catalog.json");
     }
 
     /**
-     * Parses the A2UI catalog JSON Schema into a structured component library.
+     * Parses the A2UI catalog JSON Schema into a structured component library,
+     * using the default {@code common_types.json} from the classpath.
      */
     public static A2UIComponentLibrary fromCatalogResource(String resource) {
         final String json = Util.loadStringResource(resource);
-        return fromCatalogJson(json);
+        return fromCatalogJson(json, defaultCommonTypes());
     }
 
     /**
-     * Parses raw A2UI catalog JSON Schema string into a structured component library.
+     * Parses the A2UI catalog JSON Schema into a structured component library,
+     * using a custom common types JSON string.
+     */
+    public static A2UIComponentLibrary fromCatalogResource(String resource, String commonTypesJson) {
+        final String json = Util.loadStringResource(resource);
+        return fromCatalogJson(json, commonTypesJson);
+    }
+
+    /**
+     * Parses raw A2UI catalog JSON Schema string into a structured component library,
+     * using the default {@code common_types.json} from the classpath.
      */
     public static A2UIComponentLibrary fromCatalogJson(String json) {
+        return fromCatalogJson(json, defaultCommonTypes());
+    }
+
+    /**
+     * Parses raw A2UI catalog JSON Schema string into a structured component library,
+     * with a custom common types JSON string.
+     */
+    public static A2UIComponentLibrary fromCatalogJson(String json, String commonTypesJson) {
         try {
             final ObjectMapper mapper = new ObjectMapper();
             final JsonNode root = mapper.readTree(json);
 
-            final List<A2UIComponent> components = parseComponents(root.path("components"));
             final List<A2UIFunctionDefinition> functions = parseFunctions(root.path("functions"));
 
-            return new A2UIComponentLibrary(components, functions);
+            final A2UIComponentLibrary library = new A2UIComponentLibrary(List.of(), functions, commonTypesJson);
+            final List<A2UIComponent> components = library.parseComponentList(root.path("components"));
+
+            return new A2UIComponentLibrary(components, functions, commonTypesJson);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse A2UI catalog JSON: " + e.getMessage(), e);
         }
@@ -78,7 +120,7 @@ public class A2UIComponentLibrary extends ComponentLibrary<A2UIComponent> {
             "Button", "TextField", "CheckBox", "ChoicePicker", "Slider", "DateTimeInput"
     );
 
-    private static List<A2UIComponent> parseComponents(JsonNode componentsNode) {
+    protected List<A2UIComponent> parseComponentList(JsonNode componentsNode) {
         if (componentsNode.isMissingNode() || !componentsNode.isObject()) return List.of();
 
         final List<A2UIComponent> result = new ArrayList<>();
@@ -89,12 +131,16 @@ public class A2UIComponentLibrary extends ComponentLibrary<A2UIComponent> {
             final String componentType = entry.getKey();
             final JsonNode componentSchema = entry.getValue();
 
-            result.add(parseOneComponent(componentType, componentSchema));
+            result.add(parseComponent(componentType, componentSchema));
         }
         return result;
     }
 
-    private static A2UIComponent parseOneComponent(String componentType, JsonNode schema) {
+    protected A2UIComponent parseComponent(String componentType, JsonNode schema) {
+        return parseOneComponent(componentType, schema, this);
+    }
+
+    private static A2UIComponent parseOneComponent(String componentType, JsonNode schema, A2UIComponentLibrary instance) {
         // Merge all property definitions from allOf entries
         final Map<String, JsonNode> allProperties = new LinkedHashMap<>();
         final Set<String> allRequired = new LinkedHashSet<>();
@@ -139,7 +185,7 @@ public class A2UIComponentLibrary extends ComponentLibrary<A2UIComponent> {
         for (Map.Entry<String, JsonNode> prop : allProperties.entrySet()) {
             final String fieldName = prop.getKey();
             final JsonNode fieldSchema = prop.getValue();
-            final A2UIComponent.FieldSpec spec = toFieldSpec(fieldName, fieldSchema);
+            final A2UIComponent.FieldSpec spec = instance.toFieldSpec(fieldName, fieldSchema);
 
             if (allRequired.contains(fieldName)) {
                 requiredFields.add(spec);
@@ -153,7 +199,7 @@ public class A2UIComponentLibrary extends ComponentLibrary<A2UIComponent> {
         return new A2UIComponent(componentType, description != null ? description : "", requiredFields, optionalFields, checkable);
     }
 
-    private static A2UIComponent.FieldSpec toFieldSpec(String name, JsonNode fieldSchema) {
+    protected A2UIComponent.FieldSpec toFieldSpec(String name, JsonNode fieldSchema) {
         String type = resolveFieldType(fieldSchema);
         String fieldDescription = fieldSchema.has("description") ? fieldSchema.get("description").asText() : "";
         List<String> enumValues = extractEnumValues(fieldSchema);
@@ -224,6 +270,7 @@ public class A2UIComponentLibrary extends ComponentLibrary<A2UIComponent> {
 
         return List.of();
     }
+
 
     // --- Function parsing ---
 

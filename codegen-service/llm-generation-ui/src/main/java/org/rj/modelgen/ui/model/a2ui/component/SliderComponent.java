@@ -20,7 +20,7 @@ public class SliderComponent extends A2UIComponent<SliderComponent> {
     DynamicNumber value;       // required
     List<CheckRule> checks;    // optional (from Checkable)
 
-    private SliderComponent(String id, DynamicString label, double min, double max, DynamicNumber value, List<CheckRule> checks) {
+    protected SliderComponent(String id, DynamicString label, double min, double max, DynamicNumber value, List<CheckRule> checks) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.label = label;

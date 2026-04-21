@@ -13,7 +13,7 @@ public class RowComponent extends A2UIComponent<RowComponent> {
     String justify;        // optional - enum: center, end, spaceAround, spaceBetween, spaceEvenly, start, stretch
     String align;          // optional - enum: start, center, end, stretch
 
-    private RowComponent(String id, ChildList children, String justify, String align) {
+    protected RowComponent(String id, ChildList children, String justify, String align) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.children = children;

@@ -13,7 +13,7 @@ public class ListComponent extends A2UIComponent<ListComponent> {
     String direction;      // optional - enum: vertical, horizontal
     String align;          // optional - enum: start, center, end, stretch
 
-    private ListComponent(String id, ChildList children, String direction, String align) {
+    protected ListComponent(String id, ChildList children, String direction, String align) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.children = children;

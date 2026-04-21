@@ -9,7 +9,7 @@ public class DividerComponent extends A2UIComponent<DividerComponent> {
 
     String axis;           // optional - enum: horizontal, vertical (default: horizontal)
 
-    private DividerComponent(String id, String axis) {
+    protected DividerComponent(String id, String axis) {
         super(COMPONENT_TYPE);
         this.setId(id);
         this.axis = axis;
