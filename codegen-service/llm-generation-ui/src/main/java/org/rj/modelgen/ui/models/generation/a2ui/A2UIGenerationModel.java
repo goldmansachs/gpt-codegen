@@ -9,6 +9,7 @@ import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.ui.component.A2UIComponentLibrary;
+import org.rj.modelgen.ui.component.A2UIComponentLibrarySummarySerializer;
 import org.rj.modelgen.ui.models.generation.UIGenerationModel;
 import org.rj.modelgen.ui.models.generation.UIGenerationResult;
 import org.rj.modelgen.ui.models.generation.UIGenerationTargetConfig;
@@ -23,7 +24,7 @@ import java.util.List;
 /**
  * A2UI generation model that produces A2UI (Agent to UI) output from a user prompt.
  * Extends {@link UIGenerationModel} to provide A2UI-specific conversion and validation
- * stages on top of the generic UI generation pipeline (sanitization and intent formalisation).
+ * stages on top of the generic UI generation pipeline (intent formalisation).
  *
  * <p><b>A2UI-specific stages</b> (provided by this subclass):</p>
  * <ol>
@@ -37,11 +38,11 @@ import java.util.List;
  *
  * <p>Full pipeline flow:</p>
  * <pre>
- * Start ──► SanitizeInput ──► FormaliseIntent ──► ConvertToA2UI ──► ValidateOutput ──► Complete
- *           (base)            (base)               (A2UI)              (A2UI)
- *                                                       ▲                    │
- *                                                       │   (on failure)     │
- *                                                       └────────────────────┘
+ * Start ──► FormaliseIntent ──► ConvertToA2UI ──► ValidateOutput ──► Complete
+ *              (base)               (A2UI)              (A2UI)
+ *                                     ▲                    │
+ *                                     │   (on failure)     │
+ *                                     └────────────────────┘
  * </pre>
  */
 public class A2UIGenerationModel extends UIGenerationModel<UIGenerationResult> {
@@ -59,7 +60,8 @@ public class A2UIGenerationModel extends UIGenerationModel<UIGenerationResult> {
         final var promptGenerator = new A2UIPromptGenerator();
         final var contextProvider = new DefaultContextProvider();
         final var targetConfig = buildA2UITargetConfig(promptGenerator, contextProvider);
-        final var modelData = buildBaseModelData(promptGenerator, contextProvider, targetConfig, options);
+        final var modelData = buildBaseModelData(promptGenerator, contextProvider, targetConfig, options,
+                A2UIComponentLibrary.defaultLibrary(), new A2UIComponentLibrarySummarySerializer());
 
         return new A2UIGenerationModel(A2UIGenerationModel.class, modelInterface, modelData);
     }

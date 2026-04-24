@@ -1,5 +1,8 @@
 package org.rj.modelgen.ui.models.generation;
 
+import org.rj.modelgen.llm.component.ComponentLibrary;
+import org.rj.modelgen.llm.component.ComponentLibrarySerializer;
+import org.rj.modelgen.llm.component.DefaultComponentLibrarySelector;
 import org.rj.modelgen.llm.context.provider.ContextProvider;
 import org.rj.modelgen.llm.model.ModelInterface;
 import org.rj.modelgen.llm.models.generation.GenerationModel;
@@ -44,34 +47,27 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
      * @param options           model options (prompt overrides, etc.)
      * @return                  combined model data with all states and transition rules
      */
-    protected static ModelData buildBaseModelData(UIGenerationPromptGenerator promptGenerator,
+    protected static <TComponentLibrary extends ComponentLibrary<?>> ModelData buildBaseModelData(
+                                                  UIGenerationPromptGenerator promptGenerator,
                                                   ContextProvider contextProvider,
                                                   UIGenerationTargetConfig targetConfig,
-                                                  UIGenerationModelOptions<?> options) {
+                                                  UIGenerationModelOptions<?> options,
+                                                  TComponentLibrary componentLibrary,
+                                                  ComponentLibrarySerializer<TComponentLibrary> componentLibrarySummarySerializer) {
         final var modelOptions = Optional.ofNullable(options).orElseGet(UIGenerationModelOptions::defaultOptions);
         final var modelPromptGenerator = modelOptions.applyPromptGeneratorCustomization(promptGenerator);
 
-        // An empty component library is used for the generic UI generation stages (sanitize, formalise
-        // intent) which are text-to-text transformations and do not require any component library context
-        final var noOpLibrary = EmptyComponentLibrary.instance();
-
-        // --- Generic UI Generation states (sanitization and intent generation) ---
+        // --- Generic UI Generation states ---
 
         // 1. Start: Validate input and initialize session context
         final var stateStart = new StartUIGeneration()
                 .withOverriddenId(UIGenerationModelStates.StartUIGeneration);
 
-        // 2. Sanitize Input: Generic UI generation stage — text-to-text transformation correcting
-        //    spelling/grammar. Output stored under SANITIZED_REQUEST for downstream stages.
-        final var stateSanitizeInput = new PrepareAndSubmitLlmGenericRequest<>(
-                contextProvider, modelPromptGenerator, UIGenerationModelPromptType.SanitizeInput, noOpLibrary)
-                .withResponseOutputKey(UIGenerationModelInputPayload.SANITIZED_REQUEST)
-                .withOverriddenId(UIGenerationModelStates.SanitizeInput);
-
-        // 3. Formalise Intent: Generic UI generation stage — transforms the sanitized request into
-        //    a structured description of UI elements.
+        // 2. Formalise Intent: transforms the request into a structured description of UI elements.
         final var stateFormaliseIntent = new PrepareAndSubmitLlmGenericRequest<>(
-                contextProvider, modelPromptGenerator, UIGenerationModelPromptType.FormaliseIntent, noOpLibrary)
+                contextProvider, modelPromptGenerator, UIGenerationModelPromptType.FormaliseIntent, componentLibrary,
+                new DefaultComponentLibrarySelector<TComponentLibrary>(),
+                componentLibrarySummarySerializer)
                 .withResponseOutputKey(UIGenerationModelInputPayload.FORMALISED_INTENT)
                 .withOverriddenId(UIGenerationModelStates.FormaliseIntent);
 
@@ -81,7 +77,7 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
 
         // --- Combine generic states with target-specific states ---
         final var allStates = new ArrayList<ModelInterfaceState>();
-        allStates.addAll(List.of(stateStart, stateSanitizeInput, stateFormaliseIntent));
+        allStates.addAll(List.of(stateStart, stateFormaliseIntent));
         allStates.addAll(targetConfig.getTargetStates());
         allStates.add(stateComplete);
 
@@ -95,8 +91,7 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
         // --- Generic transition rules ---
         final var allRules = new ArrayList<ModelInterfaceTransitionRule>();
         allRules.addAll(List.of(
-                new ModelInterfaceTransitionRule(stateStart, StandardSignals.SUCCESS, stateSanitizeInput),
-                new ModelInterfaceTransitionRule(stateSanitizeInput, StandardSignals.SUCCESS, stateFormaliseIntent),
+                new ModelInterfaceTransitionRule(stateStart, StandardSignals.SUCCESS, stateFormaliseIntent),
                 new ModelInterfaceTransitionRule(stateFormaliseIntent, StandardSignals.SUCCESS, firstTargetState)
         ));
 

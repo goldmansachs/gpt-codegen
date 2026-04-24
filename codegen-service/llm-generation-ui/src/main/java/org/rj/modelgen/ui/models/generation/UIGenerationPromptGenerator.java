@@ -15,7 +15,6 @@ public class UIGenerationPromptGenerator extends TemplatedPromptGenerator<UIGene
 
     public UIGenerationPromptGenerator() {
         super();
-        addPrompt(UIGenerationModelPromptType.SanitizeInput, Util.loadStringResource("content/prompts/sanitize-input-prompt"));
         addPrompt(UIGenerationModelPromptType.FormaliseIntent, Util.loadStringResource("content/prompts/formalise-intent-prompt"));
     }
 }
