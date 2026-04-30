@@ -59,7 +59,8 @@ public class PrepareGenericModelRequest<TPromptGenerator extends TemplatedPrompt
         final var serializedLibrary = componentLibrarySerializer.serialize(filteredLibrary);
 
         return List.of(
-                new PromptSubstitution(StandardPromptPlaceholders.COMPONENT_LIBRARY, serializedLibrary)
+                new PromptSubstitution(StandardPromptPlaceholders.COMPONENT_LIBRARY, serializedLibrary),
+                new PromptSubstitution(StandardPromptPlaceholders.ADDITIONAL_INSTRUCTIONS, "")
         );
     }
 }

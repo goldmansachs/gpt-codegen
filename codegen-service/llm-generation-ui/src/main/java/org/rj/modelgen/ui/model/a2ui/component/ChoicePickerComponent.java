@@ -18,7 +18,8 @@ public class ChoicePickerComponent extends A2UIComponent<ChoicePickerComponent> 
 
     DynamicString label;           // optional
     String variant;                // optional - enum: multipleSelection, mutuallyExclusive
-    List<ChoiceOption> options;    // required
+    List<ChoiceOption> options;    // required (may be empty if optionsBinding is set)
+    DynamicStringList optionsBinding; // optional - a DataBinding or function call to resolve options dynamically
     DynamicStringList value;       // required - list of currently selected values
     String displayStyle;           // optional - enum: checkbox, chips
     Boolean filterable;            // optional - if true, shows a search input
@@ -77,6 +78,14 @@ public class ChoicePickerComponent extends A2UIComponent<ChoicePickerComponent> 
         this.options = options;
     }
 
+    public DynamicStringList getOptionsBinding() {
+        return optionsBinding;
+    }
+
+    public void setOptionsBinding(DynamicStringList optionsBinding) {
+        this.optionsBinding = optionsBinding;
+    }
+
     public String getVariant() {
         return variant;
     }
@@ -99,18 +108,31 @@ public class ChoicePickerComponent extends A2UIComponent<ChoicePickerComponent> 
                 ? DynamicTypeDeserializer.deserializeDynamicString(json.get("label"))
                 : null;
         String variant = json.optString("variant", null);
-        JSONArray optionsArray = json.getJSONArray("options");
-        List<ChoiceOption> options = new ArrayList<>(optionsArray.length());
-        for (int i = 0; i < optionsArray.length(); i++) {
-            options.add(ChoiceOption.parse(optionsArray.getJSONObject(i)));
+
+        // Options can be a literal JSONArray of ChoiceOption objects, or a
+        // dynamic reference (DataBinding / function call) that resolves at runtime
+        List<ChoiceOption> options = new ArrayList<>();
+        DynamicStringList optionsBinding = null;
+        Object rawOptions = json.get("options");
+        if (rawOptions instanceof JSONArray optionsArray) {
+            for (int i = 0; i < optionsArray.length(); i++) {
+                options.add(ChoiceOption.parse(optionsArray.getJSONObject(i)));
+            }
+        } else {
+            // DataBinding or function call — store as a dynamic reference
+            optionsBinding = DynamicTypeDeserializer.deserializeDynamicStringList(rawOptions);
         }
+
         DynamicStringList value = DynamicTypeDeserializer.deserializeDynamicStringList(json.get("value"));
         String displayStyle = json.optString("displayStyle", null);
         Boolean filterable = json.has("filterable") ? json.getBoolean("filterable") : null;
         List<CheckRule> checks = json.has("checks")
                 ? CheckableDeserializer.parseChecks(json.getJSONArray("checks"))
                 : List.of();
-        return new ChoicePickerComponent(id, label, variant, options, value, displayStyle, filterable, checks);
+
+        ChoicePickerComponent comp = new ChoicePickerComponent(id, label, variant, options, value, displayStyle, filterable, checks);
+        comp.setOptionsBinding(optionsBinding);
+        return comp;
     }
 
     @Override

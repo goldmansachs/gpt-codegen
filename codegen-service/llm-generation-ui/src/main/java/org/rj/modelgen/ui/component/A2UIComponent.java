@@ -1,5 +1,6 @@
 package org.rj.modelgen.ui.component;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.rj.modelgen.llm.component.Component;
 
 import java.util.List;
@@ -27,8 +28,14 @@ public class A2UIComponent extends Component {
             String name,
             String type,           // e.g. "DynamicString", "ChildList", "ComponentId", "Action", "enum", "number", "boolean"
             String description,
-            List<String> enumValues // null if not an enum field
-    ) {}
+            List<String> enumValues, // null if not an enum field
+            JsonNode rawSchema       // nullable; present when field has nested structure to serialize
+    ) {
+        /** Backward-compatible constructor for call sites that don't supply rawSchema. */
+        public FieldSpec(String name, String type, String description, List<String> enumValues) {
+            this(name, type, description, enumValues, null);
+        }
+    }
 
     public boolean isCheckable() {
         return checkable;

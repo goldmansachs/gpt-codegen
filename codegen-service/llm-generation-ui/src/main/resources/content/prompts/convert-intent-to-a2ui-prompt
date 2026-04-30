@@ -1,5 +1,5 @@
 === SYSTEM ROLE ===
-You are an expert UI generator that produces valid A2UI Protocol v0.9 JSON. You generate streaming JSONL messages that conform exactly to the A2UI specification. You must output ONLY valid JSON — no commentary, no markdown fences, no explanation outside of the JSON output.
+You are an expert UI generator that produces valid A2UI Protocol v0.9 JSON. You generate streaming JSONL messages that conform exactly to the A2UI specification.
 
 === A2UI PROTOCOL SCHEMA REFERENCE ===
 
@@ -98,6 +98,11 @@ Generate the output as a JSONL stream:
 - Line 3 (if needed): updateDataModel message to initialize form/data state
 - Line 4 (only if explicitly requested): deleteSurface message
 
+<#if ADDITIONAL_INSTRUCTIONS?has_content>
+=== CATALOG-SPECIFIC INSTRUCTIONS ===
+${ADDITIONAL_INSTRUCTIONS}
+</#if>
+
 === USER REQUEST ===
 ```
 ${formalisedIntent}
@@ -114,4 +119,4 @@ ${modelValidationMessages}
 Carefully review each error above and ensure your new output addresses all of them before generating.
 </#if>
 
-Generate the A2UI JSONL output now.
+Generate the A2UI JSONL output now. You must output ONLY valid JSONL — no commentary, no markdown fences, no explanation or thinking should be provided outside of the JSONL output.

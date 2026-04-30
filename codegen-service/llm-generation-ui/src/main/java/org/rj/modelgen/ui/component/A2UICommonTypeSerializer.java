@@ -169,7 +169,7 @@ public class A2UICommonTypeSerializer {
     //  Object types  (e.g. DataBinding, RuleCondition, ComponentCommon, Checkable)
     // -----------------------------------------------------------------------
 
-    private static void serializeObjectProperties(StringBuilder sb, JsonNode schema, int indent) {
+    static void serializeObjectProperties(StringBuilder sb, JsonNode schema, int indent) {
         final JsonNode props = schema.path("properties");
         if (!props.isObject() || props.isEmpty()) return;
 
@@ -188,7 +188,7 @@ public class A2UICommonTypeSerializer {
         }
     }
 
-    private static void serializeProperty(StringBuilder sb, String name, JsonNode propSchema,
+    static void serializeProperty(StringBuilder sb, String name, JsonNode propSchema,
                                           boolean required, int indent) {
         final String pad = "  ".repeat(indent);
         final String typeLabel = resolveTypeLabel(propSchema);
@@ -244,7 +244,7 @@ public class A2UICommonTypeSerializer {
     //  Helpers
     // -----------------------------------------------------------------------
 
-    private static boolean isObjectType(JsonNode schema) {
+    static boolean isObjectType(JsonNode schema) {
         return "object".equals(schema.path("type").asText(""));
     }
 
@@ -327,7 +327,7 @@ public class A2UICommonTypeSerializer {
         return ref;
     }
 
-    private static String joinEnumValues(JsonNode enumNode) {
+    static String joinEnumValues(JsonNode enumNode) {
         if (enumNode == null || !enumNode.isArray()) return "";
         final List<String> values = new ArrayList<>();
         for (JsonNode v : enumNode) {
@@ -336,7 +336,7 @@ public class A2UICommonTypeSerializer {
         return String.join(", ", values);
     }
 
-    private static void appendDescription(StringBuilder sb, JsonNode schema) {
+    static void appendDescription(StringBuilder sb, JsonNode schema) {
         if (schema.has("description")) {
             sb.append(" — ").append(schema.get("description").asText());
         }

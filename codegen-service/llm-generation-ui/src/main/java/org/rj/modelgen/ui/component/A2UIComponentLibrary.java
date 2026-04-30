@@ -204,7 +204,19 @@ public class A2UIComponentLibrary extends ComponentLibrary<A2UIComponent> {
         String fieldDescription = fieldSchema.has("description") ? fieldSchema.get("description").asText() : "";
         List<String> enumValues = extractEnumValues(fieldSchema);
 
-        return new A2UIComponent.FieldSpec(name, type, fieldDescription, enumValues);
+        boolean hasNestedStructure = fieldHasNestedStructure(fieldSchema);
+        JsonNode rawSchema = hasNestedStructure ? fieldSchema : null;
+
+        return new A2UIComponent.FieldSpec(name, type, fieldDescription, enumValues, rawSchema);
+    }
+
+    private static boolean fieldHasNestedStructure(JsonNode schema) {
+        if ("object".equals(schema.path("type").asText("")) && schema.has("properties")) return true;
+        if ("array".equals(schema.path("type").asText("")) && schema.has("items")) {
+            JsonNode items = schema.get("items");
+            if (items.has("properties") || items.has("enum") || items.has("required")) return true;
+        }
+        return false;
     }
 
     private static String resolveFieldType(JsonNode fieldSchema) {

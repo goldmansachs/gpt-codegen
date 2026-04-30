@@ -1,8 +1,9 @@
 package org.rj.modelgen.ui.component;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.rj.modelgen.llm.component.ComponentLibrarySerializer;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -55,19 +56,29 @@ public class A2UIComponentLibrarySerializer<TComponentLibrary extends A2UICompon
         sb.append("\n");
 
         if (comp.getRequiredFields() != null && !comp.getRequiredFields().isEmpty()) {
-            sb.append("  Required: ");
-            sb.append(comp.getRequiredFields().stream()
-                    .map(this::formatFieldSpec)
-                    .collect(Collectors.joining(", ")));
-            sb.append("\n");
+            if (hasAnyComplexField(comp.getRequiredFields())) {
+                sb.append("  Required:\n");
+                comp.getRequiredFields().forEach(f -> appendFieldDetail(sb, f, 2));
+            } else {
+                sb.append("  Required: ");
+                sb.append(comp.getRequiredFields().stream()
+                        .map(this::formatFieldSpec)
+                        .collect(Collectors.joining(", ")));
+                sb.append("\n");
+            }
         }
 
         if (comp.getOptionalFields() != null && !comp.getOptionalFields().isEmpty()) {
-            sb.append("  Optional: ");
-            sb.append(comp.getOptionalFields().stream()
-                    .map(this::formatFieldSpec)
-                    .collect(Collectors.joining(", ")));
-            sb.append("\n");
+            if (hasAnyComplexField(comp.getOptionalFields())) {
+                sb.append("  Optional:\n");
+                comp.getOptionalFields().forEach(f -> appendFieldDetail(sb, f, 2));
+            } else {
+                sb.append("  Optional: ");
+                sb.append(comp.getOptionalFields().stream()
+                        .map(this::formatFieldSpec)
+                        .collect(Collectors.joining(", ")));
+                sb.append("\n");
+            }
         }
 
         return sb.toString().stripTrailing();
@@ -114,5 +125,63 @@ public class A2UIComponentLibrarySerializer<TComponentLibrary extends A2UICompon
         }
         final var typeHint = field.type() != null ? " (" + field.type() + ")" : "";
         return field.name() + typeHint;
+    }
+
+    private boolean hasAnyComplexField(List<A2UIComponent.FieldSpec> fields) {
+        return fields.stream().anyMatch(f -> f.rawSchema() != null);
+    }
+
+    protected void appendFieldDetail(StringBuilder sb, A2UIComponent.FieldSpec field, int indent) {
+        final String pad = "  ".repeat(indent);
+        sb.append(pad).append("- ").append(field.name());
+        sb.append(" (").append(field.type()).append(")");
+
+        if (field.enumValues() != null && !field.enumValues().isEmpty()) {
+            sb.append(" — values: ").append(field.enumValues().stream()
+                    .map(v -> "\"" + v + "\"").collect(Collectors.joining(", ")));
+        }
+        if (field.description() != null && !field.description().isEmpty()) {
+            sb.append(" — ").append(field.description());
+        }
+        sb.append("\n");
+
+        if (field.rawSchema() != null) {
+            serializeNestedFieldSchema(sb, field.rawSchema(), indent + 1);
+        }
+    }
+
+    private void serializeNestedFieldSchema(StringBuilder sb, JsonNode schema, int indent) {
+        final String pad = "  ".repeat(indent);
+
+        if ("array".equals(schema.path("type").asText("")) && schema.has("items")) {
+            JsonNode items = schema.get("items");
+
+            // Items with enum constraint
+            if (items.has("enum")) {
+                sb.append(pad).append("Item values: ")
+                  .append(A2UICommonTypeSerializer.joinEnumValues(items.get("enum")))
+                  .append("\n");
+                return;
+            }
+
+            // Items with properties (object items)
+            if (items.has("properties")) {
+                sb.append(pad).append("Each item:\n");
+                A2UICommonTypeSerializer.serializeObjectProperties(sb, items, indent);
+
+                if (items.has("additionalProperties") && !items.get("additionalProperties").asBoolean(true)) {
+                    sb.append(pad).append("  additionalProperties: false\n");
+                }
+                return;
+            }
+        }
+
+        if ("object".equals(schema.path("type").asText("")) && schema.has("properties")) {
+            A2UICommonTypeSerializer.serializeObjectProperties(sb, schema, indent - 1);
+
+            if (schema.has("additionalProperties") && !schema.get("additionalProperties").asBoolean(true)) {
+                sb.append(pad).append("additionalProperties: false\n");
+            }
+        }
     }
 }
