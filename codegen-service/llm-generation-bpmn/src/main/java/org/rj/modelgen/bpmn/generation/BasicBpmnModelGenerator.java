@@ -60,11 +60,18 @@ public class BasicBpmnModelGenerator {
                 .startEvent(startNode.getId())
                 .name(startNode.getName())
                 .done();
-
+        
         final var definitions = builder.getDefinitions();
         registerNamespace("bpmn", BpmnModelConstants.BPMN20_NS, definitions);
         registerNamespace("camunda", BpmnModelConstants.CAMUNDA_NS, definitions);
         registerAdditionalNamespaces(definitions);
+
+        // Configure start event metadata via renderElement for consistent namespace handling
+        final StartEvent startEventInstance = builder.getModelElementById(startNode.getId());
+        if (startEventInstance != null) {
+            componentLibrary.getComponentByName(BpmnConstants.NodeTypes.START_EVENT)
+                    .ifPresent(def -> renderElement(startEventInstance.builder(), startNode, def));
+        }
 
         componentLibrary.getComponentByName(BpmnConstants.NodeTypes.PROCESS_CONFIG).ifPresent(configDefinition ->
                 intermediateModel.getNodes().stream()
@@ -138,16 +145,7 @@ public class BasicBpmnModelGenerator {
     protected <B extends AbstractFlowNodeBuilder<B, E>, E extends FlowNode>
     void addNode(AbstractFlowNodeBuilder<B, E> builder, ElementNode element, BpmnComponent elementDefinition) {
         if (element == null) throw new RuntimeException("Cannot generate definition for null BPMN element");
-
-        final var id = element.getId();
-        final var name = element.getName();
-
-        final var type = element.getElementType();
-        switch (type) {
-            case BpmnConstants.NodeTypes.END_EVENT -> builder.endEvent(id).name(name).done();
-            case BpmnConstants.NodeTypes.GATEWAY_PARALLEL -> builder.parallelGateway(id).name(name).done();
-            default -> renderElement(builder, element, elementDefinition);
-        }
+        renderElement(builder, element, elementDefinition);
     }
 
     // Render element and its attributes - override in subclasses to render with a custom namespace
@@ -162,6 +160,11 @@ public class BasicBpmnModelGenerator {
             throw new RuntimeException("Cannot make connection with invalid null data");
 
         final var outboundConnection = builder.sequenceFlowId(id);
+
+        final SequenceFlow sequenceFlow = builder.done().getModelElementById(id);
+        if (sequenceFlow != null && connection.getDescription() != null) {
+            sequenceFlow.setName(connection.getDescription());
+        }
 
         if (sourceElement instanceof ConditionalGateway conditionalGateway) {
             conditionalGateway.renderConditionalConnections(builder, connection, id, outboundConnection);

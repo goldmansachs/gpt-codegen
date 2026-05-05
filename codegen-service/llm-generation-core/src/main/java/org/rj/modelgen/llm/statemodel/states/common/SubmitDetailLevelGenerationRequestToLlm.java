@@ -62,6 +62,10 @@ public class SubmitDetailLevelGenerationRequestToLlm extends SubmitGenerationReq
 
             getPayload().put(MultiLevelModelStandardPayloadData.LlmDirectedRetryCount, newRetryCount);
 
+            if (getPayload().hasData(MultiLevelModelStandardPayloadData.ReverseRenderedIntermediateModel.toString())) {
+                return Optional.of(outboundSignal(MultiLevelModelStandardSignals.RetryDetailLevel));
+            }
+
             // Retry high-level generation when doing one-shot generation
             // Retry detail-level generation when doing multi-shot generation
             if (getPayload().hasData(StandardModelData.CanvasModel.toString())) {

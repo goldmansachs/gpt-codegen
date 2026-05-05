@@ -10,17 +10,27 @@ import org.rj.modelgen.llm.state.ModelInterfacePayload;
 
 import java.util.stream.Collectors;
 
+import static org.rj.modelgen.bpmn.component.BpmnComponentLibrary.fullLibrary;
+import static org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData.HighLevelModel;
+import static org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData.ReverseRenderedIntermediateModel;
+
 public class BpmnComponentLibraryDetailLevelSelector implements ComponentLibrarySelector<BpmnComponentLibrary> {
     @Override
     public BpmnComponentLibrary getFilteredLibrary(BpmnComponentLibrary baseLibrary, ModelInterfacePayload payload) {
-        final var model = getLatestHighLevelModel(payload);
+        if (payload.get(ReverseRenderedIntermediateModel) != null) {
+            return fullLibrary();
+        } else if (payload.get(HighLevelModel) != null) {
+            final var model = getLatestHighLevelModel(payload);
 
-        // Filter down to only the types in use in the high level model
-        final var typesInUse = model.getNodes().stream()
-                .map(ElementHighLevelNode::getElementType)
-                .collect(Collectors.toSet());
+            // Filter down to only the types in use in the high level model
+            final var typesInUse = model.getNodes().stream()
+                    .map(ElementHighLevelNode::getElementType)
+                    .collect(Collectors.toSet());
 
-        return new BpmnComponentLibrary(baseLibrary.getFilteredLibrary(comp -> typesInUse.contains(comp.getName())).getComponents());
+            return new BpmnComponentLibrary(baseLibrary.getFilteredLibrary(comp -> typesInUse.contains(comp.getName())).getComponents());
+        } else {
+            throw new LlmGenerationModelException("BPMN action library detail selector could not find any intermediate model to parse");
+        }
     }
 
     private BpmnHighLevelIntermediateModel getLatestHighLevelModel(ModelInterfacePayload payload) {

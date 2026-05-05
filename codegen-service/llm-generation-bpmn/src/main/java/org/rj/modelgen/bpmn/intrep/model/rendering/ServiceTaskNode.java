@@ -9,11 +9,18 @@ import org.camunda.bpm.model.bpmn.instance.FlowNode;
 import org.camunda.bpm.model.bpmn.instance.ServiceTask;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
+import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
+import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
+import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
+
+import java.util.*;
 
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.CommonTaskConstants.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.TASK_SERVICE_TASK;
-import static org.rj.modelgen.bpmn.generation.BpmnConstants.ServiceTaskConstants.*;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.ServiceTaskConstants.ATTRIBUTES;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.ServiceTaskConstants.EXTENSIONS;
+import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.getAttrName;
 
 public class ServiceTaskNode extends ElementNode {
 
@@ -30,6 +37,7 @@ public class ServiceTaskNode extends ElementNode {
     public <B extends AbstractFlowNodeBuilder<B, E>, E extends FlowNode> BpmnModelInstance render(AbstractFlowNodeBuilder<B, E> builder, BpmnComponent elementDefinition, String namespace) {
         ServiceTaskBuilder taskBuilder = builder.serviceTask(id).name(name);
         ServiceTask task = taskBuilder.getElement();
+        configureTaskMetadata(task, namespace);
 
         // Set default value for output variable
         task.setAttributeValueNs(namespace, OUTPUT_VAR_ATTR, RESPONSE_VAR);
@@ -48,5 +56,11 @@ public class ServiceTaskNode extends ElementNode {
         }
 
         return taskBuilder.done();
+    }
+
+    @JsonIgnore
+    @Override
+    protected List<ElementNodeInput> reverseRender(FlowNode flowNode, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+        return super.reverseRender(flowNode, namespace, componentLibrary, globalVariableLibrary);
     }
 }

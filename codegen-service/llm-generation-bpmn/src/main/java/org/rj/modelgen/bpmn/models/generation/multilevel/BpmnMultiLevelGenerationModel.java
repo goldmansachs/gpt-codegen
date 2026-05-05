@@ -83,7 +83,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 params -> new PrepareBpmnMLHighLevelModelGenerationRequest<>(params, globalVariableLibrary),
                 null);
 
-        final var reverseRenderFunction = new BpmnReverseRenderFunction();
+        final var reverseRenderFunction = new BpmnReverseRenderFunction(globalVariableLibrary);
 
         final var detailLevelConfig = new MultiLevelModelDetailPhaseConfig<>( // TODO
                 BpmnIntermediateModel.class, BpmnIntermediateModelAssets.class, new BpmnGenerationMultiLevelSchemaDetailLevel(),
