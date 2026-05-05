@@ -9,6 +9,7 @@ import org.rj.modelgen.llm.model.ModelInterface;
 import org.rj.modelgen.llm.models.generation.options.GenerationModelOptionsImpl;
 import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.statemodel.signals.common.CommonStateInterface;
+import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -191,14 +192,31 @@ public abstract class ModelInterfaceState implements CommonStateInterface {
         this.payload = inputSignal.getPayload();
         this.lastError = null;  // Reset for each execution
 
-        if(model != null) {
-            model.publishStateListener(new ModelInterfaceStateEmittedSignal(this, inputSignal, StateEvent.START, StateStatus.IN_PROGRESS));
-            return invokeAction(inputSignal)
+        try {
+            if(model != null) {
+                model.publishStateListener(new ModelInterfaceStateEmittedSignal(this, inputSignal, StateEvent.START, StateStatus.IN_PROGRESS));
+                return invokeAction(inputSignal)
+                        .onErrorResume(error -> handleInvokeException(inputSignal, error))
                         .doOnSuccess(__ -> model.publishStateListener(new ModelInterfaceStateEmittedSignal(this, inputSignal, StateEvent.END, StateStatus.SUCCESS)))
                         .doOnError(__ -> model.publishStateListener(new ModelInterfaceStateEmittedSignal(this, inputSignal, StateEvent.END, StateStatus.FAIL)));
-        } else {
-            return invokeAction(inputSignal);
+            } else {
+                return invokeAction(inputSignal)
+                        .onErrorResume(ex -> handleInvokeException(inputSignal, ex));
+            }
+        } catch (Throwable t) {
+            return handleInvokeException(inputSignal, t);
         }
+    }
+
+    private Mono<ModelInterfaceSignal> handleInvokeException(ModelInterfaceSignal inputSignal, Throwable error) {
+        final String message = Optional.ofNullable(error.getMessage()).orElse(error.getClass().getSimpleName());
+        LOG.error("Unhandled exception during state '{}' execution: {}", id, message, error);
+
+        setLastError(message);
+
+        return outboundSignal(new ModelInterfaceStandardSignals.GENERAL_ERROR(id, message))
+                .withPayloadData(StandardErrorSignals.GENERAL_ERROR, message)
+                .mono();
     }
 
     /**

@@ -7,6 +7,7 @@ public enum BpmnAdditionalModelStates implements StringSerializable {
     InitializeBpmnPayload,
     InsertSyntheticComponents,
     ProcessHighLevelModelDataForDetailLevelGeneration,
+    InitialBpmnDetailLevelValidation,
     DetailLevelBpmnIRModelValidation,
     ResolveSyntheticComponents,
     PrepareForRendering,

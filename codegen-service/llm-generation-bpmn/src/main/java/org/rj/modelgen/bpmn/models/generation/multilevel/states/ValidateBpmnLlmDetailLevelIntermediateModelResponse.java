@@ -22,6 +22,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.rj.modelgen.bpmn.models.generation.base.context.BpmnPromptPlaceholders.DETAIL_MODEL_VALIDATION_ISSUES;
+import static org.rj.modelgen.bpmn.models.generation.common.BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation;
+import static org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData.SerializedReverseRender;
 
 public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelInterfaceState implements CommonStateInterface {
 
@@ -43,9 +45,18 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
     @Override
     protected Mono<ModelInterfaceSignal> invokeAction(ModelInterfaceSignal modelInterfaceSignal) {
         final var componentLibrary = getComponentLibrary();
+        String content;
+        if(getPayload().hasData(SerializedReverseRender)) {
+            content =  getPayload().get(SerializedReverseRender).toString();
+        } else {
+            content = getPayload().get(MultiLevelModelStandardPayloadData.DetailLevelModel);
+        }
 
-        final String content = getPayload().get(MultiLevelModelStandardPayloadData.DetailLevelModel);
         final var parser = new IntermediateModelParser<>(BpmnIntermediateModel.class);
+
+        if(content.isEmpty()) {
+            throw new LlmGenerationModelException("No BPMN content to validate");
+        }
 
         final var model = parser.parse(content).orElseThrow(e -> new LlmGenerationModelException(String.format(
                 "Validate BPMN Detail Level Intermediate Model Response could not parse detail-level intermediate model: %s (content: %s)", e, content)));
@@ -66,12 +77,33 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
         if (validations.isEmpty()) {
             LOG.info("BPMN detail-level intermediate model is valid, proceeding to next phase");
             return outboundSignal(getSuccessSignalId()).mono();
-        } else {
-            LOG.info("BPMN detail-level intermediate model is invalid, returning to detail-level phase for corrections");
-            return outboundSignal(BpmnGenerationSignals.IntermediateModelIsInvalid)
-                    .withPayloadData(DETAIL_MODEL_VALIDATION_ISSUES.getValue(), validationMessages)
+        }
+
+        final List<String> initialBpmnValidations = Optional
+                .<List<String>>ofNullable(getPayload().get(InitialBpmnDetailLevelValidation))
+                .orElse(null);
+
+        if (getPayload().hasData(SerializedReverseRender) && !getPayload().hasData(MultiLevelModelStandardPayloadData.DetailLevelModel)) {
+            return outboundSignal(BpmnGenerationSignals.PrepareLlmRequest)
+                    .withPayloadData(InitialBpmnDetailLevelValidation, validationMessages)
                     .mono();
         }
+
+        final Set<String> initialSet = new HashSet<>(initialBpmnValidations);
+        final List<String> newIssues = validationMessages.stream()
+                .filter(msg -> !initialSet.contains(msg))
+                .toList();
+
+        if (newIssues.isEmpty()) {
+            LOG.info("All {} BPMN validation issue(s) already existed in the initial model", validationMessages.size());
+            return outboundSignal(getSuccessSignalId()).mono();
+        }
+
+        LOG.info("Found {} new BPMN validation issue(s). Returning to detail-level phase", newIssues.size());
+
+        return outboundSignal(BpmnGenerationSignals.IntermediateModelIsInvalid)
+                .withPayloadData(DETAIL_MODEL_VALIDATION_ISSUES.getValue(), validationMessages)
+                .mono();
     }
 
     private BpmnComponentLibrary getComponentLibrary() {

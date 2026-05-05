@@ -12,14 +12,14 @@ import org.rj.modelgen.llm.util.Result;
 
 public class BpmnReverseRenderFunction implements ReverseRenderFunction<BpmnModelInstance, BpmnIntermediateModel> {
 
-    BpmnGlobalVariableLibrary globalVariableLibrary;
+    private final BpmnGlobalVariableLibrary globalVariableLibrary;
+    private final BpmnComponentLibrary componentLibrary;
+    private final String namespace;
 
-    public BpmnReverseRenderFunction() {
-        this.globalVariableLibrary = BpmnGlobalVariableLibrary.defaultLibrary();
-    }
-
-    public BpmnReverseRenderFunction(BpmnGlobalVariableLibrary globalVariableLibrary) {
+    public BpmnReverseRenderFunction(BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary, String namespace) {
+        this.componentLibrary = componentLibrary;
         this.globalVariableLibrary = globalVariableLibrary;
+        this.namespace = namespace;
     }
 
     @Override
@@ -27,6 +27,7 @@ public class BpmnReverseRenderFunction implements ReverseRenderFunction<BpmnMode
         try {
             final BpmnComponentLibrary resolvedLibrary = resolveComponentLibrary(executionModel);
             final var reverseRenderer = new BpmnReverseRenderer(model, resolvedLibrary, globalVariableLibrary);
+            reverseRenderer.setNamespace(namespace);
             final BpmnIntermediateModel rendered = reverseRenderer.generateBpmnIntermediateModel();
 
             return Result.Ok(rendered);
@@ -37,10 +38,14 @@ public class BpmnReverseRenderFunction implements ReverseRenderFunction<BpmnMode
     }
 
     private BpmnComponentLibrary resolveComponentLibrary(ModelInterfaceStateMachine executionModel) {
+        if (componentLibrary != null) {
+            return componentLibrary;
+        }
+
         if (executionModel instanceof BpmnMultiLevelGenerationModel bpmnModel) {
             return bpmnModel.getComponentLibrary();
         }
+
         throw new IllegalStateException("No component library available for reverse rendering");
     }
-
 }

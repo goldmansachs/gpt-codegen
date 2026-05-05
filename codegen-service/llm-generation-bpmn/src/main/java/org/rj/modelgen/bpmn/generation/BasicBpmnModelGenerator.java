@@ -34,6 +34,14 @@ public class BasicBpmnModelGenerator {
     public BasicBpmnModelGenerator() {
     }
 
+    protected String getNamespaceUri() {
+        return DEFAULT_NAMESPACE_URI;
+    }
+
+    protected String getNamespacePrefix() {
+        return DEFAULT_NAMESPACE;
+    }
+
     public Result<BpmnModelInstance, String> generateModel(BpmnIntermediateModel intermediateModel) {
         return generateModel(intermediateModel, BpmnComponentLibrary.defaultLibrary());
     }
@@ -60,7 +68,7 @@ public class BasicBpmnModelGenerator {
                 .startEvent(startNode.getId())
                 .name(startNode.getName())
                 .done();
-        
+
         final var definitions = builder.getDefinitions();
         registerNamespace("bpmn", BpmnModelConstants.BPMN20_NS, definitions);
         registerNamespace("camunda", BpmnModelConstants.CAMUNDA_NS, definitions);
@@ -119,12 +127,12 @@ public class BasicBpmnModelGenerator {
 
     // Override in subclasses to add additional namespaces as needed
     protected void registerAdditionalNamespaces(Definitions definitions) {
-        registerNamespace(DEFAULT_NAMESPACE, DEFAULT_NAMESPACE_URI, definitions);
+        registerNamespace(getNamespacePrefix(), getNamespaceUri(), definitions);
     }
 
     // Override in subclasses to provide custom namespace on process configuration
     protected void setProcessConfiguration(ElementNode processConfig, BpmnComponent configDefinition, BpmnModelInstance builder) {
-        ((ProcessConfigNode) processConfig).configure(builder, configDefinition, DEFAULT_NAMESPACE_URI);
+        ((ProcessConfigNode) processConfig).configure(builder, configDefinition, getNamespaceUri());
     }
 
     protected void registerNamespace(String namespacePrefix, String namespaceUri, Definitions definitions) {
@@ -150,7 +158,7 @@ public class BasicBpmnModelGenerator {
 
     // Render element and its attributes - override in subclasses to render with a custom namespace
     protected <B extends AbstractFlowNodeBuilder<B, E>, E extends FlowNode> BpmnModelInstance renderElement(AbstractFlowNodeBuilder<B, E> builder, ElementNode element, BpmnComponent elementDefinition) {
-        return element.render(builder, elementDefinition, DEFAULT_NAMESPACE_URI);
+        return element.render(builder, elementDefinition, getNamespaceUri());
     }
 
     private <B extends AbstractFlowNodeBuilder<B, E>, E extends FlowNode>

@@ -1,0 +1,25 @@
+You are given a series of steps, each potentially associated with an action from a component library. Your task is to construct the original text input that would have produced this output, given the component library of available actions.
+
+Here is the component library. You must fully interpret these components and their descriptions to generate the process steps using correct terminology:
+
+```
+${COMPONENT_LIBRARY}
+```
+
+Here are the steps with associated actions:
+
+```
+${CURRENT_STATE}
+```
+Your goal is to reconstruct the original natural language text that would have been the most likely input to the forward direction prompt, resulting in the steps and actions provided above.
+
+Here are the rules you MUST follow:
+
+*   **Reverse the Action Mapping:** Integrate the actions back into the natural language of the steps.
+*   **Combine Steps:** If steps were split in the forward direction to accommodate multiple actions, combine them back into single, coherent sentences or instructions where appropriate. You should aim to create the most natural and concise phrasing possible.
+*   **Preserve Content:** Ensure that all information present in the steps (including any values, parameters, or conditions) is accurately represented in the reconstructed text. Do NOT omit any information.
+*   **Contextualize:** Use your understanding of the actions in the component library to provide context where necessary to create a coherent original input. You can reword sentences to improve readability, but DO NOT adding any new information that was not originally present. Ensure expressions and code is translated to be in natural language.
+*   **Ordering**: The steps should maintain logical ordering and flow when combined.
+*   **Specify Actors**: Where possible specify the actor or subject performing the action, or to whom an action should be directed towards.
+
+Apply these rules to reconstruct the original input text from the given steps and actions. Return ONLY the proposed input text which generated the model. DO NOT provide any accompanying explanation or commentary
