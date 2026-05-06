@@ -1,22 +1,33 @@
 package org.rj.modelgen.bpmn.generation;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.json.JSONObject;
+import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
+import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.intrep.model.BpmnReverseRenderer;
+import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderFunction;
+import org.rj.modelgen.llm.state.ModelInterfaceStateMachine;
 import org.rj.modelgen.llm.util.Result;
 
 public class BpmnReverseRenderFunction implements ReverseRenderFunction<BpmnModelInstance, BpmnIntermediateModel> {
 
-    public BpmnReverseRenderFunction() {
+    private final BpmnGlobalVariableLibrary globalVariableLibrary;
+    private final BpmnComponentLibrary componentLibrary;
+    private final String namespace;
 
+    public BpmnReverseRenderFunction(BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary, String namespace) {
+        this.componentLibrary = componentLibrary;
+        this.globalVariableLibrary = globalVariableLibrary;
+        this.namespace = namespace;
     }
 
     @Override
-    public Result<BpmnIntermediateModel, String> reverseRenderModelToIR(BpmnModelInstance model) {
+    public Result<BpmnIntermediateModel, String> reverseRenderModelToIR(BpmnModelInstance model, ModelInterfaceStateMachine executionModel) {
         try {
-            final var reverseRenderer = new BpmnReverseRenderer(model);
+            final BpmnComponentLibrary resolvedLibrary = resolveComponentLibrary(executionModel);
+            final var reverseRenderer = new BpmnReverseRenderer(model, resolvedLibrary, globalVariableLibrary);
+            reverseRenderer.setNamespace(namespace);
             final BpmnIntermediateModel rendered = reverseRenderer.generateBpmnIntermediateModel();
 
             return Result.Ok(rendered);
@@ -26,4 +37,15 @@ public class BpmnReverseRenderFunction implements ReverseRenderFunction<BpmnMode
         }
     }
 
+    private BpmnComponentLibrary resolveComponentLibrary(ModelInterfaceStateMachine executionModel) {
+        if (componentLibrary != null) {
+            return componentLibrary;
+        }
+
+        if (executionModel instanceof BpmnMultiLevelGenerationModel bpmnModel) {
+            return bpmnModel.getComponentLibrary();
+        }
+
+        throw new IllegalStateException("No component library available for reverse rendering");
+    }
 }

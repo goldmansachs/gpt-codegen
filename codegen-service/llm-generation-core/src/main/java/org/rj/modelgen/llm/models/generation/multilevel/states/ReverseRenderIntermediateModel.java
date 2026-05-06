@@ -36,6 +36,7 @@ public class ReverseRenderIntermediateModel<TModel, TIntermediateModel extends I
             return error(String.format("No input content found at payload key '%s'", getPayload().get(inputKey)));
         }
 
+        recordAudit("reverse-render-input-model", inputContent);
         final var model = modelParser.parse(inputContent);
         if (model.isErr()) {
             return error(String.format("Failed parsing model (%s)", model.getError()));
@@ -60,8 +61,7 @@ public class ReverseRenderIntermediateModel<TModel, TIntermediateModel extends I
     }
 
     protected Result<TIntermediateModel, String> reverseRenderModel(TModel model) {
-        recordAudit("reverse-render-input-model", model.toString());
-        return reverseRenderFunction.reverseRenderModelToIR(model);
+        return reverseRenderFunction.reverseRenderModelToIR(model, getModel());
     }
 
     @Override

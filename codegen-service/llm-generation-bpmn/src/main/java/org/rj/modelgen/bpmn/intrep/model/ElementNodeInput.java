@@ -4,11 +4,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType.*;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.Patterns.*;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -102,11 +104,22 @@ public class ElementNodeInput {
     }
 
     @JsonIgnore
+    public static ElementNodeInput createInputFromAttribute(String attrInputName, String value, boolean isProvided) {
+        ElementNodeInput input = new ElementNodeInput();
+        input.setName(attrInputName);
+        input.setValue(value);
+        input.setVariableSource(getVariableSourceType(value).toString());
+        input.setIsProvided(isProvided);
+        return input;
+    }
+
+    @JsonIgnore
     public static ElementNodeInput createConstant(String name, String value) {
         ElementNodeInput input = new ElementNodeInput();
         input.setName(name);
         input.setVariableSource(CONSTANT.toString());
         input.setValue(value);
+        input.setIsProvided(true);
         return input;
     }
 
@@ -116,6 +129,7 @@ public class ElementNodeInput {
         input.setName(name);
         input.setVariableSource(EXPRESSION.toString());
         input.setValue(value);
+        input.setIsProvided(true);
         return input;
     }
 
@@ -125,24 +139,33 @@ public class ElementNodeInput {
         input.setName(name);
         input.setVariableSource(SCRIPT.toString());
         input.setValue(value);
+        input.setIsProvided(true);
         return input;
     }
 
-    @JsonIgnore
-    public static ElementNodeInput createGlobal(String name, String globalVariable) {
-        ElementNodeInput input = new ElementNodeInput();
-        input.setName(name);
-        input.setVariableSource(GLOBAL.toString());
-        input.setValue(globalVariable);
-        return input;
-    }
 
-    @JsonIgnore
-    public static ElementNodeInput createNodeSourced(String name, String sourceNodeName) {
-        ElementNodeInput input = new ElementNodeInput();
-        input.setName(name);
-        input.setVariableSource(NODE.toString());
-        input.setValue(sourceNodeName);
-        return input;
+    /**
+     * EXPRESSION: Single-line with only getVariable [RO]
+     * SCRIPT: Multi-line or contains getVariable & setVariable [RW]
+     * CONSTANT: a constant, no read/write action
+     */
+    private static BpmnComponentInputSourceType getVariableSourceType(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return CONSTANT;
+        }
+
+        if (value.contains("\n")) {
+            return SCRIPT;
+        }
+
+        if (VAR_PAYLOAD_WRITE_PATTERN.matcher(value).find()) {
+            return SCRIPT;
+        }
+
+        if(VAR_PAYLOAD_READ_PATTERN.matcher(value).find() || VAR_INTERPOLATED_PAYLOAD_READ_PATTERN.matcher(value).find()) {
+            return EXPRESSION;
+        }
+
+        return CONSTANT;
     }
 }

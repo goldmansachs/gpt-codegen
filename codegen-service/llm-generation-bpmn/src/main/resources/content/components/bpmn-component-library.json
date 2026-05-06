@@ -12,7 +12,7 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -22,7 +22,7 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -44,7 +44,7 @@
           "keyValue": true,
           "defaultValue": "MEDIUM",
           "allowedValues": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -65,7 +65,7 @@
           "mandatory": true,
           "keyValue": true,
           "defaultValue": "100",
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "INFERRED"
         }
       ],
@@ -106,7 +106,7 @@
           "mandatory": false,
           "keyValue": true,
           "defaultValue": "",
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "USER_REQUIRED"
         },
         {
@@ -117,7 +117,7 @@
           "mandatory": true,
           "keyValue": true,
           "defaultValue": "",
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "USER_REQUIRED"
         },
         {
@@ -193,11 +193,11 @@
         },
         {
           "name": "inputExpression",
-          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request (e.g ${payload.requestDetails}). Not required for GET requests",
+          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request (e.g 'getVariable('requestDetails')'). Not required for GET requests",
           "type": "string",
           "mandatory": false,
           "keyValue": false,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "SCRIPT", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "SCRIPT"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -231,10 +231,17 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
-          "allowedInputSourceTypes": ["NODE", "SCRIPT"],
+          "allowedInputSourceTypes": ["SCRIPT"],
           "resolutionStrategy": "INFERRED"
         }
       ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "manualTask",
+      "description": "A task that should be used when a series of manual actions are to be performed external to the process by humans or to be used as a fallback when other bpmn components nodes do not fulfil the request",
+      "usage": "Use manual tasks when the actions require human intervention in external systems outside the process or when explicitly mentioned as a manual task. It can also be used a fallback when other bpmn component nodes do not fulfil the request as a last resort.",
+      "requiredInputs": [],
       "generatedOutputs": []
     },
     {
@@ -258,7 +265,7 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "USER_REQUIRED"
         },
         {
@@ -268,7 +275,7 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "USER_REQUIRED"
         },
         {
@@ -278,7 +285,7 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "USER_REQUIRED"
         },
         {
@@ -288,7 +295,7 @@
           "type": "string",
           "mandatory": false,
           "keyValue": false,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -307,7 +314,7 @@
           "type": "string",
           "mandatory": false,
           "keyValue": false,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -343,7 +350,7 @@
           "type": "string",
           "mandatory": false,
           "keyValue": true,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "USER_REQUIRED"
         },
         {
@@ -353,7 +360,7 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "USER_REQUIRED"
         },
         {
@@ -429,11 +436,11 @@
         },
         {
           "name": "inputExpression",
-          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request (e.g ${payload.requestDetails}). Not required for GET requests",
+          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request (e.g 'getVariable('requestDetails')'). Not required for GET requests",
           "type": "string",
           "mandatory": false,
           "keyValue": false,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "SCRIPT", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "SCRIPT"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -459,7 +466,7 @@
           "type": "string",
           "mandatory": true,
           "keyValue": false,
-          "allowedInputSourceTypes": ["CONSTANT", "NODE"],
+          "allowedInputSourceTypes": ["CONSTANT"],
           "resolutionStrategy": "USER_REQUIRED"
         },
         {
@@ -469,7 +476,7 @@
           "type": "string",
           "mandatory": false,
           "keyValue": false,
-          "allowedInputSourceTypes": ["NODE", "SCRIPT"],
+          "allowedInputSourceTypes": ["SCRIPT"],
           "resolutionStrategy": "INFERRED"
         }
       ],
@@ -585,6 +592,13 @@
       "name": "parallelGateway",
       "description": "Allows diverging into, or converging from, multiple parallel paths",
       "usage": "Use when the process flow should split into multiple parallel paths or merge from multiple parallel paths simultaneously. All outgoing sequence flows are followed in parallel, and all incoming sequence flows must complete before proceeding",
+      "requiredInputs": [],
+      "generatedOutputs": []
+    },
+    {
+      "name": "eventGateway",
+      "description": "Allows pausing the process flow and waiting until a subsequent catching event is triggered. At that point, the process proceeds.",
+      "usage": "Use whenever a workflow is required to wait for two or more events at the same time, for instance a message to be received or the passage of time to reach a certain point",
       "requiredInputs": [],
       "generatedOutputs": []
     },

@@ -134,6 +134,12 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
                 .withSubproblemDecompositionEnabled(modelOptions.shouldPerformSubproblemDecomposition())
                 .withOverriddenId(MultiLevelGenerationModelStates.GenerateReverseRenderSubproblems);
 
+        final var stateInitialValidateDetailLevel = detailLevelPhaseConfig.createValidationStage(
+                    detailLevelPhaseConfig.getModelSchema(), detailLevelPhaseConfig.getIntermediateModelClass())
+                .withModelInputKey(MultiLevelModelStandardPayloadData.SerializedReverseRender)
+                .withCollectAsInitialValidations(true)
+                .withOverriddenId(MultiLevelGenerationModelStates.InitialValidateDetailLevel);
+
         final var stateExecuteDetailLevel = new PrepareAndSubmitMLRequestForDetailLevel<>(
                 new PrepareAndSubmitMLRequestForDetailLevelParams<>(detailLevelPhaseConfig, contextProvider, modelPromptGenerator, MultiLevelModelPromptType.GenerateDetailLevel, componentLibrary))
                 .withResponseOutputKey(MultiLevelModelStandardPayloadData.DetailLevelModel)
@@ -142,6 +148,7 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
         final var stateValidateDetailLevel = detailLevelPhaseConfig.createValidationStage(
                     detailLevelPhaseConfig.getModelSchema(), detailLevelPhaseConfig.getIntermediateModelClass())
                 .withModelInputKey(MultiLevelModelStandardPayloadData.DetailLevelModel)
+                .withFilterUsingInitialValidations(true)
                 .withOverriddenId(MultiLevelGenerationModelStates.ValidateDetailLevel);
 
         final var stateCombineSubproblems = subproblemDecompositionConfig.getSubproblemCombinationImplementation().get()
@@ -164,7 +171,7 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
 
         final var states = List.of(stateInit, stateSanitizingPrePass, statePreprocessing, stateGenerateSubproblems,
                                    stateExecuteHighLevel, stateValidateHighLevel, stateReverseRenderModelToIR, stateGenerateSubproblemsForReverseRender,
-                                   stateExecuteDetailLevel, stateValidateDetailLevel, stateCombineSubproblems, stateGenerateModel, stateComplete);
+                                   stateInitialValidateDetailLevel, stateExecuteDetailLevel, stateValidateDetailLevel, stateCombineSubproblems, stateGenerateModel, stateComplete);
 
         // Complete initialization, and apply any global model state that the states want to consume
         states.forEach(ModelInterfaceState::completeStateInitialization);
@@ -190,7 +197,9 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
                 new ModelInterfaceTransitionRule(stateReverseRenderModelToIR, StandardSignals.SUCCESS, stateGenerateSubproblemsForReverseRender),
                 new ModelInterfaceTransitionRule(stateReverseRenderModelToIR, StandardSignals.SKIPPED, stateGenerateSubproblemsForReverseRender), // Optional stage
 
-                new ModelInterfaceTransitionRule(stateGenerateSubproblemsForReverseRender, StandardSignals.SUCCESS, stateExecuteDetailLevel),
+                new ModelInterfaceTransitionRule(stateGenerateSubproblemsForReverseRender, StandardSignals.SUCCESS, stateInitialValidateDetailLevel),
+
+                new ModelInterfaceTransitionRule(stateInitialValidateDetailLevel, StandardSignals.SUCCESS, stateExecuteDetailLevel),
 
                 new ModelInterfaceTransitionRule(stateExecuteDetailLevel, StandardSignals.SUCCESS, stateValidateDetailLevel),
                 new ModelInterfaceTransitionRule(stateExecuteDetailLevel, MultiLevelModelStandardSignals.ReturnToHighLevel, stateExecuteHighLevel), // LLM-directed retry for one-shot generation

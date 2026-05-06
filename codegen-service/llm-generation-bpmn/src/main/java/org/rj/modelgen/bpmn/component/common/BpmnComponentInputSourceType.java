@@ -3,9 +3,7 @@ package org.rj.modelgen.bpmn.component.common;
 public enum BpmnComponentInputSourceType {
     CONSTANT,
     SCRIPT,
-    EXPRESSION,
-    NODE,
-    GLOBAL;
+    EXPRESSION;
 
     @Override
     public String toString() {

@@ -75,10 +75,8 @@ public class ElementHighLevelNodeInput {
             return String.format("%sInput \"%s\" is an object with properties:\n%s", indent, name, childSummaries);
         }
         return indent + switch (sourceType) {
-            case NODE -> String.format("Input \"%s\" will be provided by node \"%s\"", name, source);
             case CONSTANT -> String.format("Input \"%s\" will be assigned constant value \"%s\"", name, source);
             case EXPRESSION -> String.format("Input \"%s\" will be assigned expression value \"%s\"", name, source);
-            case GLOBAL -> String.format("Input \"%s\" will be assigned global value \"%s\"", name, source);
             case SCRIPT -> String.format("Input \"%s\" will be a Groovy script value \"%s\"", name, source);
         };
     }

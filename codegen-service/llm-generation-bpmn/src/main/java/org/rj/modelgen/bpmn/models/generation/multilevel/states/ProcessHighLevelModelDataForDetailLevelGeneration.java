@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
-import static org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType.GLOBAL;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.Patterns.GLOBAL_VAR_READ_PATTERN;
 
 public class ProcessHighLevelModelDataForDetailLevelGeneration extends ExecuteLogic {
@@ -45,17 +44,12 @@ public class ProcessHighLevelModelDataForDetailLevelGeneration extends ExecuteLo
                 .flatMap(input -> {
                     Set<String> globalVars = new HashSet<>();
 
-                    // Direct GLOBAL source type
-                    if (input.getSourceType() == GLOBAL) {
-                        globalVars.add(input.getSource());
-                    } else {
-                        // Extract from scripts and expressions where source is the input value
-                        String value = input.getSource();
-                        if (value != null ) {
-                            Matcher matcher = GLOBAL_VAR_READ_PATTERN.matcher(value);
-                            while (matcher.find()) {
-                                globalVars.add(matcher.group(1));
-                            }
+                    // Extract from scripts and expressions where source is the input value
+                    String value = input.getSource();
+                    if (value != null ) {
+                        Matcher matcher = GLOBAL_VAR_READ_PATTERN.matcher(value);
+                        while (matcher.find()) {
+                            globalVars.add(matcher.group(1));
                         }
                     }
                     return globalVars.stream();

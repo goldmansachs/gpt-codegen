@@ -1,4 +1,4 @@
-<#if detailLevelModel?? && detailLevelModel?trim?has_content && DETAIL_MODEL_VALIDATION_ISSUES?? && DETAIL_MODEL_VALIDATION_ISSUES?trim?has_content>
+<#if (detailLevelModel?? && detailLevelModel?trim?has_content && DETAIL_MODEL_VALIDATION_ISSUES?? && DETAIL_MODEL_VALIDATION_ISSUES?trim?has_content) || (serializedReverseRender?? && serializedReverseRender?trim?has_content)>
     <#assign isDetailModelRetry = true>
 <#else>
     <#assign isDetailModelRetry = false>
@@ -14,21 +14,25 @@ ${request}
 ```
 
 You generated the high-level model below:
+<#if highLevelModel?? && highLevelModel?trim?has_content>
 ```
 ${highLevelModel}
 ```
+</#if>
 
 <#if isDetailModelRetry>
 You have also previously completed step 2 and generated the detail-level model below:
 ```
-${detailLevelModel}
+<#if detailLevelModel??>${detailLevelModel}<#elseif serializedReverseRender??>${serializedReverseRender}</#if>
 ```
 
+<#if DETAIL_MODEL_VALIDATION_ISSUES??>
 However, it had the following issues (these are grouped by the Node Names found in the detail-level model you generated initially):
 ```
 <#assign issues = DETAIL_MODEL_VALIDATION_ISSUES?replace(", Node Name:", ", \nNode Name:")>
 ${issues}
 ```
+</#if>
 
 You have now been asked to update the detail-level model to fix these issues.  You should use the high-level model above as a starting point, and then update the detail-level model to fix the issues listed above following the guidelines provided.
 <#else>
@@ -51,16 +55,13 @@ ${GLOBAL_VARIABLES_USED_IN_HL_MODEL}
 </#if>
 
 <#if GLOBAL_VARIABLE_LIBRARY?has_content>
-These are the global variables which can be used to satisfy inputs:
+These are the global variables which can be used within SCRIPT and EXPRESSION inputs: `getGlobalVariable('variableName', [arg1, arg2])`
 ```
 ${GLOBAL_VARIABLE_LIBRARY}
 ```
-Global variables can be used in two ways:
-1. **Direct input assignment**: Reference the global variable name directly. Set `name` to the global variable name and `sourceType` to "GLOBAL"
-2. **Within scripts**: Use `getGlobalVariable('variableName', [arg1, arg2])`
 
 <#else>
-No global variables are available at the moment. Inputs should be satisfied using constant values, scripts, or node outputs.
+No global variables are available at the moment.
 </#if>
 
 <#if STARTING_PAYLOAD_VARIABLES?has_content>
@@ -90,7 +91,7 @@ RULES FOR THE DETAILED MODEL GENERATION
    b. Inputs MUST follow the detail-level JSON schema `elementInput` which is an object with exactly one of two valid shapes:
        1) Primitive type input (no nested properties)
             * Shape: `{ "name": string, "value": string, "variableSource": string, "isProvided": boolean }`
-            * Set `isProvided `to `true` ONLY if the value is literally specified in the process runbook OR explicitly names the exact variable/global/node output to use for that input.
+            * Set `isProvided `to `true` ONLY if the value is literally specified in the process runbook OR explicitly names the exact variable/global to use for that input.
             * Set `isProvided` to `false` for anything inferred, defaulted, guessed, derived, mapped, resolved from context (even if the concept is mentioned).
        2) Object input (has nested properties)
             * Shape: `{ "name": string, "properties": elementInput[] }`
@@ -106,7 +107,7 @@ RULES FOR THE DETAILED MODEL GENERATION
              * You MAY include MULTIPLE `elementInput` entries with the SAME `name`; each entry represents ONE array element.
              * For arrays of OBJECTS: each array element MUST be an object input; each repeated object is one independent element.
              * For arrays of PRIMITIVES: each array element MUST be a primitive type input.
-   d. For any primitive type input, `variableSource` MUST be present and MUST be one of: CONSTANT | EXPRESSION | SCRIPT | NODE | GLOBAL.
+   d. For any primitive type input, `variableSource` MUST be present and MUST be one of: CONSTANT | EXPRESSION | SCRIPT.
          Use only values allowed by the component library for that specific input/property.
        - CONSTANT: Use for:
              * Simple literal values that never change (e.g., "GET", "POST", "HIGH", 123, true, "This is short description.").
@@ -120,8 +121,6 @@ RULES FOR THE DETAILED MODEL GENERATION
              * Complex logic with multiple statements.
              * Control flow (if/else, loops, etc.).
              * Make sure scripts adhere to best practices outlined in `CODE GENERATION & SCRIPTING INSTRUCTIONS` section below.
-       - NODE: Use when the value comes directly from a named output of any prior node in the process. Set `name` to the input variable name being satisfied and `value` to the source node ID.
-       - GLOBAL: Use when available in the global variables library. Global variables library is not the same as process shared state.
    e. Inputs might have conditional rules explained in their descriptions that make them mandatory or forbidden based on other input values; ensure these conditions are met when deciding which inputs to include.
    f. Never add an input not defined in requiredInputs. Never guess enum values - only use allowedValues list.
 
@@ -137,36 +136,29 @@ RULES FOR THE DETAILED MODEL GENERATION
       - Each variable is stored separately, not as fields on a payload object.
       - For each variable, define the appropriate valueType from: String, Integer, Float, Boolean, Object, Array.
       - Example: setVariable('eventId', 12345, 'Integer').
-   c. To read a variable from a previous node: use getVariable('keyName.subfield', 'sourceNodeId').
-      - Use this when referencing:
-        * Any variable stored by a previous node using setVariable('keyName', 'value', 'valueType').
-        * Any output variable from that node's generatedOutputs (e.g taskCompletionPayload, statusCode, result). These generated outputs are ONLY available for immediate next nodes, so you should add a scriptTask to store them in the shared state if you want to access them beyond immediate next nodes.
+   c. To read a variable: use getVariable('keyName.subfield')
+      - Use this to reference any variable available in the shared state, whether it was set by a previous node using setVariable() or provided in the starting payload.
       - keyName is the name of the variable to read.
-      - sourceNodeId is the ID of the node that produced/set this variable.
-      - Example: getVariable('reasonCode', 'resolveErrorTask') reads the reason code variable from resolveErrorTask node.
-      - ALWAYS specify sourceNodeId when reading data from a specific previous node.
-   d. To read a variable from initial process state: use getVariable('keyName')
-      - Use this ONLY for variables that are already in the shared state at process start (e.g., process input parameters, initial context).
-      - Do NOT use this for variables written by previous nodes - those require sourceNodeId.
-   e. For reads and writes, never reference the payload object directly (e.g., do NOT use payload.keyName), instead just use getVariable() and setVariable() as described above.
-   f. DO NOT perform any computations, transformations, or logic inside getVariable() or setVariable() calls.  These calls should only read or write variables directly.
-   g. DO NOT use getVariable() inside setVariable() or vice versa. Use intermediate variables in scripts if needed.
+      - Example: getVariable('reasonCode') reads the reason code variable from the shared state.
+      - Note: automatically generated outputs (e.g taskCompletionPayload, statusCode, result) are ONLY available to the node directly after the producing node. To use them beyond the immediate next node, add a scriptTask immediately after the producing node that stores the value using setVariable().
+   d. For reads and writes, never reference the payload object directly (e.g., do NOT use payload.keyName), instead just use getVariable() and setVariable() as described above.
+   e. DO NOT perform any computations, transformations, or logic inside getVariable() or setVariable() calls.  These calls should only read or write variables directly.
+   f. DO NOT use getVariable() inside setVariable() or vice versa. Use intermediate variables in scripts if needed.
 
 5. Global variable access API
-    a. Global variables are predefined utility functions or constants available for use in scripts and inputs.
-    b. To read a global variable directly in an input, set `variableSource` to "GLOBAL" and `name` to the global variable name. This is only applicable for global variables that are simple constants or functions that do not require arguments.
-    c. To read a global variable in a script or expression use getGlobalVariable('globalVarName', [arg1, arg2]).
+    a. Global variables are predefined utility functions or constants available for use in scripts and expressions.
+    b. To read a global variable in a script or expression use getGlobalVariable('globalVarName', [arg1, arg2]).
         - globalVarName is the name of the global variable to read.
         - If the global variable requires arguments, provide them as an array in the second parameter. Otherwise, provide empty array.
         - Example: getGlobalVariable('parseJsonString', [jsonString]) calls the parseJsonString global function with jsonString as argument.
-    d. DO NOT perform any computations, transformations, or logic inside getGlobalVariable() calls. These calls should only read global variables directly.
-    e. DO NOT use getGlobalVariable() inside getVariable() or setVariable() or vice versa. Use intermediate variables in scripts if needed.
+    c. DO NOT perform any computations, transformations, or logic inside getGlobalVariable() calls. These calls should only read global variables directly.
+    d. DO NOT use getGlobalVariable() inside getVariable() or setVariable() or vice versa. Use intermediate variables in scripts if needed.
 
 6. Gateways and branching
    a. Use a gateway if you want to branch execution into several options based on conditions. Use another gateway later to merge multiple flows back into one.
    b. If you want to converge several branches into one and then immediately branch again, use a separate gateway to merge incoming flows (with no conditions) and a separate gateway to branch afterward; DO NOT merge and branch in the same gateway.
    c. Condition keys must match target node IDs exactly.
-   d. Condition values must reference variables accessible in the shared state either at process start via getVariable('keyName') or at prior task output via getVariable('keyName', 'sourceNodeId').
+   d. Condition values must reference variables accessible in the shared state either at process start or written by a prior node: use getVariable('keyName').
    e. If a condition requires computed flags or complex expressions, derive them before the gateway using a ScriptTask.
 
 7. Connections
@@ -180,12 +172,13 @@ RULES FOR THE DETAILED MODEL GENERATION
 CODE GENERATION & SCRIPTING INSTRUCTIONS
 
 1. Script best practices
-   a. If need to read from the shared variable map: use getVariable('keyName.subfield') or getVariable('keyName.subfield', 'sourceNodeId'). DO NOT do null checks - assume key exists.
+   a. If need to read from the shared variable map: use getVariable('keyName.subfield'). DO NOT do null checks - assume key exists.
    b. If need to write to the shared variable map: use setVariable('keyName', 'value', 'String');
-   c. If need to read a variable that was set on the same node, use local variables within the script.
-   d. If need to throw exception use: throw(errorMessage);
-   e. Scripts should be concise but complete. Group related logic in a single script rather than creating separate nodes for each command.
-   f. Scripts MUST be properly formatted with correct indentation and structure:
+   c. DO NOT wrap getVariable and setVariable calls with interpolation syntax (e.g., do NOT use "${'$'}{getVariable('keyName')}"). Instead, just call getVariable() and setVariable() directly in scripts or expressions.
+   d. If need to read a variable that was set on the same node, use local variables within the script.
+   e. If need to throw exception use: throw(errorMessage);
+   f. Scripts should be concise but complete. Group related logic in a single script rather than creating separate nodes for each command.
+   g. Scripts MUST be properly formatted with correct indentation and structure:
       - Use `\n` for newlines between statements and after opening braces `{`
       - Use `\t` or 4 spaces for each indentation level
       - Every statement must end with a semicolon
@@ -203,13 +196,13 @@ CODE GENERATION & SCRIPTING INSTRUCTIONS
         list.each { item ->\n\tif (item > 5) {\n\t\tprintln(item);\n\t}\n}  // Complex: multi-line required
         ```
       - Do NOT collapse or strip whitespace - preserve all indentation and line breaks explicitly
-   g. Script should not return any values with `return` statement.  Instead, write any outputs to the shared state using setVariable().
-   h  Use global variables to leverage built-in functionalities and values where applicable.
-   i. Do not import any external libraries.  Use only built-in Groovy functions.
-   j. Prefer basic string operations (contains, replace, split, toLowerCase) before regex.
+   h. Script should not return any values with `return` statement.  Instead, write any outputs to the shared state using setVariable().
+   i  Use global variables to leverage built-in functionalities and values where applicable.
+   j. Do not import any external libraries.  Use only built-in Groovy functions.
+   k. Prefer basic string operations (contains, replace, split, toLowerCase) before regex.
 
 2. Expression best practices
-   a. If need to read from the shared variable map: use getVariable('keyName.subfield') or getVariable('keyName.subfield', 'sourceNodeId'). DO NOT do null checks - assume key exists.
+   a. If need to read from the shared variable map: use getVariable('keyName.subfield'). DO NOT do null checks - assume key exists.
    b. When building strings with variables, use getVariable() or getGlobalVariable() calls directly without concatenation operators.  E.g., use "Value is getVariable('keyName')" instead of "Value is " + getVariable('keyName')
    c. Expressions should not use `return` statement.
    d  Use global variables to leverage built-in functionalities and values where applicable.

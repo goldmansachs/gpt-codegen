@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class BpmnComponent extends Component {
@@ -166,20 +167,29 @@ public class BpmnComponent extends Component {
         if (StringUtils.isBlank(inputVarName)) {
             return Optional.empty();
         }
-        return findInputVariable(requiredInputs, inputVarName);
+        return findInputVariable(requiredInputs, input -> inputVarName.equals(input.getName()));
     }
 
-    private Optional<InputVariable> findInputVariable(List<InputVariable> inputs, String inputVarName) {
+    @JsonIgnore
+    public Optional<InputVariable> getInputVariableByAlias(String alias) {
+        if (StringUtils.isBlank(alias)) {
+            return Optional.empty();
+        }
+        return findInputVariable(requiredInputs, input -> alias.equals(input.getAlias()));
+    }
+
+    private Optional<InputVariable> findInputVariable(List<InputVariable> inputs, Predicate<InputVariable> condition) {
         if (inputs == null || inputs.isEmpty()) {
             return Optional.empty();
         }
 
         for (InputVariable input : inputs) {
             if (input == null) continue;
-            if (inputVarName.equals(input.getName())) {
+
+            if (condition.test(input)) {
                 return Optional.of(input);
             }
-            var nestedInput = findInputVariable(input.getProperties(), inputVarName);
+            var nestedInput = findInputVariable(input.getProperties(), condition);
             if (nestedInput.isPresent()) {
                 return nestedInput;
             }

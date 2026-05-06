@@ -34,6 +34,7 @@ public class BpmnConstants {
         public static final String GATEWAY_EXCLUSIVE = "exclusiveGateway";
         public static final String GATEWAY_INCLUSIVE = "inclusiveGateway";
         public static final String GATEWAY_PARALLEL = "parallelGateway";
+        public static final String GATEWAY_EVENT = "eventGateway";
         public static final String GATEWAY_SUFFIX = "Gateway";
 
         public static final String START_EVENT = "startEvent";
@@ -45,16 +46,18 @@ public class BpmnConstants {
     }
 
     public static class Patterns {
-        // Matches getVariable('varName', 'sourceNodeId') or ${getVariable("varName", "sourceNodeId")}
-        public static final Pattern VAR_READ_PATTERN = Pattern.compile("(?:\\$\\{)?getVariable\\s*\\(\\s*['\"]([a-zA-Z_][a-zA-Z0-9_.]*)['\"](?:\\s*,\\s*['\"]([a-zA-Z_][a-zA-Z0-9_]*)['\"])?\\s*\\)(?:\\})?");
+        // Matches getVariable('varName') or ${getVariable("varName")}
+        public static final Pattern VAR_READ_PATTERN = Pattern.compile("(?:\\$\\{)?getVariable\\s*\\(\\s*['\"]([a-zA-Z_][a-zA-Z0-9_.]*)['\"]\\s*\\)(?:\\})?");
         // Matches setVariable('varName', value, 'varType')
         public static final Pattern VAR_WRITE_PATTERN = Pattern.compile("setVariable\\s*\\(\\s*['\"]?([a-zA-Z_][a-zA-Z0-9_.]*)['\"]?\\s*,\\s*(.+?)\\s*,\\s*['\"]([a-zA-Z_][a-zA-Z0-9_]*)['\"]\\s*\\)");
         // Matches throw('errorMessage')
         public static final Pattern THROW_ERROR_PATTERN = Pattern.compile("throw\\s*\\(\\s*(.+?)\\s*\\)");
         // Matches getGlobalVariable('varName', [arg1, arg2])
         public static final Pattern GLOBAL_VAR_READ_PATTERN = Pattern.compile("getGlobalVariable\\s*\\(\\s*['\"]([^'\"]+)['\"](?:\\s*,\\s*\\[([^\\]]*)\\])?\\s*\\)");
-        // Matches ${variableName} but not ${payload.variableName}
-        public static final Pattern INTERPOLATION_PATTERN = Pattern.compile("\\$\\{(?!payload\\.)([^}]+)\\}");
+
+        public static final Pattern VAR_INTERPOLATED_PAYLOAD_READ_PATTERN = Pattern.compile("\\$\\{payload\\.([^}]+)}");
+        public static final Pattern VAR_PAYLOAD_READ_PATTERN = Pattern.compile("payload\\.([a-zA-Z0-9_.]+)");
+        public static final Pattern VAR_PAYLOAD_WRITE_PATTERN = Pattern.compile("payload\\.([a-zA-Z0-9_]+)\\s*=\\s*([^;]+)");
     }
 
     public static class Namespaces {
@@ -71,6 +74,10 @@ public class BpmnConstants {
         public static final String QUERY_PARAM_INPUT = "queryParams";
         public static final String PARAM_NAME = "parameterName";
         public static final String PARAM_EXPRESSION = "parameterExpression";
+        public static final String EXTENSION_ELEMENTS = "extensionElements";
+        public static final String ATTR_NODE_DESCRIPTION = "nodeDescription";
+        public static final String ATTR_NODE_NAME= "name";
+        public static final String ATTR_NODE_ID = "nodeId";
     }
 
     public static class UserTaskConstants {
@@ -90,6 +97,7 @@ public class BpmnConstants {
     public static class ScriptTaskConstants {
         public static final String SCRIPT = "script";
         public static final String SCRIPT_FORMAT_GROOVY = "groovy";
+        public static final String IS_PROVIDED = "isProvided";
     }
 
     public static class ReceiveTaskConstants {

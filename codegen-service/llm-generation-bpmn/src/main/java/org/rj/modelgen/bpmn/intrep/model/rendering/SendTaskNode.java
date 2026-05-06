@@ -7,10 +7,16 @@ import org.camunda.bpm.model.bpmn.builder.SendTaskBuilder;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
+import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
+import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
+import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
+
+import java.util.List;
 
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.TASK_SEND_TASK;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SendTaskConstants.*;
+import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.getAttrName;
 
 public class SendTaskNode extends ElementNode {
 
@@ -27,6 +33,7 @@ public class SendTaskNode extends ElementNode {
     public <B extends AbstractFlowNodeBuilder<B, E>, E extends FlowNode> BpmnModelInstance render(AbstractFlowNodeBuilder<B, E> builder, BpmnComponent elementDefinition, String namespace) {
         SendTaskBuilder taskBuilder = builder.sendTask(id).name(name);
         SendTask task = taskBuilder.getElement();
+        configureTaskMetadata(task, namespace);
 
         if (inputs != null) {
             inputs.forEach(input -> {
@@ -42,5 +49,11 @@ public class SendTaskNode extends ElementNode {
         }
 
         return taskBuilder.done();
+    }
+
+    @JsonIgnore
+    @Override
+    protected List<ElementNodeInput> reverseRender(FlowNode flowNode, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+        return super.reverseRender(flowNode, namespace, componentLibrary, globalVariableLibrary);
     }
 }

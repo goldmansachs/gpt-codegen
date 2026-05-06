@@ -10,7 +10,8 @@ public enum MultiLevelModelStandardPayloadData {
     LlmDirectedRetryCount,
     AddPlaceholdersForUnknownActions,
     SerializedReverseRender,
-    ReverseRenderedIntermediateModel;
+    ReverseRenderedIntermediateModel,
+    InitialValidations;
 
     @Override
     public String toString() {

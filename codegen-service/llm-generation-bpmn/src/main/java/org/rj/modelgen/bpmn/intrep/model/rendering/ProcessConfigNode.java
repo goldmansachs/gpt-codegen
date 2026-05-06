@@ -5,12 +5,21 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.builder.AbstractFlowNodeBuilder;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
 import org.camunda.bpm.model.bpmn.instance.Process;
+import org.camunda.bpm.model.xml.instance.DomElement;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
+import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
+import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.PROCESS_CONFIG;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.ProcessConfigConstants.*;
+import static org.rj.modelgen.bpmn.intrep.model.ElementNodeInput.createInputFromAttribute;
+import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.*;
+import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.applyFormatValueToAllInputs;
 
 public class ProcessConfigNode extends ElementNode {
 
@@ -36,7 +45,7 @@ public class ProcessConfigNode extends ElementNode {
         String name = this.findInput(PROCESS_NAME).map(ElementNodeInput::getValue).orElse(ATTR_NOT_CONFIGURED);
         process.setId(id);
         process.setName(name);
-        process.setAttributeValueNs(namespace, PROCESS_NAME_ATTR, name);
+        configureTaskMetadata(process, namespace);
 
         if (inputs != null) {
             this.inputs.forEach(input -> {
@@ -47,4 +56,32 @@ public class ProcessConfigNode extends ElementNode {
             });
         }
     }
+
+    @Override
+    public void reverseRenderModel(BpmnModelInstance model, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+        Process process = model.getModelElementsByType(Process.class).iterator().next();
+        extractNodeMetadata(process, namespace);
+        this.connectedTo = List.of();
+        this.elementType = PROCESS_CONFIG;
+
+        List<ElementNodeInput> nodeInputs = new ArrayList<>();
+        DomElement processDom = process.getDomElement();
+
+        BpmnComponent elementDefinition = componentLibrary.getComponentByName(elementType)
+                .orElseThrow(() -> new IllegalStateException("No component definition found for element type: " + elementType));
+
+        for (BpmnComponent.InputVariable iv : elementDefinition.getRequiredInputs()) {
+            String inputName = iv.getName();
+            String lookupName = getLookupName(iv);
+            String attrValue = extractAttributeValue(processDom, namespace, lookupName);
+
+            if (attrValue != null) {
+                nodeInputs.add(createInputFromAttribute(inputName, attrValue, true));
+            }
+        }
+
+        applyFormatValueToAllInputs(nodeInputs, componentLibrary, globalVariableLibrary);
+        setInputs(nodeInputs);
+    }
+
 }

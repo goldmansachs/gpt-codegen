@@ -104,6 +104,14 @@ public class BpmnComponentLibrary extends ComponentLibrary<BpmnComponent> {
         return fromResource("content/components/bpmn-synthetic-components.json");
     }
 
+    public static BpmnComponentLibrary fullLibrary() {
+        final var componentLibrary = BpmnComponentLibrary.defaultLibrary();
+        final var syntheticActions = BpmnComponentLibrary.defaultSyntheticComponentsLibrary();
+        componentLibrary.addComponents(syntheticActions.getComponents());
+
+        return componentLibrary;
+    }
+
     public static BpmnComponentLibrary fromResource(String resource) {
         return fromResource(resource, BpmnComponentLibrary.class);
     }

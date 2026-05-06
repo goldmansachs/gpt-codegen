@@ -7,7 +7,6 @@ import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibra
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
-import org.rj.modelgen.bpmn.intrep.model.ElementNodeOutput;
 import org.rj.modelgen.bpmn.intrep.model.assets.BpmnIntermediateModelAssets;
 import org.rj.modelgen.bpmn.intrep.model.assets.ElementNodeUnresolvedInput;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
@@ -24,8 +23,8 @@ import reactor.core.publisher.Mono;
 import java.util.*;
 
 import static org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType.*;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.GatewayConstants.CONDITION_EXPRESSION;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.PROCESS_CONFIG;
-import static org.rj.modelgen.bpmn.generation.BpmnConstants.Patterns.*;
 import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.*;
 
 public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
@@ -110,13 +109,17 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
             var inputValue = input.getValue();
             var inputSource = input.getVariableSource();
 
-            if (!input.getIsProvided() && inputDefinition.isPresent() && inputDefinition.get().getDefaultValue() != null) {
+            // If input is not provided but input definition has a default value, use it only if resolution strategy requires user involvement
+            // Otherwise, keep the inferred value
+            if (!input.getIsProvided()
+                    && inputDefinition.isPresent() && inputDefinition.get().getDefaultValue() != null
+                    && inputDefinition.get().getResolutionStrategy().requiresUserInvolvement()) {
                 inputValue = inputDefinition.get().getDefaultValue();
             }
 
             if (inputSource.equals(SCRIPT.toString())) {
                 inputValue = resolveVariableWrites(inputValue);
-                inputValue = resolveVariableReads(inputValue,false, model, getComponentLibrary());
+                inputValue = resolveVariableReads(inputValue, getComponentLibrary(), false);
                 inputValue = resolveGlobalVariableReads(inputValue, globalVariableLibrary, false);
 
                 // Hook for subclasses to add custom post-processing
@@ -124,25 +127,14 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
             }
 
             if (inputSource.equals(EXPRESSION.toString())) {
-                // edge case: LLM may return a string with interpolation syntax, but it should be resolved as a payload variable read
-                inputValue = inputValue.replaceAll(INTERPOLATION_PATTERN.pattern(), "\\${payload.$1}");
-                
-                inputValue = resolveVariableReads(inputValue, true, model, getComponentLibrary());
-                inputValue = resolveGlobalVariableReads(inputValue, globalVariableLibrary, true);
+                // Gateway condition expressions use JUEL syntax (e.g., ${x > 5}), so variable references must not be interpolated; all other expressions require interpolation
+                boolean isConditionExpr = CONDITION_EXPRESSION.equals(input.getName());
+                inputValue = resolveVariableReads(inputValue, getComponentLibrary(), !isConditionExpr);
+                inputValue = resolveGlobalVariableReads(inputValue, globalVariableLibrary, !isConditionExpr);
                 inputValue = stripQuotes(inputValue);
-            }
-
-            if (inputSource.equals(GLOBAL.toString())) {
-                inputValue = globalVariableLibrary.getVariableByName(input.getValue())
-                        .map(BpmnGlobalVariable::getResolveValue)
-                        .orElse("global_not_found");
-            }
-
-            if (inputSource.equals(NODE.toString())) {
-                inputValue = model.getNodeById(inputValue)
-                        .flatMap(x -> x.findOutput(input.getName()))
-                        .map(ElementNodeOutput::getValue)
-                        .orElse("node_not_found");
+                if (isConditionExpr && !inputValue.isBlank()) {
+                    inputValue = "${" + inputValue + "}";
+                }
             }
 
             input.setValue(inputValue);
@@ -175,6 +167,8 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
             if (inputDefinition.isEmpty()) return;
 
             ComponentInputResolutionStrategy resolutionStrategy = inputDefinition.get().getResolutionStrategy();
+            if(resolutionStrategy == null) return;
+            
             String defaultValue = inputDefinition.get().getDefaultValue();
 
             if (resolutionStrategy.requiresUserInvolvement()) {

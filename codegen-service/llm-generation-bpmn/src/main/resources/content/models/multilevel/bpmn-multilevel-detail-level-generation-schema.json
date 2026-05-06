@@ -82,11 +82,11 @@
         },
         "value": {
           "type": "string",
-          "description": "Value to be assigned to the input. Either a constant value, expression, script, name of a global variable or the name of an output variable from another node"
+          "description": "Value to be assigned to the input. Either a constant value, expression, or script"
         },
         "variableSource": {
           "type": "string",
-          "description": "A `CONSTANT` value if explicitly defined, or `EXPRESSION` if the value is a Groovy expression, or `SCRIPT` if the value is a Groovy script or `NODE` if the value is sourced from another node's output or `GLOBAL` value if found in the global variable library"
+          "description": "A `CONSTANT` value if explicitly defined, or `EXPRESSION` if the value is a Groovy expression, or `SCRIPT` if the value is a Groovy script"
         },
         "isProvided": {
           "type": "boolean",

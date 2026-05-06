@@ -12,6 +12,7 @@ public enum MultiLevelGenerationModelStates implements StringSerializable {
     ReverseRender,
     GenerateReverseRenderSubproblems,
     ExecuteDetailLevel,
+    InitialValidateDetailLevel,
     ValidateDetailLevel,
     CombineReverseRenderSubproblems,
     CombineSubproblems,
@@ -36,6 +37,7 @@ public enum MultiLevelGenerationModelStates implements StringSerializable {
             case ReverseRender -> "Translating the automation model to intermediate model";
             case GenerateReverseRenderSubproblems -> "Decomposing the intermediate model into sub-problems";
             case ExecuteDetailLevel -> "Executing detail-level intermediate model";
+            case InitialValidateDetailLevel -> "Performing initial validation of reverse-rendered detail-level intermediate model";
             case ValidateDetailLevel -> "Validating detail-level intermediate model";
             case CombineSubproblems -> "Combining results from sub-problems";
             case CombineReverseRenderSubproblems -> "Combining results from sub-problems";
