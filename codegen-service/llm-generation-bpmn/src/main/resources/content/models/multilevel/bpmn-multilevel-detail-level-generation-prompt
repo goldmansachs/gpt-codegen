@@ -43,7 +43,7 @@ ${request}
 Only update the nodes as instructed by the request. Leave the other nodes and its metadata as-is.
 Below are the full definitions of each action you used in the original model.
 <#else>
-We will now complete step 2 and build the DETAILED model. Below are the full definitions of each action you selected in stage 1.
+We will now complete step 2 and build the DETAILED model. 
 </#if>
 </#if>
 
@@ -216,7 +216,6 @@ CODE GENERATION & SCRIPTING INSTRUCTIONS
    f. Prefer basic string operations (contains, replace, split, toLowerCase) before regex.
 
 ---
-You should return the model as JSON complying to the following schema.  Do NOT return a schema.  Return JSON which complies with the schema:
 You should return the model as JSON complying to the following schema.  Do NOT return a schema.  Return JSON which complies with the schema:
 ```
 ${SCHEMA_CONTENT}
