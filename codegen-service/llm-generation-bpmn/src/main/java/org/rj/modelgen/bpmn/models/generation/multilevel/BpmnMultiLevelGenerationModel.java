@@ -41,6 +41,7 @@ import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelGenerat
 
 import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelModelPromptType;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderFunction;
+import org.rj.modelgen.llm.response.ModelResponse;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceStateMachineCustomization;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
@@ -222,7 +223,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
 
         return customization
                 .withNewStateInsertedAfter(initialValidation, MultiLevelGenerationModelStates.InitialValidateDetailLevel.toString())
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), BpmnGenerationSignals.PrepareLlmRequest.toString(), MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()));
+                               .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), ModelResponse.Status.SUCCESS.toString(), MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()));
     }
 
     private static ModelInterfaceStateMachineCustomization validateDetailLevelModel(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator) {
