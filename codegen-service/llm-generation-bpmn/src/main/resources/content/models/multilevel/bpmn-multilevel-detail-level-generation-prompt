@@ -8,20 +8,20 @@ You are designing a business process model following the BPMN 2.0 standard.  We 
 1. Build a HIGH-LEVEL model by connecting together appropriate BPMN 2.0 elements
 2. Extend this into a DETAILED model by adding configuration and linking node inputs & outputs
 
+<#if highLevelModel?? && highLevelModel?trim?has_content>
 You have previously completed stage 1 by selecting elements from the provided library and linking them together.  You also proposed the 'source' of each key input to those actions. In response to the following request:
 ```
 ${request}
 ```
 
 You generated the high-level model below:
-<#if highLevelModel?? && highLevelModel?trim?has_content>
 ```
 ${highLevelModel}
 ```
 </#if>
 
 <#if isDetailModelRetry>
-You have also previously completed step 2 and generated the detail-level model below:
+You have previously generated the detail-level model below for a previous request:
 ```
 <#if detailLevelModel??>${detailLevelModel}<#elseif serializedReverseRender??>${serializedReverseRender}</#if>
 ```
@@ -32,13 +32,19 @@ However, it had the following issues (these are grouped by the Node Names found 
 <#assign issues = DETAIL_MODEL_VALIDATION_ISSUES?replace(", Node Name:", ", \nNode Name:")>
 ${issues}
 ```
+You have now been asked to update the detail-level model to fix these issues.  You should use the high-level model above as a starting point, and then update the detail-level model to fix the issues listed above following the guidelines provided.
 </#if>
 
-You have now been asked to update the detail-level model to fix these issues.  You should use the high-level model above as a starting point, and then update the detail-level model to fix the issues listed above following the guidelines provided.
+<#if serializedReverseRender?? && serializedReverseRender?trim?has_content>
+You have now been asked to update the model to satisfy this latest request:
+```
+${request}
+```
+Only update the nodes as instructed by the request. Leave the other nodes and its metadata as-is.
+Below are the full definitions of each action you used in the original model.
 <#else>
-
-We will now complete stage 2 and build the DETAILED model.
-
+We will now complete step 2 and build the DETAILED model. Below are the full definitions of each action you selected in stage 1.
+</#if>
 </#if>
 
 Below are the full definitions of each element you used in the high-level model. The 'elementType' of each node in your model will match the name of a component in this library:
@@ -210,6 +216,7 @@ CODE GENERATION & SCRIPTING INSTRUCTIONS
    f. Prefer basic string operations (contains, replace, split, toLowerCase) before regex.
 
 ---
+You should return the model as JSON complying to the following schema.  Do NOT return a schema.  Return JSON which complies with the schema:
 You should return the model as JSON complying to the following schema.  Do NOT return a schema.  Return JSON which complies with the schema:
 ```
 ${SCHEMA_CONTENT}
