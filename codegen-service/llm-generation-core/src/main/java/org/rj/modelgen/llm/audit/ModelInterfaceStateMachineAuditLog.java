@@ -45,7 +45,7 @@ public class ModelInterfaceStateMachineAuditLog {
             recordLocation,
             String.format("%d-%s-%s-%s.%s",
                 System.currentTimeMillis(),
-                new SimpleDateFormat("yyyy-MM-dd").format(new Date()),
+                new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()),
                 sessionId,
                 identifier,
                 getAppropriateFileExtension(content))

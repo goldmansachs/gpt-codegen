@@ -43,6 +43,18 @@ public class SubmitDetailLevelGenerationRequestToLlm extends SubmitGenerationReq
         // Handle LLM-directed retry signal from detail-level generation
         final var content = response.getMessage();
         final var retryMarker = StandardPromptPlaceholders.RETURN_TO_HIGH_LEVEL.getValue();
+        final var cannotApplyMarker = StandardPromptPlaceholders.CANNOT_APPLY_CHANGES.getValue();
+
+        // Fail gracefully without retrying, since the LLM has indicated it cannot apply the requested changes
+        if (content.contains(cannotApplyMarker)) {
+            final var reason = content
+                    .replace(String.format("%s:", cannotApplyMarker), "")
+                    .replace(cannotApplyMarker, "")
+                    .strip();
+            return Optional.of(new ModelInterfaceStandardSignals.FAIL_MAX_INVOCATIONS(
+                    "LLM cannot apply the requested changes: " + reason, 1));
+        }
+
         if (content.contains(retryMarker)) {
             final var reason = content
                     .replace(String.format("%s:", retryMarker), "")

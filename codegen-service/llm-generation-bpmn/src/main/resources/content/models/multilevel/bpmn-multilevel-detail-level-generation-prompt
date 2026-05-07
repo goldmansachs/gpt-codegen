@@ -1,60 +1,104 @@
-<#if (detailLevelModel?? && detailLevelModel?trim?has_content && DETAIL_MODEL_VALIDATION_ISSUES?? && DETAIL_MODEL_VALIDATION_ISSUES?trim?has_content) || (serializedReverseRender?? && serializedReverseRender?trim?has_content)>
-    <#assign isDetailModelRetry = true>
+<#assign isCopilotMode = serializedReverseRender?? && serializedReverseRender?trim?has_content>
+<#assign isRetry = detailLevelModel?? && detailLevelModel?trim?has_content && DETAIL_MODEL_VALIDATION_ISSUES?? && DETAIL_MODEL_VALIDATION_ISSUES?trim?has_content>
+
+You are designing a business process model following the BPMN 2.0 standard.
+
+<#if isCopilotMode>
+<#-- ==================== COPILOT MODE ==================== -->
+
+<#if isRetry>
+<#-- ---- Copilot retry: only show latest model + errors ---- -->
+You have previously generated the following detail-level model in response to a change request:
+```
+${request}
+```
+
+Detail-level model:
+```
+${detailLevelModel}
+```
+
+However, it had the following issues (these are grouped by the Node Names found in the model):
+```
+<#assign issues = DETAIL_MODEL_VALIDATION_ISSUES?replace(", Node Name:", ", \nNode Name:")>
+${issues}
+```
+
+You should fix these issues in the model following the guidelines provided below.
 <#else>
-    <#assign isDetailModelRetry = false>
+<#-- ---- Copilot first pass: show existing model + change request ---- -->
+You have been given the following existing detail-level model:
+```
+${serializedReverseRender}
+```
+
+You have been asked to apply the following changes to this model:
+```
+${request}
+```
 </#if>
 
-You are designing a business process model following the BPMN 2.0 standard.  We will generate the model in two stages
+Below are the full definitions of all available elements. The 'elementType' of each node in your model must match the name of a component in this library. You may use any of these components when applying the requested changes:
+
+<#elseif isRetry>
+<#-- ==================== STANDARD RETRY MODE ==================== -->
+
+You have previously generated the following detail-level model in response to this request:
+```
+${request}
+```
+
+Detail-level model:
+```
+${detailLevelModel}
+```
+
+However, it had the following issues (these are grouped by the Node Names found in the detail-level model you generated):
+```
+<#assign issues = DETAIL_MODEL_VALIDATION_ISSUES?replace(", Node Name:", ", \nNode Name:")>
+${issues}
+```
+
+You have now been asked to update the detail-level model to fix these issues following the guidelines provided below.
+
+Below are the full definitions of each element you used in the model. The 'elementType' of each node in your model will match the name of a component in this library:
+
+<#else>
+<#-- ==================== STANDARD INITIAL GENERATION ==================== -->
+
+We will generate the model in two stages:
 1. Build a HIGH-LEVEL model by connecting together appropriate BPMN 2.0 elements
 2. Extend this into a DETAILED model by adding configuration and linking node inputs & outputs
 
-<#if highLevelModel?? && highLevelModel?trim?has_content>
 You have previously completed stage 1 by selecting elements from the provided library and linking them together.  You also proposed the 'source' of each key input to those actions. In response to the following request:
 ```
 ${request}
 ```
 
+<#if highLevelModel?? && highLevelModel?trim?has_content>
 You generated the high-level model below:
 ```
 ${highLevelModel}
 ```
 </#if>
 
-<#if isDetailModelRetry>
-You have previously generated the detail-level model below for a previous request:
-```
-<#if detailLevelModel??>${detailLevelModel}<#elseif serializedReverseRender??>${serializedReverseRender}</#if>
-```
+We will now complete stage 2 and build the DETAILED model.
 
-<#if DETAIL_MODEL_VALIDATION_ISSUES??>
-However, it had the following issues (these are grouped by the Node Names found in the detail-level model you generated initially):
-```
-<#assign issues = DETAIL_MODEL_VALIDATION_ISSUES?replace(", Node Name:", ", \nNode Name:")>
-${issues}
-```
-You have now been asked to update the detail-level model to fix these issues.  You should use the high-level model above as a starting point, and then update the detail-level model to fix the issues listed above following the guidelines provided.
-</#if>
-
-<#if serializedReverseRender?? && serializedReverseRender?trim?has_content>
-You have now been asked to update the model to satisfy this latest request:
-```
-${request}
-```
-Only update the nodes as instructed by the request. Leave the other nodes and its metadata as-is.
-Below are the full definitions of each action you used in the original model.
-<#else>
-We will now complete step 2 and build the DETAILED model. 
-</#if>
-</#if>
 
 Below are the full definitions of each element you used in the high-level model. The 'elementType' of each node in your model will match the name of a component in this library:
+
+</#if>
 ```
 ${COMPONENT_LIBRARY}
 ```
 
 <#if GLOBAL_VARIABLES_USED_IN_HL_MODEL?? && GLOBAL_VARIABLES_USED_IN_HL_MODEL?trim?has_content>
 
+<#if isCopilotMode>
+The following global variables are available for use in the model:
+<#else>
 You also selected the following global variables in stage 1:
+</#if>
 ```
 ${GLOBAL_VARIABLES_USED_IN_HL_MODEL}
 ```
@@ -77,7 +121,8 @@ ${STARTING_PAYLOAD_VARIABLES}
 ```
 </#if>
 
-<#if !isDetailModelRetry>You should now generate the DETAILED model. Feel free to correct/extend the high-level model you initially generated.
+<#if isCopilotMode && !isRetry>You should now apply the requested changes to the existing model. Preserve all existing nodes and configuration unless the request explicitly asks to modify or remove them.
+<#elseif !isRetry>You should now generate the DETAILED model. Feel free to correct/extend the high-level model you initially generated.
 <#else>
 Below are some guidelines to help you fix the issues found in the detail-level model
 </#if>
@@ -224,6 +269,16 @@ ${SCHEMA_CONTENT}
 ---
 Finally, ensure that all steps are part of the SAME process.  You should make sure that steps in your model are correctly linked together to form a single process.  There should be no orphaned steps or processes - every step must be linked.
 
+<#if isCopilotMode>
+Return one of two possible responses:
+1. The JSON complying to the schema above, if you successfully apply the requested changes. Return ONLY the JSON and no other text or commentary. Make sure the updated model preserves the existing structure and configuration while applying the requested changes, with all required inputs satisfied. DO NOT return empty list of nodes.
+2. The phrase "CANNOT_APPLY_CHANGES: (REASON)" if you cannot apply the requested changes. Replace (REASON) with the reason(s) that you cannot apply the changes at this time.
+<#elseif isRetry>
+Please return one of two possible responses:
+1. The JSON complying to the schema above, if you successfully fix the issues. Return ONLY the JSON and no other text or commentary. Make sure all required inputs are satisfied and the model is valid. DO NOT return empty list of nodes.
+2. The phrase "RETURN_TO_HIGH_LEVEL: (REASON)" if you cannot fix the issues and need to regenerate the model from scratch. Replace (REASON) with the reason(s).
+<#else>
 NOTE: Now that you consider the detailed level and full component definitions, you may realize that you need to return to phase 1 and change the high-level structure.  E.g. if you need additional nodes in order to generate some required component inputs.  Please therefore return one of two possible responses:
 1. The JSON complying to the schema above, if you successfully generate the model. Return ONLY the JSON and no other text or commentary. Make sure that detail-level model builds on the high-level model appropriately with all required inputs satisfied and potential structure changes but DO NOT return empty list of nodes.
 2. The phrase "RETURN_TO_HIGH_LEVEL: (REASON)" if you need to return to phase 1 and regenerate the high level model. Replace (REASON) with the reason(s) that you cannot generate a model at this time
+</#if>
