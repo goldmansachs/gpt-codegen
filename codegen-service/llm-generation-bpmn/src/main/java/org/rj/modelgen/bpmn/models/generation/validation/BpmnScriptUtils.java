@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Optional;
+import java.util.Collections;
 
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.Patterns.*;
 
@@ -68,7 +70,7 @@ public class BpmnScriptUtils {
 
             // Search all components for generated outputs matching this variable name
             List<BpmnComponent.Variable> matchingOutputs = componentLibrary.getComponents().stream()
-                    .flatMap(component -> component.getGeneratedOutputs().stream())
+                    .flatMap(component -> Optional.ofNullable(component.getGeneratedOutputs()).orElseGet(Collections::emptyList).stream())
                     .filter(outputVar -> outputVar.getName().equals(variableName))
                     .toList();
 
@@ -308,7 +310,7 @@ public class BpmnScriptUtils {
 
         // Collect all generated outputs across all components, sorted by resolveValue length descending to match longer (more specific) patterns first
         var allOutputs = componentLibrary.getComponents().stream()
-                .flatMap(component -> component.getGeneratedOutputs().stream())
+                .flatMap(component -> Optional.ofNullable(component.getGeneratedOutputs()).orElseGet(Collections::emptyList).stream())
                 .filter(output -> output.getResolveValue() != null && !output.getResolveValue().isEmpty())
                 .sorted((a, b) -> Integer.compare(b.getResolveValue().length(), a.getResolveValue().length()))
                 .toList();
