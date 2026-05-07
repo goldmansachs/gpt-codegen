@@ -200,6 +200,10 @@ public class ValidateBpmnModel {
             return;
         }
 
+        if(component.get().getRequiredInputs() == null) {
+            return;
+        }
+
         for (var inputDefinition : component.get().getRequiredInputs()) {
             List<ElementNodeInput> inputs = node.getInputs() == null
                     ? new ArrayList<>()
