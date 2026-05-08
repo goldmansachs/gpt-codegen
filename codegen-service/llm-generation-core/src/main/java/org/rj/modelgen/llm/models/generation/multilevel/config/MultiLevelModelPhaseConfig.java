@@ -3,7 +3,7 @@ package org.rj.modelgen.llm.models.generation.multilevel.config;
 import org.rj.modelgen.llm.component.ComponentLibrary;
 import org.rj.modelgen.llm.component.ComponentLibrarySelector;
 import org.rj.modelgen.llm.component.ComponentLibrarySerializer;
-import org.rj.modelgen.llm.intrep.assets.IntermediateModelAssets;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.core.model.IntermediateModel;
 import org.rj.modelgen.llm.models.generation.multilevel.states.PrepareAndSubmitMLRequestForLevelParams;
 import org.rj.modelgen.llm.schema.ModelSchema;
@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class MultiLevelModelPhaseConfig<TIntermediateModel extends IntermediateModel, TIntermediateModelAssets extends IntermediateModelAssets,
+public class MultiLevelModelPhaseConfig<TIntermediateModel extends IntermediateModel, TModelAssets extends ModelAssets,
                                         TComponentLibrary extends ComponentLibrary<?>,
                                         TPrepareImpl extends PrepareSpecificModelGenerationRequestPromptWithComponents<TComponentLibrary>,
                                         TSubmitImpl extends SubmitGenerationRequestToLlm,
@@ -27,20 +27,20 @@ public class MultiLevelModelPhaseConfig<TIntermediateModel extends IntermediateM
      * @param <TIntermediateModel>
      * @param <TComponentLibrary>
      */
-    public static class Basic<TIntermediateModel extends IntermediateModel, TIntermediateModelAssets extends IntermediateModelAssets, TComponentLibrary extends ComponentLibrary<?>>
-            extends MultiLevelModelPhaseConfig<TIntermediateModel, TIntermediateModelAssets, TComponentLibrary, PrepareSpecificModelGenerationRequestPromptWithComponents<TComponentLibrary>, SubmitGenerationRequestToLlm, ValidateLlmIntermediateModelResponse> {
+    public static class Basic<TIntermediateModel extends IntermediateModel, TModelAssets extends ModelAssets, TComponentLibrary extends ComponentLibrary<?>>
+            extends MultiLevelModelPhaseConfig<TIntermediateModel, TModelAssets, TComponentLibrary, PrepareSpecificModelGenerationRequestPromptWithComponents<TComponentLibrary>, SubmitGenerationRequestToLlm, ValidateLlmIntermediateModelResponse> {
 
-        public Basic(Class<TIntermediateModel> intermediateModelClass, Class<TIntermediateModelAssets> intermediateModelAssetsClass,
+        public Basic(Class<TIntermediateModel> intermediateModelClass, Class<TModelAssets> modelAssetsClass,
                      ModelSchema modelSchema,
                      IntermediateModelSanitizer<TIntermediateModel> modelSanitizer,
                      ComponentLibrarySelector<TComponentLibrary> componentLibrarySelector,
                      ComponentLibrarySerializer<TComponentLibrary> componentLibrarySerializer) {
-            super(intermediateModelClass, intermediateModelAssetsClass, modelSchema, modelSanitizer, componentLibrarySelector, componentLibrarySerializer, null, null);
+            super(intermediateModelClass, modelAssetsClass, modelSchema, modelSanitizer, componentLibrarySelector, componentLibrarySerializer, null, null);
         }
     }
 
     private Class<TIntermediateModel> intermediateModelClass;
-    private Class<TIntermediateModelAssets> intermediateModelAssetsClass;
+    private Class<TModelAssets> modelAssetsClass;
     private ModelSchema modelSchema;
     private IntermediateModelSanitizer<TIntermediateModel> modelSanitizer;
     private ComponentLibrarySelector<TComponentLibrary> componentLibrarySelector;
@@ -52,7 +52,7 @@ public class MultiLevelModelPhaseConfig<TIntermediateModel extends IntermediateM
     public MultiLevelModelPhaseConfig() { }
 
 
-    public MultiLevelModelPhaseConfig(Class<TIntermediateModel> intermediateModelClass, Class<TIntermediateModelAssets> intermediateModelAssetsClass,
+    public MultiLevelModelPhaseConfig(Class<TIntermediateModel> intermediateModelClass, Class<TModelAssets> modelAssetsClass,
                                       ModelSchema modelSchema,
                                       IntermediateModelSanitizer<TIntermediateModel> modelSanitizer,
                                       ComponentLibrarySelector<TComponentLibrary> componentLibrarySelector,
@@ -60,7 +60,7 @@ public class MultiLevelModelPhaseConfig<TIntermediateModel extends IntermediateM
                                       Function<PrepareAndSubmitMLRequestForLevelParams<?, ?, TComponentLibrary, TPrepareImpl, ?, ?>, TPrepareImpl> customPrepareImplementation,
                                       Function<PrepareAndSubmitMLRequestForLevelParams<?, ?, ?, ?, TSubmitImpl, ?>, TSubmitImpl> customSubmitImplementation) {
         this.intermediateModelClass = intermediateModelClass;
-        this.intermediateModelAssetsClass = intermediateModelAssetsClass;
+        this.modelAssetsClass = modelAssetsClass;
         this.modelSchema = modelSchema;
         this.modelSanitizer = modelSanitizer;
         this.componentLibrarySelector = componentLibrarySelector;
@@ -77,12 +77,12 @@ public class MultiLevelModelPhaseConfig<TIntermediateModel extends IntermediateM
         this.intermediateModelClass = intermediateModelClass;
     }
 
-    public Class<TIntermediateModelAssets> getIntermediateModelAssetsClass() {
-        return intermediateModelAssetsClass;
+    public Class<TModelAssets> getModelAssetsClass() {
+        return modelAssetsClass;
     }
 
-    public void setIntermediateModelAssetsClass(Class<TIntermediateModelAssets> intermediateModelAssetsClass) {
-        this.intermediateModelAssetsClass = intermediateModelAssetsClass;
+    public void setModelAssetsClass(Class<TModelAssets> modelAssetsClass) {
+        this.modelAssetsClass = modelAssetsClass;
     }
 
     public ModelSchema getModelSchema() {

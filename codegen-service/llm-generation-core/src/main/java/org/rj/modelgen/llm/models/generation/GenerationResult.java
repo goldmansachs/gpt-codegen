@@ -1,7 +1,7 @@
 package org.rj.modelgen.llm.models.generation;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.rj.modelgen.llm.intrep.assets.IntermediateModelAssets;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.graph.IntermediateGraphModel;
 import org.rj.modelgen.llm.state.ModelInterfaceExecutionResult;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
@@ -9,10 +9,10 @@ import org.rj.modelgen.llm.state.ModelInterfaceState;
 import java.util.List;
 import java.util.Optional;
 
-public abstract class GenerationResult<TIntermediateModel extends IntermediateGraphModel<?, ?, ?, ?>, TIntermediateModelAssets extends IntermediateModelAssets> {
+public abstract class GenerationResult<TIntermediateModel extends IntermediateGraphModel<?, ?, ?, ?>, TModelAssets extends ModelAssets> {
     private boolean successful;
     private TIntermediateModel intermediateModel;
-    private TIntermediateModelAssets intermediateModelAssets;
+    private TModelAssets modelAssets;
     private List<String> validationMessages;
     private ModelInterfaceExecutionResult executionResults;
 
@@ -20,11 +20,11 @@ public abstract class GenerationResult<TIntermediateModel extends IntermediateGr
 
     }
 
-    public GenerationResult(boolean successful, TIntermediateModel intermediateModel, TIntermediateModelAssets intermediateModelAssets,
+    public GenerationResult(boolean successful, TIntermediateModel intermediateModel, TModelAssets modelAssets,
                             List<String> validationMessages, ModelInterfaceExecutionResult executionResults) {
         this.successful = successful;
         this.intermediateModel = intermediateModel;
-        this.intermediateModelAssets = intermediateModelAssets;
+        this.modelAssets = modelAssets;
         this.validationMessages = validationMessages;
         this.executionResults = executionResults;
     }
@@ -37,8 +37,8 @@ public abstract class GenerationResult<TIntermediateModel extends IntermediateGr
         return intermediateModel;
     }
 
-    public TIntermediateModelAssets getIntermediateModelAssets() {
-        return intermediateModelAssets;
+    public TModelAssets getModelAssets() {
+        return modelAssets;
     }
 
     public List<String> getValidationMessages() {

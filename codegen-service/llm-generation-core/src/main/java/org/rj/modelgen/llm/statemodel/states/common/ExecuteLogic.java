@@ -1,6 +1,6 @@
 package org.rj.modelgen.llm.statemodel.states.common;
 
-import org.rj.modelgen.llm.intrep.assets.IntermediateModelAssets;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.assets.NodeUnresolvedInput;
 import org.rj.modelgen.llm.intrep.graph.GraphConnection;
 import org.rj.modelgen.llm.intrep.graph.GraphNode;
@@ -48,8 +48,8 @@ public abstract class ExecuteLogic extends ModelInterfaceState {
             TNode extends GraphNode<String, String, TConnection>,
             TModel extends IntermediateGraphModel<String, String, TConnection, TNode>,
             TNodeUnresolvedInput extends NodeUnresolvedInput,
-            TIntermediateModelAssets extends IntermediateModelAssets<TNodeUnresolvedInput>>
-    Mono<Result<Void, String>> execute(TModel model, TIntermediateModelAssets modelAssets, List<Runnable> operations) {
+            TModelAssets extends ModelAssets<TNodeUnresolvedInput>>
+    Mono<Result<Void, String>> execute(TModel model, TModelAssets modelAssets, List<Runnable> operations) {
         // Apply all operations; catch and propagate any unhandled exceptions
         for (final var operation : operations) {
             try {
@@ -90,11 +90,11 @@ public abstract class ExecuteLogic extends ModelInterfaceState {
     }
 
     private <TNodeUnresolvedInput extends NodeUnresolvedInput,
-            TIntermediateModelAssets extends IntermediateModelAssets<TNodeUnresolvedInput>>
-    Result<Void, String> saveModelAssets(TIntermediateModelAssets modelAssets) {
+            TModelAssets extends ModelAssets<TNodeUnresolvedInput>>
+    Result<Void, String> saveModelAssets(TModelAssets modelAssets) {
         if (modelAssets == null) return Result.Err("Cannot save null model assets");
 
-        getPayload().put(StandardModelData.IntermediateModelAssets.toString(), modelAssets);
+        getPayload().put(StandardModelData.ModelAssets.toString(), modelAssets);
         return Result.Ok();
     }
 

@@ -2,12 +2,11 @@ package org.rj.modelgen.bpmn.models.generation.multilevel.states;
 
 import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
-import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariable;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
-import org.rj.modelgen.bpmn.intrep.model.assets.BpmnIntermediateModelAssets;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.rj.modelgen.bpmn.intrep.model.assets.ElementNodeUnresolvedInput;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
 import org.rj.modelgen.llm.component.ComponentInputResolutionStrategy;
@@ -141,7 +140,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
         }
     }
 
-    private void identifyUnresolvableInputs(BpmnIntermediateModel model, BpmnIntermediateModelAssets modelAssets) {
+    private void identifyUnresolvableInputs(BpmnIntermediateModel model, BpmnModelAssets modelAssets) {
         List<ElementNodeUnresolvedInput> unresolvedInputs = new ArrayList<>();
         for (final var node : model.getNodes()) {
             if (node.getInputs() == null) continue;
@@ -200,14 +199,14 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                 .orElseGet(() -> Result.Err("No valid input model found"));
     }
 
-    private BpmnIntermediateModelAssets getModelAssets() {
-        final var existingAssets = getPayload().<BpmnIntermediateModelAssets>get(StandardModelData.IntermediateModelAssets.toString());
+    private BpmnModelAssets getModelAssets() {
+        final var existingAssets = getPayload().<BpmnModelAssets>get(StandardModelData.ModelAssets.toString());
         if (existingAssets != null) {
             return existingAssets;
         }
         // Otherwise, create and persist a new model assets object
-        final var assets = new BpmnIntermediateModelAssets();
-        getPayload().put(StandardModelData.IntermediateModelAssets.toString(), assets);
+        final var assets = new BpmnModelAssets();
+        getPayload().put(StandardModelData.ModelAssets.toString(), assets);
         return assets;
     }
 

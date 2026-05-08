@@ -1,7 +1,7 @@
 package org.rj.modelgen.llm.statemodel.states.common.impl;
 
 import org.rj.modelgen.llm.generation.ModelGenerationFunction;
-import org.rj.modelgen.llm.intrep.assets.IntermediateModelAssets;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.core.model.IntermediateModel;
 import org.rj.modelgen.llm.state.ModelInterfaceStateMachine;
 import org.rj.modelgen.llm.statemodel.states.common.GenerateModelFromIntermediateModel;
@@ -9,8 +9,8 @@ import org.rj.modelgen.llm.util.Result;
 
 import java.util.function.Function;
 
-public class GenerateModelFromIntermediateModelTransformer<TIntermediateModel extends IntermediateModel, TIntermediateModelAssets extends IntermediateModelAssets, TModel>
-        extends GenerateModelFromIntermediateModel<TIntermediateModel, TIntermediateModelAssets, TModel> {
+public class GenerateModelFromIntermediateModelTransformer<TIntermediateModel extends IntermediateModel, TModelAssets extends ModelAssets, TModel>
+        extends GenerateModelFromIntermediateModel<TIntermediateModel, TModelAssets, TModel> {
 
     private final ModelGenerationFunction<TIntermediateModel, TModel> generationFunction;
 

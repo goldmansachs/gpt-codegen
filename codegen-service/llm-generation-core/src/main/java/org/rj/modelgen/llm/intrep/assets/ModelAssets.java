@@ -5,11 +5,11 @@ import org.rj.modelgen.llm.util.Util;
 
 import java.util.List;
 
-public class IntermediateModelAssets<TNodeUnresolvedInput extends NodeUnresolvedInput> {
+public class ModelAssets<TNodeUnresolvedInput extends NodeUnresolvedInput> {
 
     List<TNodeUnresolvedInput> unresolvedInputs;
 
-    public IntermediateModelAssets() {
+    public ModelAssets() {
     }
 
     public List<TNodeUnresolvedInput> getUnresolvedInputs() {
@@ -26,3 +26,4 @@ public class IntermediateModelAssets<TNodeUnresolvedInput extends NodeUnresolved
     }
 
 }
+

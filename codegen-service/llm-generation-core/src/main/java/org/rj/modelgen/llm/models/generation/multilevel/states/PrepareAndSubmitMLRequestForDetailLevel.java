@@ -1,27 +1,27 @@
 package org.rj.modelgen.llm.models.generation.multilevel.states;
 
 import org.rj.modelgen.llm.component.ComponentLibrary;
-import org.rj.modelgen.llm.intrep.assets.IntermediateModelAssets;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.core.model.IntermediateModel;
 import org.rj.modelgen.llm.statemodel.states.common.PrepareAndSubmitLlmGenerationRequest;
 import org.rj.modelgen.llm.statemodel.states.common.SubmitDetailLevelGenerationRequestToLlm;
 import org.rj.modelgen.llm.statemodel.states.common.impl.PrepareSpecificModelGenerationRequestPromptWithComponents;
 
 
-public class PrepareAndSubmitMLRequestForDetailLevel<TIntermediateModel extends IntermediateModel, TIntermediateModelAssets extends IntermediateModelAssets,
+public class PrepareAndSubmitMLRequestForDetailLevel<TIntermediateModel extends IntermediateModel, TModelAssets extends ModelAssets,
                                                      TComponentLibrary extends ComponentLibrary<?>,
                                                      TPrepareImpl extends PrepareSpecificModelGenerationRequestPromptWithComponents<TComponentLibrary>,
                                                      TSubmitImpl extends SubmitDetailLevelGenerationRequestToLlm>
 
-        extends PrepareAndSubmitMLRequestForLevel<TIntermediateModel, TIntermediateModelAssets, TComponentLibrary, TPrepareImpl, TSubmitImpl> {
+        extends PrepareAndSubmitMLRequestForLevel<TIntermediateModel, TModelAssets, TComponentLibrary, TPrepareImpl, TSubmitImpl> {
 
 
-    public PrepareAndSubmitMLRequestForDetailLevel(PrepareAndSubmitMLRequestForLevelParams<TIntermediateModel, TIntermediateModelAssets, TComponentLibrary, TPrepareImpl, TSubmitImpl, ?> params) {
+    public PrepareAndSubmitMLRequestForDetailLevel(PrepareAndSubmitMLRequestForLevelParams<TIntermediateModel, TModelAssets, TComponentLibrary, TPrepareImpl, TSubmitImpl, ?> params) {
         this(PrepareAndSubmitMLRequestForDetailLevel.class, params);
     }
 
     public PrepareAndSubmitMLRequestForDetailLevel(Class<? extends PrepareAndSubmitLlmGenerationRequest> cls,
-                                                   PrepareAndSubmitMLRequestForLevelParams<TIntermediateModel, TIntermediateModelAssets, TComponentLibrary, TPrepareImpl, TSubmitImpl, ?> params) {
+                                                   PrepareAndSubmitMLRequestForLevelParams<TIntermediateModel, TModelAssets, TComponentLibrary, TPrepareImpl, TSubmitImpl, ?> params) {
         super(cls, params,
                 PrepareAndSubmitMLRequestForLevel::defaultPrepareImpl,
                 PrepareAndSubmitMLRequestForDetailLevel::defaultDetailLevelSubmitImpl

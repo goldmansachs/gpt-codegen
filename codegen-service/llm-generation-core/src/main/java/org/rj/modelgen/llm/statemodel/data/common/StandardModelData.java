@@ -12,7 +12,7 @@ public enum StandardModelData {
     Temperature,
     Prompt,
     IntermediateModel,
-    IntermediateModelAssets,
+    ModelAssets,
     ModelResponse,
     ResponseContent,
     ValidationMessages,
