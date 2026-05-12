@@ -193,6 +193,15 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
         }
     }
 
+    protected void saveStartingPayload(BpmnModelAssets modelAssets) {
+        Set<PayloadVariable> processPayload = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
+        if (processPayload == null || processPayload.isEmpty()) return;
+
+        var startingPayload = processPayload.stream()
+                .collect(Collectors.toMap(PayloadVariable::getName, PayloadVariable::getExample, (a, b) -> a, LinkedHashMap::new));
+        modelAssets.setStartingPayload(startingPayload);
+    }
+
     protected String postProcessScriptInput(ElementNodeInput input, String inputValue) {
         inputValue = resolveErrorThrows(inputValue, "throw new Exception($1)");
         return inputValue;
