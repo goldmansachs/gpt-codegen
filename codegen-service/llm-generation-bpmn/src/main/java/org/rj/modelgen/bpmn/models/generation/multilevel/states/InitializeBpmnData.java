@@ -81,6 +81,7 @@ public class InitializeBpmnData extends ExecuteLogic {
         }
 
         List<PayloadVariable> automaticallyGeneratedOutputs = componentLibrary.getComponents().stream()
+                .filter(component -> component.getGeneratedOutputs() != null)
                 .flatMap(component -> component.getGeneratedOutputs().stream())
                 .map(variable -> new PayloadVariable(variable.getName(), variable.getType().toString()))
                 .toList();

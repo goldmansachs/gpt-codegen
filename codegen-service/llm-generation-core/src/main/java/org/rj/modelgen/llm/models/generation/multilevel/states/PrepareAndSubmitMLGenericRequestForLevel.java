@@ -1,7 +1,7 @@
 package org.rj.modelgen.llm.models.generation.multilevel.states;
 
 import org.rj.modelgen.llm.component.ComponentLibrary;
-import org.rj.modelgen.llm.intrep.assets.IntermediateModelAssets;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.core.model.IntermediateModel;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.llm.statemodel.states.common.PrepareAndSubmitLlmGenerationRequest;
@@ -10,11 +10,11 @@ import org.rj.modelgen.llm.statemodel.states.common.impl.PrepareSpecificModelGen
 
 import java.util.Optional;
 
-public class PrepareAndSubmitMLGenericRequestForLevel<TIntermediateModel extends IntermediateModel, TIntermediateModelAssets extends IntermediateModelAssets,
+public class PrepareAndSubmitMLGenericRequestForLevel<TIntermediateModel extends IntermediateModel, TModelAssets extends ModelAssets,
                                                TComponentLibrary extends ComponentLibrary<?>,
                                                TPrepareImpl extends PrepareSpecificModelGenerationRequestPromptWithComponents<TComponentLibrary>,
                                                TSubmitImpl extends SubmitGenerationRequestToLlm> extends PrepareAndSubmitLlmGenerationRequest {
-    public PrepareAndSubmitMLGenericRequestForLevel(PrepareAndSubmitMLRequestForLevelParams<TIntermediateModel, TIntermediateModelAssets, TComponentLibrary, TPrepareImpl, TSubmitImpl, ?> params) {
+    public PrepareAndSubmitMLGenericRequestForLevel(PrepareAndSubmitMLRequestForLevelParams<TIntermediateModel, TModelAssets, TComponentLibrary, TPrepareImpl, TSubmitImpl, ?> params) {
         super(PrepareAndSubmitMLGenericRequestForLevel.class,
                 createPrepareImpl(params),
                 createSubmitImpl(params)

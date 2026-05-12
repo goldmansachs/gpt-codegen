@@ -2,7 +2,7 @@ package org.rj.modelgen.bpmn.models.generation.base.states;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
-import org.rj.modelgen.bpmn.intrep.model.assets.BpmnIntermediateModelAssets;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.rj.modelgen.llm.state.GenerationComplete;
 import org.rj.modelgen.llm.state.ModelInterfaceSignal;
 import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
@@ -12,7 +12,7 @@ import java.util.List;
 
 public class BpmnGenerationComplete extends GenerationComplete {
     private BpmnIntermediateModel intermediateModel;
-    private BpmnIntermediateModelAssets intermediateModelAssets;
+    private BpmnModelAssets modelAssets;
     private BpmnModelInstance generatedBpmn;
     private List<String> bpmnValidationMessages = List.of();
 
@@ -29,7 +29,7 @@ public class BpmnGenerationComplete extends GenerationComplete {
     protected Mono<ModelInterfaceSignal> invokeAction(ModelInterfaceSignal inputSignal) {
 
         this.intermediateModel = getPayload().get(StandardModelData.IntermediateModel);
-        this.intermediateModelAssets = getPayload().get(StandardModelData.IntermediateModelAssets);
+        this.modelAssets = getPayload().get(StandardModelData.ModelAssets);
         this.generatedBpmn = getPayload().get(StandardModelData.GeneratedModel);
         this.bpmnValidationMessages = getPayload().get(StandardModelData.ModelValidationMessages);
 
@@ -40,8 +40,8 @@ public class BpmnGenerationComplete extends GenerationComplete {
         return intermediateModel;
     }
 
-    public BpmnIntermediateModelAssets getIntermediateModelAssets() {
-        return intermediateModelAssets;
+    public BpmnModelAssets getModelAssets() {
+        return modelAssets;
     }
 
     public BpmnModelInstance getGeneratedBpmn() {

@@ -40,7 +40,6 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
     protected List<ElementConnection> connectedTo;
     protected Map<String, Object> properties;
     protected List<ElementNodeInput> inputs;
-    protected List<ElementNodeOutput> outputs;
 
     public ElementNode() {
     }
@@ -117,35 +116,6 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
         this.inputs = inputs;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public List<ElementNodeOutput> getOutputs() {
-        return outputs;
-    }
-
-    @JsonIgnore
-    public ElementNodeOutput getOutputAt(int index) {
-        if (outputs == null || index < 0 || index >= outputs.size()) {
-            return null;
-        }
-
-        return outputs.get(index);
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public void setOutputs(List<ElementNodeOutput> outputs) {
-        this.outputs = outputs;
-    }
-
-    @JsonIgnore
-    public boolean setOutputAt(int index, ElementNodeOutput output) {
-        if (outputs == null || index < 0 || index >= outputs.size()) {
-            return false;
-        }
-
-        outputs.set(index, output);
-        return true;
-    }
-
     /* Convenience methods */
 
     @JsonIgnore
@@ -165,14 +135,6 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
     }
 
     @JsonIgnore
-    public Optional<ElementNodeOutput> findOutput(String name) {
-        if (name == null || outputs == null) return Optional.empty();
-        return getOutputs().stream()
-                .filter(outputs -> name.equals(outputs.getName()))
-                .findFirst();
-    }
-
-    @JsonIgnore
     public <B extends AbstractFlowNodeBuilder<B, E>, E extends FlowNode> BpmnModelInstance render(AbstractFlowNodeBuilder<B, E> builder, BpmnComponent elementDefinition, String namespace) {
         return builder.manualTask(id).name(name).done();
     }
@@ -189,13 +151,11 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
 
         List<ElementNodeInput> nodeInputs = reverseRender(flowNode, namespace, componentLibrary, globalVariableLibrary);
         setInputs(nodeInputs.isEmpty() ? new ArrayList<>() : nodeInputs);
-        setOutputs(new ArrayList<>());
     }
 
     @JsonIgnore
     public void reverseRenderModel(BpmnModelInstance model, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
         // Override in subclasses that are not FlowNode-based (e.g. ProcessConfigNode)
-        setOutputs(new ArrayList<>());
     }
 
     /**
@@ -335,13 +295,12 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
                 Objects.equals(description, that.description) &&
                 Objects.equals(connectedTo, that.connectedTo) &&
                 Objects.equals(properties, that.properties) &&
-                Objects.equals(inputs, that.inputs) &&
-                Objects.equals(outputs, that.outputs);
+                Objects.equals(inputs, that.inputs);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, elementType, description, connectedTo, properties, inputs, outputs);
+        return Objects.hash(id, name, elementType, description, connectedTo, properties, inputs);
     }
 
     @JsonIgnore

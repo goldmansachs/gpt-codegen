@@ -10,7 +10,6 @@ import org.rj.modelgen.llm.state.ModelInterfacePayload;
 
 import java.util.stream.Collectors;
 
-import static org.rj.modelgen.bpmn.component.BpmnComponentLibrary.fullLibrary;
 import static org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData.HighLevelModel;
 import static org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData.ReverseRenderedIntermediateModel;
 
@@ -18,7 +17,7 @@ public class BpmnComponentLibraryDetailLevelSelector implements ComponentLibrary
     @Override
     public BpmnComponentLibrary getFilteredLibrary(BpmnComponentLibrary baseLibrary, ModelInterfacePayload payload) {
         if (payload.get(ReverseRenderedIntermediateModel) != null) {
-            return fullLibrary();
+            return baseLibrary;
         } else if (payload.get(HighLevelModel) != null) {
             final var model = getLatestHighLevelModel(payload);
 

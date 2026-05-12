@@ -4,10 +4,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.rj.modelgen.llm.util.Result;
 import org.rj.modelgen.llm.util.Util;
 
-public class IntermediateModelAssetsParser<TModelAssets extends IntermediateModelAssets> {
+public class ModelAssetsParser<TModelAssets extends ModelAssets> {
     private final Class<? extends TModelAssets> modelAssetsClass;
 
-    public IntermediateModelAssetsParser(Class<? extends TModelAssets> modelAssetsClass) {
+    public ModelAssetsParser(Class<? extends TModelAssets> modelAssetsClass) {
         this.modelAssetsClass = modelAssetsClass;
     }
 
@@ -24,3 +24,4 @@ public class IntermediateModelAssetsParser<TModelAssets extends IntermediateMode
 
 
 }
+

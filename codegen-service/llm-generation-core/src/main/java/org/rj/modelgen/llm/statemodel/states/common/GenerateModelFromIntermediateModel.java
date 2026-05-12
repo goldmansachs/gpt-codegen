@@ -1,7 +1,7 @@
 package org.rj.modelgen.llm.statemodel.states.common;
 
 import org.rj.modelgen.llm.intrep.IntermediateModelParser;
-import org.rj.modelgen.llm.intrep.assets.IntermediateModelAssets;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.core.model.IntermediateModel;
 import org.rj.modelgen.llm.state.ModelInterfaceSignal;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.function.Function;
 
-public abstract class GenerateModelFromIntermediateModel<TIntermediateModel extends IntermediateModel, TIntermediateModelAssets extends IntermediateModelAssets, TModel> extends ModelInterfaceState {
+public abstract class GenerateModelFromIntermediateModel<TIntermediateModel extends IntermediateModel, TModelAssets extends ModelAssets, TModel> extends ModelInterfaceState {
     private final IntermediateModelParser<TIntermediateModel> intermediateModelParser;
     private final String inputModelKey;
     private final String outputModelKey;
@@ -48,8 +48,8 @@ public abstract class GenerateModelFromIntermediateModel<TIntermediateModel exte
             return error(String.format("LLM response failed intermediate model parsing (%s)", intermediateModel.getError()));
         }
 
-        final var intermediateModelAssets = getPayload().<TIntermediateModelAssets>get(StandardModelData.IntermediateModelAssets.toString());
-        final var modelAssetsSerialised = Util.trySerialize(intermediateModelAssets);
+        final var modelAssets = getPayload().<TModelAssets>get(StandardModelData.ModelAssets.toString());
+        final var modelAssetsSerialised = Util.trySerialize(modelAssets);
         recordAudit("assets", modelAssetsSerialised.getValue());
 
         final var generatedModel = generateModel(intermediateModel.getValue(), getModel());
@@ -62,7 +62,7 @@ public abstract class GenerateModelFromIntermediateModel<TIntermediateModel exte
         recordAudit("render", renderedModelSerializer.apply(generatedModel.getValue()));
         return outboundSignal(getSuccessSignalId())
                 .withPayloadData(StandardModelData.IntermediateModel, intermediateModel.getValue())
-                .withPayloadData(StandardModelData.IntermediateModelAssets, intermediateModelAssets)
+                .withPayloadData(StandardModelData.ModelAssets, modelAssets)
                 .withPayloadData(outputModelKey, generatedModel.getValue())
                 .mono();
     }

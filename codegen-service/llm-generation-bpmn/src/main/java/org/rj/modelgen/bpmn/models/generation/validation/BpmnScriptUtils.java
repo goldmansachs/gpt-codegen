@@ -68,6 +68,7 @@ public class BpmnScriptUtils {
 
             // Search all components for generated outputs matching this variable name
             List<BpmnComponent.Variable> matchingOutputs = componentLibrary.getComponents().stream()
+                    .filter(component -> component.getGeneratedOutputs() != null)
                     .flatMap(component -> component.getGeneratedOutputs().stream())
                     .filter(outputVar -> outputVar.getName().equals(variableName))
                     .toList();
@@ -308,6 +309,7 @@ public class BpmnScriptUtils {
 
         // Collect all generated outputs across all components, sorted by resolveValue length descending to match longer (more specific) patterns first
         var allOutputs = componentLibrary.getComponents().stream()
+                .filter(component -> component.getGeneratedOutputs() != null)
                 .flatMap(component -> component.getGeneratedOutputs().stream())
                 .filter(output -> output.getResolveValue() != null && !output.getResolveValue().isEmpty())
                 .sorted((a, b) -> Integer.compare(b.getResolveValue().length(), a.getResolveValue().length()))
