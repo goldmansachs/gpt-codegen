@@ -197,8 +197,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
         Set<PayloadVariable> processPayload = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
         if (processPayload == null || processPayload.isEmpty()) return;
 
-        var startingPayload = processPayload.stream()
-                .collect(Collectors.toMap(PayloadVariable::getName, PayloadVariable::getExample, (a, b) -> a, LinkedHashMap::new));
+        var startingPayload = processPayload.stream().toList();
         modelAssets.setStartingPayload(startingPayload);
     }
 
