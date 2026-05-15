@@ -30,6 +30,7 @@ import static org.rj.modelgen.bpmn.generation.BpmnConstants.Namespaces.DEFAULT_N
 
 public class BasicBpmnModelGenerator {
     private static final Logger LOG = LoggerFactory.getLogger(BasicBpmnModelGenerator.class);
+    private static final double DIAGRAM_MULTIPLIER = 1.3;
 
     public BasicBpmnModelGenerator() {
     }
@@ -121,6 +122,8 @@ public class BasicBpmnModelGenerator {
                 }
             }
         }
+
+        new BpmnDiagramLayoutOptimizer().applySpacingMultiplier(builder, DIAGRAM_MULTIPLIER);
 
         return Result.Ok(builder);
     }
