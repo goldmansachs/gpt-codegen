@@ -2,7 +2,6 @@ package org.rj.modelgen.llm.audit;
 
 import org.apache.commons.io.FileUtils;
 import org.rj.modelgen.llm.beans.AuditEntry;
-import org.rj.modelgen.llm.session.SessionState;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceStateMachine;
 import org.rj.modelgen.llm.util.Util;
@@ -73,7 +72,12 @@ public class ModelInterfaceStateMachineAuditLog {
 
         if (lines.isEmpty()) return false;
 
-        return lines.size() > 1 && lines.stream().allMatch(line -> line.startsWith("{") && line.endsWith("}"));
+        return lines.size() > 1 && lines.stream().allMatch(this::looksLikeJsonObject);
+    }
+
+    private boolean looksLikeJsonObject(String line) {
+        String trimmed = line.trim();
+        return trimmed.startsWith("{") && trimmed.endsWith("}");
     }
 
     public String getRecordLocation() {

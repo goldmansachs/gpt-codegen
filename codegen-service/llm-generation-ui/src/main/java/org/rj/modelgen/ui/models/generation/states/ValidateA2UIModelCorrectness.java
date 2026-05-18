@@ -34,6 +34,7 @@ import java.util.concurrent.*;
 public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
     private static final Logger LOG = LoggerFactory.getLogger(ValidateA2UIModelCorrectness.class);
     private static final String BASIC_CATALOG_RESOURCE = "classpath:schemas/basic_catalog.json";
+    private static final String SUPPORTED_A2UI_VERSION = "0.9";
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Schema primarySchema;
@@ -172,12 +173,12 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
             return List.of("Generated A2UI output is null or empty");
         }
 
-        final String[] lines = a2uiOutput.strip().split("\\n");
+        final List<String> lines = a2uiOutput.strip().lines().toList();
         final List<String> validationMessages = new ArrayList<>();
         final LineValidationContext ctx = new LineValidationContext();
 
-        for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-            final String line = lines[lineIndex].strip();
+        for (int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
+            final String line = lines.get(lineIndex).strip();
             if (!line.isEmpty()) {
                 validateSingleLine(line, lineIndex, ctx, validationMessages);
             }
@@ -202,9 +203,9 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
     }
 
     private void validateVersionField(JsonNode messageNode, int lineIndex, List<String> validationMessages) {
-        if (!messageNode.has("version") || !"v0.9".equals(messageNode.get("version").asText())) {
-            validationMessages.add(LINE_PREFIX + (lineIndex + 1) +
-                    ": Missing or incorrect 'version' field. Must be 'v0.9'.");
+        if (!messageNode.has("version") || !String.format("v%s", SUPPORTED_A2UI_VERSION).equals(messageNode.get("version").asText())) {
+            validationMessages.add(String.format("Line %d: Missing or incorrect 'version' field. Must be 'v%s'.",
+                    lineIndex + 1, SUPPORTED_A2UI_VERSION));
         }
     }
 

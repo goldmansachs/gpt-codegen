@@ -10,7 +10,7 @@ public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
 
     public static final String SANITIZED_REQUEST = "sanitizedRequest";
     public static final String FORMALISED_INTENT = "formalisedIntent";
-    public static final String UI_OUTPUT = "uIOutput";
+    public static final String UI_OUTPUT = "uiOutput";
 
     public UIGenerationModelInputPayload(String sessionId, String request) {
         super(sessionId, request, null);
