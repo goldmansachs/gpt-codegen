@@ -8,8 +8,8 @@ import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibra
 import org.rj.modelgen.bpmn.models.generation.multilevel.options.BpmnMultiLevelGenerationModelOptions;
 import org.rj.modelgen.bpmn.models.generation.validation.PayloadVariable;
 import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
-import org.rj.modelgen.llm.state.ModelInterfaceSignal;
-import org.rj.modelgen.llm.state.ModelInterfaceState;
+import org.rj.modelgen.llm.statemodel.states.common.ExecuteLogic;
+import org.rj.modelgen.llm.util.Result;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 import static org.rj.modelgen.bpmn.models.generation.base.context.BpmnPromptPlaceholders.*;
 
-public class InitializeBpmnData extends ModelInterfaceState {
+public class InitializeBpmnData extends ExecuteLogic {
     private static final Pattern JSON_LIST_EXTRACT = Pattern.compile("^.*?(\\[.*]).*?$", Pattern.DOTALL | Pattern.MULTILINE);
 
     private final BpmnComponentLibrary componentLibrary;
@@ -33,12 +33,7 @@ public class InitializeBpmnData extends ModelInterfaceState {
     }
 
     @Override
-    public String getDescription() {
-        return "Initialize BPMN-specific data into the model payload";
-    }
-
-    @Override
-    protected Mono<ModelInterfaceSignal> invokeAction(ModelInterfaceSignal inputSignal) {
+    protected Mono<Result<Void, String>> executeLogic() {
         // Insert additional BPMN data into the model payload
         getPayload().put(GLOBAL_VARIABLE_LIBRARY.getValue(), globalVariableLibrary.defaultSerialize());
 
@@ -67,7 +62,7 @@ public class InitializeBpmnData extends ModelInterfaceState {
             getPayload().put(STARTING_PAYLOAD_VARIABLES.getValue(), serializedStartingPayload);
         }
 
-        return outboundSignal(getSuccessSignalId()).mono();
+        return Mono.just(Result.Ok());
     }
 
     private Set<PayloadVariable> initializeStartingPayload(String rawProcessVariablesContent, BpmnComponentLibrary componentLibrary) {
