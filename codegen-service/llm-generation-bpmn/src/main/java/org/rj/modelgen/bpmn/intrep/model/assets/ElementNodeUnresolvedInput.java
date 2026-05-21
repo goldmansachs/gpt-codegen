@@ -17,6 +17,7 @@ public class ElementNodeUnresolvedInput extends NodeUnresolvedInput {
     public ElementNodeUnresolvedInput(String nodeId, String elementType, String name, String alias, String value, String defaultValue, String path, ComponentInputResolutionStrategy resolutionStrategy) {
         super(nodeId, elementType, value, resolutionStrategy);
         this.name = name;
+        this.alias = alias;
         this.defaultValue = defaultValue;
         this.path = path;
         this.message = constructMessage();
