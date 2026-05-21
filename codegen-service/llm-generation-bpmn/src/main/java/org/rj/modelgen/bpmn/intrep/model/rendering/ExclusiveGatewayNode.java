@@ -53,8 +53,11 @@ public class ExclusiveGatewayNode extends ElementNode implements ConditionalGate
         String defaultTargetNodeId = getDefaultTargetNodeId();
         Map<String, String> conditions = getConditions();
 
-        // Set default sequence flow on the gateway node
-        if (connection.getTargetNode().equals(defaultTargetNodeId)) {
+        // Set default sequence flow on the gateway node only if all conditions do not have an expression
+        boolean allConditionsHaveExpressions = conditions.size() > 1 &&
+                conditions.values().stream().allMatch(expr -> expr != null && !expr.isBlank());
+
+        if (!allConditionsHaveExpressions && connection.getTargetNode().equals(defaultTargetNodeId)) {
             builder.getElement().setAttributeValue(DEFAULT, connectionId);
         }
 

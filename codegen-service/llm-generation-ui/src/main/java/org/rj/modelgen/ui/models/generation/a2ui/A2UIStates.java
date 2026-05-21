@@ -24,8 +24,8 @@ public enum A2UIStates implements StringSerializable {
 
     public String description() {
         return switch (this) {
-            case ConvertToA2UI -> "Converting structured intent into A2UI format";
-            case ValidateOutput -> "Validating the generated A2UI output";
+            case ConvertToA2UI -> "Converting user intent into intermediate model";
+            case ValidateOutput -> "Validating the generated intermediate model output";
         };
     }
 }

@@ -31,8 +31,8 @@ public enum UIGenerationModelStates implements StringSerializable {
     public String description() {
         return switch (this) {
             case StartUIGeneration -> "Starting UI generation pipeline";
-            case SanitizeInput -> "Sanitizing user input (correcting spelling and grammar)";
-            case FormaliseIntent -> "Formalising user intent into structured UI elements";
+            case SanitizeInput -> "Sanitizing user input";
+            case FormaliseIntent -> "Formalizing user intent into structured UI elements";
             case Complete -> "UI generation pipeline complete";
         };
     }
