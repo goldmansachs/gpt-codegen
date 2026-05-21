@@ -1,6 +1,7 @@
 package org.rj.modelgen.llm.intrep.graph;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.rj.modelgen.llm.intrep.core.model.IntermediateModel;
 
 import java.util.ArrayList;
@@ -13,9 +14,19 @@ public class IntermediateGraphModel<TNodeId,
                                     TConnection extends GraphConnection<TNodeId>,
                                     TNode extends GraphNode<TNodeId, TNodeName, TConnection>> implements IntermediateModel {
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String commentary;
     private List<TNode> nodes = new ArrayList<>();
 
     public IntermediateGraphModel() { }
+
+    public String getCommentary() {
+        return commentary;
+    }
+
+    public void setCommentary(String commentary) {
+        this.commentary = commentary;
+    }
 
     public List<TNode> getNodes() {
         return nodes;

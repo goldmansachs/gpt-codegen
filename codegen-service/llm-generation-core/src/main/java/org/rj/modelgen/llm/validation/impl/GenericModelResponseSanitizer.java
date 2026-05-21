@@ -12,6 +12,12 @@ public class GenericModelResponseSanitizer extends ResponseSanitizer {
     private static final Pattern BLOCK_DELIMITER_PATTERN = Pattern.compile(String.format(
             "%s([\\s\\S]*)%s", BLOCK_DELIMITER, BLOCK_DELIMITER));
 
+    // Pattern to strip a known language identifier on the first line after the opening ```
+    private static final Pattern LANGUAGE_ID_PATTERN = Pattern.compile(
+            "^(?:json|xml|yaml|yml|html|css|javascript|js|typescript|ts|java|python|py|" +
+            "c|cpp|csharp|cs|go|rust|ruby|rb|sql|bash|sh|shell|text|txt|markdown|md|plaintext)\\s*\\n",
+            Pattern.CASE_INSENSITIVE);
+
     // An outer ```block``` containing >= this percentage of the response content will be treated
     // as the full model response, and extracted during sanitization
     private static final float FULL_RESPONSE_BLOCK_PERCENTAGE_THRESHOLD = 0.95f;
@@ -63,7 +69,13 @@ public class GenericModelResponseSanitizer extends ResponseSanitizer {
                 // Only consider this the full response content if it is >= threshold
                 final float percentageOfContent = ((float) innerContent.length() / (float) content.length());
                 if (percentageOfContent >= FULL_RESPONSE_BLOCK_PERCENTAGE_THRESHOLD) {
-                    return innerContent.strip();
+                    var stripped = innerContent.strip();
+                    // Remove language identifier (e.g. "json", "xml") if present on first line
+                    final var matcher = LANGUAGE_ID_PATTERN.matcher(stripped);
+                    if (matcher.find()) {
+                        stripped = stripped.substring(matcher.end());
+                    }
+                    return stripped.strip();
                 }
             }
         }

@@ -5,7 +5,6 @@ You are designing a business process model following the BPMN 2.0 standard.
 
 <#if isCopilotMode>
 <#-- ==================== COPILOT MODE ==================== -->
-
 <#if isRetry>
 <#-- ---- Copilot retry: only show latest model + errors ---- -->
 You have previously generated the following detail-level model in response to a change request:
@@ -32,6 +31,11 @@ You have been given the following existing detail-level model:
 ${serializedReverseRender}
 ```
 
+<#if promptHistory?? && promptHistory?has_content>
+Here is the history of all prior user prompts in this session, in chronological order. Use this to understand the full context of changes that have been applied so far:
+${promptHistory}
+
+</#if>
 You have been asked to apply the following changes to this model:
 ```
 ${request}
@@ -65,7 +69,6 @@ Below are the full definitions of each element you used in the model. The 'eleme
 
 <#else>
 <#-- ==================== STANDARD INITIAL GENERATION ==================== -->
-
 We will generate the model in two stages:
 1. Build a HIGH-LEVEL model by connecting together appropriate BPMN 2.0 elements
 2. Extend this into a DETAILED model by adding configuration and linking node inputs & outputs
@@ -81,9 +84,7 @@ You generated the high-level model below:
 ${highLevelModel}
 ```
 </#if>
-
 We will now complete stage 2 and build the DETAILED model.
-
 
 Below are the full definitions of each element you used in the high-level model. The 'elementType' of each node in your model will match the name of a component in this library:
 
@@ -92,24 +93,16 @@ Below are the full definitions of each element you used in the high-level model.
 ${COMPONENT_LIBRARY}
 ```
 
-<#if GLOBAL_VARIABLES_USED_IN_HL_MODEL?? && GLOBAL_VARIABLES_USED_IN_HL_MODEL?trim?has_content>
-
-<#if isCopilotMode>
-The following global variables are available for use in the model:
-<#else>
-You also selected the following global variables in stage 1:
-</#if>
+<#if !isCopilotMode && GLOBAL_VARIABLES_USED_IN_HL_MODEL?? && GLOBAL_VARIABLES_USED_IN_HL_MODEL?trim?has_content>
+You also selected the following global variables in stage 1. They can be used within SCRIPT and EXPRESSION inputs via `getGlobalVariable('variableName', [arg1, arg2])`:
 ```
 ${GLOBAL_VARIABLES_USED_IN_HL_MODEL}
 ```
-</#if>
-
-<#if GLOBAL_VARIABLE_LIBRARY?has_content>
+<#elseif GLOBAL_VARIABLE_LIBRARY?has_content>
 These are the global variables which can be used within SCRIPT and EXPRESSION inputs: `getGlobalVariable('variableName', [arg1, arg2])`
 ```
 ${GLOBAL_VARIABLE_LIBRARY}
 ```
-
 <#else>
 No global variables are available at the moment.
 </#if>
@@ -269,16 +262,15 @@ ${SCHEMA_CONTENT}
 ---
 Finally, ensure that all steps are part of the SAME process.  You should make sure that steps in your model are correctly linked together to form a single process.  There should be no orphaned steps or processes - every step must be linked.
 
-<#if isCopilotMode>
+<#if isCopilotMode && !isRetry>
 Return one of two possible responses:
-1. The JSON complying to the schema above, if you successfully apply the requested changes. Return ONLY the JSON and no other text or commentary. Make sure the updated model preserves the existing structure and configuration while applying the requested changes, with all required inputs satisfied. DO NOT return empty list of nodes.
+1. The JSON complying to the schema above, if you successfully apply the requested changes. Return ONLY the JSON and no other text. Include a "commentary" field with a brief, conversational reply to the user summarising what you did at a high level (e.g. "Sure, I've added a new approval step after the review task."). Do NOT mention internal details such as node IDs, input wiring, validation fixes, retries, or schema structure. Make sure the updated model preserves the existing structure and configuration while applying the requested changes, with all required inputs satisfied. DO NOT return empty list of nodes.
 2. The phrase "CANNOT_APPLY_CHANGES: (REASON)" if you cannot apply the requested changes. Replace (REASON) with the reason(s) that you cannot apply the changes at this time.
-<#elseif isRetry>
+<#elseif !isRetry>
 Please return one of two possible responses:
-1. The JSON complying to the schema above, if you successfully fix the issues. Return ONLY the JSON and no other text or commentary. Make sure all required inputs are satisfied and the model is valid. DO NOT return empty list of nodes.
-2. The phrase "RETURN_TO_HIGH_LEVEL: (REASON)" if you cannot fix the issues and need to regenerate the model from scratch. Replace (REASON) with the reason(s).
+1. The JSON complying to the schema above. Return ONLY the JSON and no other text. Include a "commentary" field with a brief, conversational reply to the user summarising what you built at a high level (e.g. "Done! I've created a loan approval process with risk evaluation and notification steps."). Do NOT mention internal details such as node IDs, input wiring, validation fixes, retries, or schema structure. Make sure all required inputs are satisfied and the model is valid. DO NOT return empty list of nodes.
+2. The phrase "RETURN_TO_HIGH_LEVEL: (REASON)" if you cannot generate a valid model and need to regenerate from scratch. Replace (REASON) with the reason(s).
 <#else>
-NOTE: Now that you consider the detailed level and full component definitions, you may realize that you need to return to phase 1 and change the high-level structure.  E.g. if you need additional nodes in order to generate some required component inputs.  Please therefore return one of two possible responses:
-1. The JSON complying to the schema above, if you successfully generate the model. Return ONLY the JSON and no other text or commentary. Make sure that detail-level model builds on the high-level model appropriately with all required inputs satisfied and potential structure changes but DO NOT return empty list of nodes.
-2. The phrase "RETURN_TO_HIGH_LEVEL: (REASON)" if you need to return to phase 1 and regenerate the high level model. Replace (REASON) with the reason(s) that you cannot generate a model at this time
+Please fix the issues listed above and return the corrected JSON complying to the schema. Return ONLY the JSON and no other text. Preserve the "commentary" field exactly as it was in the original model. Make sure all required inputs are satisfied and the model is valid. DO NOT return empty list of nodes.
+If you cannot fix the issues, return the phrase "RETURN_TO_HIGH_LEVEL: (REASON)" with the reason(s).
 </#if>

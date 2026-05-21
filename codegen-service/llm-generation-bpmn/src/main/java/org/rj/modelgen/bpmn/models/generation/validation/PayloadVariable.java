@@ -1,8 +1,11 @@
 package org.rj.modelgen.bpmn.models.generation.validation;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class PayloadVariable {
     String name;
     String type;
+    String example;
 
     public PayloadVariable() {
     }
@@ -10,6 +13,13 @@ public class PayloadVariable {
     public PayloadVariable(String name, String type) {
         this.name = name;
         this.type = type;
+        this.example = getDefaultValue();
+    }
+
+    public PayloadVariable(String name, String type, String example) {
+        this.name = name;
+        this.type = type;
+        this.example = example;
     }
 
     public String getName() {
@@ -28,6 +38,14 @@ public class PayloadVariable {
         this.type = type;
     }
 
+    public String getExample() {
+        return example != null ? example : getDefaultValue();
+    }
+
+    public void setExample(String example) {
+        this.example = example;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
@@ -42,5 +60,26 @@ public class PayloadVariable {
         int result = name != null ? name.hashCode() : 0;
         result += (type != null ? type.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{\"name\":\"%s\",\"type\":\"%s\",\"example\":\"%s\"}", name, type, getExample());
+    }
+
+    @JsonIgnore
+    public String getDefaultValue() {
+        if (type == null) {
+            return "null";
+        }
+        return switch (type.toLowerCase()) {
+            case "string" -> "\"sample_" + name + "\"";
+            case "integer" -> "123";
+            case "boolean" -> "true";
+            case "float" -> "123.45";
+            case "array" -> "[]";
+            case "object" -> "{}";
+            default -> "null";
+        };
     }
 }

@@ -10,6 +10,7 @@ import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.rj.modelgen.bpmn.intrep.model.assets.BpmnUIComponent;
 import org.rj.modelgen.bpmn.intrep.model.assets.ElementNodeUnresolvedInput;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
+import org.rj.modelgen.bpmn.models.generation.validation.PayloadVariable;
 import org.rj.modelgen.llm.component.ComponentInputResolutionStrategy;
 import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
 import org.rj.modelgen.llm.models.generation.multilevel.states.PrepareModelForRendering;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.GatewayConstants.CONDITION_EXPRESSION;
@@ -142,9 +144,13 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
     }
 
     private void updateModelAssets(BpmnIntermediateModel model, BpmnModelAssets modelAssets) {
-        List<BpmnUIComponent> uiComponents = getPayload().get(MultiLevelModelStandardPayloadData.UIComponents);
+        Collection<BpmnUIComponent> uiComponentsRaw = getPayload().get(MultiLevelModelStandardPayloadData.UIComponents);
+        List<BpmnUIComponent> uiComponents = uiComponentsRaw != null ? new ArrayList<>(uiComponentsRaw) : new ArrayList<>();
         List<ElementNodeUnresolvedInput> unresolvedInputs = identifyUnresolvedInputs(model);
+        Collection<PayloadVariable> processVarsRaw = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
+        List<PayloadVariable> startingPayload = processVarsRaw != null ? new ArrayList<>(processVarsRaw) : new ArrayList<>();
 
+        modelAssets.setStartingPayload(startingPayload);
         modelAssets.setUiComponents(uiComponents);
         modelAssets.setUnresolvedInputs(unresolvedInputs);
         getPayload().put(StandardModelData.ModelAssets.toString(), modelAssets);
@@ -179,9 +185,10 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
             if(resolutionStrategy == null) return;
             
             String defaultValue = inputDefinition.get().getDefaultValue();
+            String alias = Optional.ofNullable(inputDefinition.get().getAlias()).orElse(input.getName());
 
             if (resolutionStrategy.requiresUserInvolvement()) {
-                unresolvedInputs.add(new ElementNodeUnresolvedInput(node.getId(), node.getElementType(), input.getName(), input.getValue(), defaultValue, path, resolutionStrategy));
+                unresolvedInputs.add(new ElementNodeUnresolvedInput(node.getId(), node.getElementType(), input.getName(), alias, input.getValue(), defaultValue, path, resolutionStrategy));
             }
         }
     }

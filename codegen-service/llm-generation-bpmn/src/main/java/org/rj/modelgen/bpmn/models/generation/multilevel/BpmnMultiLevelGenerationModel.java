@@ -41,11 +41,11 @@ import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelGenerat
 
 import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelModelPromptType;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderFunction;
-import org.rj.modelgen.llm.response.ModelResponse;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceStateMachineCustomization;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
+import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.llm.statemodel.states.common.PrepareAndSubmitLlmGenericRequest;
 import org.rj.modelgen.llm.subproblem.config.SubproblemDecompositionConfig;
 import org.rj.modelgen.bpmn.models.generation.base.signals.*;
@@ -179,7 +179,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 .withOverriddenId(BpmnAdditionalModelStates.InitializeBpmnPayload);
 
         return customization
-                .withNewStateInsertedAfter(initializeProcessPayload, MultiLevelGenerationModelStates.SanitizingPrePass.toString());
+                .withNewStateInsertedAfter(initializeProcessPayload, MultiLevelGenerationModelStates.GenerateSubproblems.toString());
     }
 
     private static ModelInterfaceStateMachineCustomization initializeBpmnData(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData,
@@ -205,7 +205,8 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 .withOverriddenId(BpmnAdditionalModelStates.InsertSyntheticComponents);
 
         return customization
-                .withNewStateInsertedAfter(insertSyntheticComponents, BpmnAdditionalModelStates.InitializeBpmnData.toString());
+                .withNewStateInsertedAfter(insertSyntheticComponents, BpmnAdditionalModelStates.InitializeBpmnData.toString())
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InsertSyntheticComponents.toString(), BpmnGenerationSignals.CopilotDataInitialized.toString(), MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()));
     }
 
     private static ModelInterfaceStateMachineCustomization processHighLevelModelDataForDetailLevelGeneration(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData, BpmnGlobalVariableLibrary globalVariableLibrary) {
@@ -221,8 +222,11 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 .withOverriddenId(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation);
 
         return customization
-                .withNewStateInsertedAfter(initialValidation, MultiLevelGenerationModelStates.InitialValidateDetailLevel.toString())
-                               .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), ModelResponse.Status.SUCCESS.toString(), MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()));
+                // Replace the generic InitialValidateDetailLevel with the BPMN-specific validation
+                .withReplacedState(initialValidation, MultiLevelGenerationModelStates.InitialValidateDetailLevel.toString())
+                // After initial validation, route to payload/data initialization before detail-level generation
+                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.InitializeBpmnPayload.toString()));
     }
 
     private static ModelInterfaceStateMachineCustomization validateDetailLevelModel(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator) {

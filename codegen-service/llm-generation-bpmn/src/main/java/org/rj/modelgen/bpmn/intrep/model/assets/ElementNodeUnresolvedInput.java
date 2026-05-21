@@ -7,13 +7,14 @@ import org.rj.modelgen.llm.intrep.assets.NodeUnresolvedInput;
 public class ElementNodeUnresolvedInput extends NodeUnresolvedInput {
 
     private String name;
+    private String alias;
     private String defaultValue;
     private String path;
     private String message;
 
     public ElementNodeUnresolvedInput() { }
 
-    public ElementNodeUnresolvedInput(String nodeId, String elementType, String name, String value, String defaultValue, String path, ComponentInputResolutionStrategy resolutionStrategy) {
+    public ElementNodeUnresolvedInput(String nodeId, String elementType, String name, String alias, String value, String defaultValue, String path, ComponentInputResolutionStrategy resolutionStrategy) {
         super(nodeId, elementType, value, resolutionStrategy);
         this.name = name;
         this.defaultValue = defaultValue;
@@ -27,6 +28,14 @@ public class ElementNodeUnresolvedInput extends NodeUnresolvedInput {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
     }
 
     public String getDefaultValue() {

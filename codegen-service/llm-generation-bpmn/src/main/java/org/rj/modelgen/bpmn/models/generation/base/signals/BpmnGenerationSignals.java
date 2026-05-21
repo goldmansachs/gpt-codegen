@@ -10,5 +10,6 @@ public enum BpmnGenerationSignals {
     SkipUIGeneration,
     GenerateBpmnXmlFromLlmResponse,
     ValidateBpmnXml,
-    CompleteGeneration
+    CompleteGeneration,
+    CopilotDataInitialized
 }

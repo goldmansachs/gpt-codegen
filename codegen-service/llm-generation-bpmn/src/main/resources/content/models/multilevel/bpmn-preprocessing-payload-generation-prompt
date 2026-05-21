@@ -1,8 +1,41 @@
-You are designing a business process model following the BPMN 2.0 standard.  We will generate the model in two stages
+<#assign isCopilotMode = serializedReverseRender?? && serializedReverseRender?trim?has_content>
+You are designing a business process model following the BPMN 2.0 standard.
+<#if isCopilotMode>
+A detail-level BPMN model has already been generated and will be updated separately in a later stage. This stage is ONLY about determining the starting payload variables. Do NOT make any changes to the model itself.
+
+The following existing detail-level model is provided for reference only:
+```
+${serializedReverseRender}
+```
+
+<#if STARTING_PAYLOAD_VARIABLES?? && STARTING_PAYLOAD_VARIABLES?trim?has_content>
+The following starting payload was previously generated for this model:
+
+```
+${STARTING_PAYLOAD_VARIABLES}
+```
+</#if>
+
+The user has requested the following changes:
+```
+${request}
+```
+IMPORTANT: This stage is ONLY responsible for generating the starting payload variables. Do NOT attempt to update the detail-level model - that will happen in a separate stage.
+If the user's change request explicitly refers to adding, removing, renaming, or changing the type of starting payload variables, update the starting payload accordingly.
+If the user's change request does NOT mention starting payload variables, return the existing starting payload exactly as shown above without any modifications. Do NOT add or remove variables based on your own analysis of the model.
+<#else>
+We will generate the model in two stages:
 1. Build a HIGH-LEVEL model by connecting together appropriate BPMN 2.0 elements
 2. Extend this into a DETAILED model by adding configuration and linking node inputs & outputs
 
-Before we start, identify all payload variables used in the process. A payload variable is any variable that is read before it is written to.
+Before we start, identify all payload variables used in the process.
+The process description that needs to be modeled is as follows:
+```
+${request}
+```
+</#if>
+
+A payload variable is any variable that is read before it is written to.
 Follow these rules to identify the variables:
 a. A variable should be included if it is read before it is ever written to or modified. This includes variables that are only read.
 b. A variable should be included if it is first read and then later modified.
@@ -10,16 +43,12 @@ c. A variable should be excluded if it is written to or created before its first
 d. For complex objects, provide the full path to each field (e.g., user.address.street).
 e. If a variable path references payload, omit the payload. prefix (e.g., for payload.result, return result).
 
-IMPORTANT: DO NOT return any other content or commentary. Only return a single JSON list as described below. Each object in the list must have a name and a type. Name should be a valid groovy variable name with camel case format. Allowed types are: "string", "integer", "float" "boolean", "object, and "array".
+IMPORTANT: DO NOT return any other content or commentary. Only return a single JSON list as described below. Each object in the list must have a name, a type, and an example. Name should be a valid groovy variable name with camel case format. Allowed types are: "string", "integer", "float", "boolean", "object", and "array". The example should be a realistic value estimated from the process context.
 
 [
     {
         "name": "status",
-        "type": "string"
+        "type": "string",
+        "example": "pending"
     }
 ]
-
-The process description that needs to be modeled is as follows:
-```
-${request}
-```

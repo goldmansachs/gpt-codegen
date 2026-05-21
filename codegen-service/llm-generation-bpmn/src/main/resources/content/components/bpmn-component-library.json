@@ -623,7 +623,7 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "allowedInputSourceTypes": ["CONSTANT"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -633,7 +633,7 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "allowedInputSourceTypes": ["CONSTANT"],
           "resolutionStrategy": "INFERRED"
         },
         {
