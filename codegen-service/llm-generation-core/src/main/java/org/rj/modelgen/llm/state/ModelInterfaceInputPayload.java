@@ -14,7 +14,7 @@ public class ModelInterfaceInputPayload extends ModelInterfacePayload {
         put(StandardModelData.CanvasModel, canvasModel);
 
         // Default values for optional parameters
-        put(StandardModelData.Llm, "gpt-4o");
+        put(StandardModelData.Llm, "gpt-5.4");
         put(StandardModelData.Temperature, 0.7);
     }
 

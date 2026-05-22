@@ -4,6 +4,7 @@ import org.rj.modelgen.llm.context.provider.ContextProvider;
 import org.rj.modelgen.llm.context.provider.impl.DefaultContextProvider;
 import org.rj.modelgen.llm.model.ModelInterface;
 import org.rj.modelgen.llm.state.ModelInterfaceExecutionResult;
+import org.rj.modelgen.llm.state.ModelInterfaceStandardStates;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
@@ -105,6 +106,9 @@ public class A2UIGenerationModel extends UIGenerationModel<UIGenerationResult> {
         final var targetRules = List.of(
                 // ConvertToA2UI -> ValidateOutput
                 new ModelInterfaceTransitionRule(stateConvertToA2UI, StandardSignals.SUCCESS, stateValidateOutput),
+
+                // ConvertToA2UI -> Failure (if a known LLM Provider Error occurs)
+                new ModelInterfaceTransitionRule(stateConvertToA2UI, StandardErrorSignals.LLM_PROVIDER_ERROR, new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR()),
 
                 // ValidateOutput -> Complete (validation passed)
                 new ModelInterfaceTransitionRule(stateValidateOutput, UIGenerationSignals.OutputValidated,

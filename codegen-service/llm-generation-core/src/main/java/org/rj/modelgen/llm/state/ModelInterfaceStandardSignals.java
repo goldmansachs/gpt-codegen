@@ -48,7 +48,7 @@ public class ModelInterfaceStandardSignals {
         public int getInvocations() {
             return invocations;
         }
-    };
+    }
 
     /* Generic error signal; will be caught by a global error handler if not explicitly handled in transition rules */
     public static class GENERAL_ERROR extends ModelInterfaceSignal {
@@ -68,6 +68,32 @@ public class ModelInterfaceStandardSignals {
         public String getError() {
             return error;
         }
-    };
+    }
+
+    /* Error signal emitted when the LLM provider returns a success response but with non-actionable content */
+    public static class FAIL_LLM_PROVIDER_ERROR extends ModelInterfaceSignal {
+        private final String state;
+        private final String detail;
+        private final String sessionId;
+
+        public FAIL_LLM_PROVIDER_ERROR(String state, String detail, String sessionId) {
+            super(StandardErrorSignals.LLM_PROVIDER_ERROR, String.format("[%s] LLM provider error at state '%s': %s", sessionId, state, detail));
+            this.state = state;
+            this.detail = detail;
+            this.sessionId = sessionId;
+        }
+
+        public String getState() {
+            return state;
+        }
+
+        public String getDetail() {
+            return detail;
+        }
+
+        public String getSessionId() {
+            return sessionId;
+        }
+    }
 
 }

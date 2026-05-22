@@ -3,8 +3,6 @@ package org.rj.modelgen.llm.state;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import reactor.core.publisher.Mono;
 
-import java.util.Optional;
-
 public class ModelInterfaceStandardStates {
 
     /* Built-in state where execution is routed when no matching transition rule exists */
@@ -28,7 +26,8 @@ public class ModelInterfaceStandardStates {
 
         @Override
         protected Mono<ModelInterfaceSignal> invokeAction(ModelInterfaceSignal inputSignal) {
-            inputSignal.<ModelInterfaceStandardSignals.FAIL_NO_MATCHING_TRANSITION_RULE> getAs(StandardErrorSignals.NO_TRANSITION_RULE)
+            inputSignal.<ModelInterfaceStandardSignals.FAIL_NO_MATCHING_TRANSITION_RULE>
+                    getAs(StandardErrorSignals.NO_TRANSITION_RULE)
                     .ifPresent(transitionFailure -> {
                         this.state = transitionFailure.getState();
                         this.signal = transitionFailure.getOutputSignal();
@@ -78,6 +77,35 @@ public class ModelInterfaceStandardStates {
 
             setLastError(input.getError());
             this.failedAtState = input.getState();
+
+            return Mono.empty();
+        }
+    }
+
+    /* Built-in state for when the LLM provider returns a technically-successful but non-actionable response */
+    public static class FAILED_LLM_PROVIDER_ERROR extends ModelInterfaceSpecializedState<ModelInterfaceStandardSignals.FAIL_LLM_PROVIDER_ERROR> {
+        private String failedAtState;
+        private String detail;
+        private String sessionId;
+
+        public FAILED_LLM_PROVIDER_ERROR() {
+            super(FAILED_LLM_PROVIDER_ERROR.class, ModelInterfaceStateType.TERMINAL_FAILURE);
+        }
+
+        @Override
+        public String getDescription() {
+            return String.format("Upstream error from LLM provider, returned a non-actionable response at state '%s': %s. Conversation ID: [%s]", failedAtState, detail, sessionId);
+        }
+
+        @Override
+        protected Mono<ModelInterfaceSignal> invokeAction(ModelInterfaceSignal inputSignal) {
+            final var input = asExpectedInputSignal(inputSignal);
+
+            this.failedAtState = input.getState();
+            this.detail = input.getDetail();
+            this.sessionId = input.getSessionId();
+
+            setLastError(getDescription());
 
             return Mono.empty();
         }

@@ -3,7 +3,6 @@ package org.rj.modelgen.llm.statemodel.states.common;
 import org.rj.modelgen.llm.component.*;
 import org.rj.modelgen.llm.context.Context;
 import org.rj.modelgen.llm.context.provider.ContextProvider;
-import org.rj.modelgen.llm.exception.LlmGenerationModelException;
 import org.rj.modelgen.llm.prompt.PromptSubstitution;
 import org.rj.modelgen.llm.prompt.StandardPromptPlaceholders;
 import org.rj.modelgen.llm.prompt.TemplatedPromptGenerator;

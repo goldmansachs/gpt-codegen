@@ -9,6 +9,7 @@ import org.rj.modelgen.llm.request.ModelRequest;
 import org.rj.modelgen.llm.response.ModelResponse;
 import org.rj.modelgen.llm.state.ModelInterfacePayload;
 import org.rj.modelgen.llm.state.ModelInterfaceSignal;
+import org.rj.modelgen.llm.state.ModelInterfaceStandardSignals;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.statemodel.signals.common.CommonStateInterface;
@@ -19,11 +20,14 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static org.jooq.lambda.tuple.Tuple.tuple;
-import static org.rj.modelgen.llm.util.FuncUtil.doVoid;
+import java.util.Set;
 
 public class SubmitGenerationRequestToLlm extends ModelInterfaceState implements CommonStateInterface {
+    // Known responses returned by the LLM provider when it is experiencing issues but still returns a success status
+    private static final Set<String> KNOWN_PROVIDER_ERROR_RESPONSES = Set.of(
+            "Sorry, unable to process your query at the moment. Please try again."
+    );
+
     private final ResponseSanitizer sanitizer;
 
     // Can be set to explicitly output the LLM response to a specific key in the output signal payload, in
@@ -57,7 +61,7 @@ public class SubmitGenerationRequestToLlm extends ModelInterfaceState implements
         if (sessionId == null) throw new LlmGenerationModelException("No valid session ID for LLM submission");
 
         final var request = new ModelRequest(
-                getPayload().getOrElse(StandardModelData.Llm, "gpt-4"),
+                getPayload().getOrElse(StandardModelData.Llm, "gpt-5.4"),
                 getPayload().getOrElse(StandardModelData.Temperature, 0.7),
                 context);
 
@@ -65,6 +69,11 @@ public class SubmitGenerationRequestToLlm extends ModelInterfaceState implements
                 .map(response -> {
                     final var rawResponseResult = processRawResponse(response);
                     if (rawResponseResult.isPresent()) return rawResponseResult.get();
+
+                    if (isKnownProviderError(response.getMessage())) {
+                        return outboundSignal(new ModelInterfaceStandardSignals.FAIL_LLM_PROVIDER_ERROR(
+                                getId(), response.getMessage(), sessionId));
+                    }
 
                     final var sanitized = sanitizeResponse(response.getMessage());
                     recordModelResponse(sessionId, response, sanitized);
@@ -114,6 +123,13 @@ public class SubmitGenerationRequestToLlm extends ModelInterfaceState implements
         }
 
         return sanitizer.sanitize(response);
+    }
+
+    private boolean isKnownProviderError(String response) {
+        if (response == null) return false;
+        final var lowerResponse = response.strip().toLowerCase();
+        return KNOWN_PROVIDER_ERROR_RESPONSES.stream()
+                .anyMatch(known -> lowerResponse.contains(known.toLowerCase()));
     }
 
     private ModelInterfacePayload addExplicitOutputPayloadIfRequired(String responseContent) {

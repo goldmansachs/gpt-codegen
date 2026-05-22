@@ -9,7 +9,6 @@ import org.rj.modelgen.llm.util.StringSerializable;
  * <p>These states handle the common preprocessing stages:</p>
  * <ol>
  *   <li><b>StartUIGeneration</b> — Validate input and initialize session context</li>
- *   <li><b>SanitizeInput</b> — Correct spelling, grammar, and unclear phrasing</li>
  *   <li><b>FormaliseIntent</b> — Transform sanitized request into structured UI element description</li>
  *   <li><b>Complete</b> — Terminal state capturing pipeline outputs</li>
  * </ol>
@@ -19,7 +18,6 @@ import org.rj.modelgen.llm.util.StringSerializable;
  */
 public enum UIGenerationModelStates implements StringSerializable {
     StartUIGeneration,
-    SanitizeInput,
     FormaliseIntent,
     Complete;
 
@@ -31,8 +29,7 @@ public enum UIGenerationModelStates implements StringSerializable {
     public String description() {
         return switch (this) {
             case StartUIGeneration -> "Starting UI generation pipeline";
-            case SanitizeInput -> "Sanitizing user input";
-            case FormaliseIntent -> "Formalizing user intent into structured UI elements";
+            case FormaliseIntent -> "Formalizing user intent";
             case Complete -> "UI generation pipeline complete";
         };
     }

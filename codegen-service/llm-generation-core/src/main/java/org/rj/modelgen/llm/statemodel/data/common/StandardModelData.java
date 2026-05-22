@@ -18,7 +18,8 @@ public enum StandardModelData {
     ValidationMessages,
     GeneratedModel,
     CanvasModel,
-    ModelValidationMessages;
+    ModelValidationMessages,
+    ErrorDetail;
 
     @Override
     public String toString() {

@@ -35,7 +35,7 @@ public class ModelInterfaceSignal {
 
     public String getDescription() {
         return description;
-    };
+    }
 
     @JsonIgnore
     public static String defaultSignalDescription(String id) {

@@ -7,10 +7,8 @@ import org.rj.modelgen.llm.context.provider.ContextProvider;
 import org.rj.modelgen.llm.model.ModelInterface;
 import org.rj.modelgen.llm.models.generation.GenerationModel;
 import org.rj.modelgen.llm.models.generation.GenerationResult;
-import org.rj.modelgen.llm.state.ModelInterfaceExecutionResult;
-import org.rj.modelgen.llm.state.ModelInterfaceState;
-import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
-import org.rj.modelgen.llm.state.ModelInterfaceTransitionRules;
+import org.rj.modelgen.llm.state.*;
+import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.llm.statemodel.states.common.PrepareAndSubmitLlmGenericRequest;
 import org.rj.modelgen.ui.models.generation.data.UIGenerationModelInputPayload;
@@ -92,6 +90,7 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
         final var allRules = new ArrayList<ModelInterfaceTransitionRule>();
         allRules.addAll(List.of(
                 new ModelInterfaceTransitionRule(stateStart, StandardSignals.SUCCESS, stateFormaliseIntent),
+                new ModelInterfaceTransitionRule(stateFormaliseIntent, StandardErrorSignals.LLM_PROVIDER_ERROR, new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR()),
                 new ModelInterfaceTransitionRule(stateFormaliseIntent, StandardSignals.SUCCESS, firstTargetState)
         ));
 
