@@ -1,9 +1,7 @@
 package org.rj.modelgen.bpmn.generation;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.camunda.bpm.model.bpmn.instance.BaseElement;
-import org.camunda.bpm.model.bpmn.instance.FlowNode;
-import org.camunda.bpm.model.bpmn.instance.SequenceFlow;
+import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnEdge;
 import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnShape;
 import org.camunda.bpm.model.bpmn.instance.dc.Bounds;
@@ -100,24 +98,62 @@ public class BpmnDiagramLayoutOptimizer {
     }
 
     private void rebuildConnectors(BpmnModelInstance modelInstance, Map<BpmnEdge, SideAssignment> assignments, Map<String, Bounds> boundsById) {
+        Set<String> alignedCircularNodes = new HashSet<>();
+
         for (var entry : assignments.entrySet()) {
             BpmnEdge edge = entry.getKey();
             SideAssignment assignment = entry.getValue();
             SequenceFlow seqFlow = (SequenceFlow) edge.getBpmnElement();
 
-            Bounds srcBounds = boundsById.get(seqFlow.getSource().getId());
-            Bounds tgtBounds = boundsById.get(seqFlow.getTarget().getId());
+            FlowNode source = seqFlow.getSource();
+            FlowNode target = seqFlow.getTarget();
+            Bounds srcBounds = boundsById.get(source.getId());
+            Bounds tgtBounds = boundsById.get(target.getId());
 
-            double[] srcPt = getMidpointCoords(srcBounds, assignment.exitSide);
-            double[] tgtPt = getMidpointCoords(tgtBounds, assignment.entrySide);
+            boolean srcCircular = isCircularNode(source);
+            boolean tgtCircular = isCircularNode(target);
 
-            replaceConnectors(modelInstance, edge, srcPt, tgtPt, assignment.exitSide, assignment.entrySide);
+            // Align circular node positions to match connected rectangular node centers,
+            // but only if the new position does not overlap any other node
+            if (srcCircular && !tgtCircular && alignedCircularNodes.add(source.getId())) {
+                double alignedY = centerY(tgtBounds) - srcBounds.getHeight() / 2.0;
+                if (!wouldOverlap(source.getId(), srcBounds.getX(), alignedY, srcBounds.getWidth(), srcBounds.getHeight(), boundsById)) {
+                    srcBounds.setY(alignedY);
+                }
+            }
+            if (tgtCircular && !srcCircular && alignedCircularNodes.add(target.getId())) {
+                double alignedY = centerY(srcBounds) - tgtBounds.getHeight() / 2.0;
+                if (!wouldOverlap(target.getId(), tgtBounds.getX(), alignedY, tgtBounds.getWidth(), tgtBounds.getHeight(), boundsById)) {
+                    tgtBounds.setY(alignedY);
+                }
+            }
+
+            double[] sourcePoint = getMidpointCoords(srcBounds, assignment.exitSide);
+            double[] targetPoint = getMidpointCoords(tgtBounds, assignment.entrySide);
+
+            replaceConnectors(modelInstance, edge, sourcePoint, targetPoint, assignment.exitSide, assignment.entrySide);
         }
     }
 
-    private Side assignExitSide(Bounds nodeBounds, Bounds remoteBounds, String nodeId,
+    // Checks whether placing a node at the given position would overlap any other node.
+    private boolean wouldOverlap(String nodeId, double x, double y, double width, double height, Map<String, Bounds> boundsById) {
+        for (var entry : boundsById.entrySet()) {
+            if (entry.getKey().equals(nodeId)) continue;
+            Bounds other = entry.getValue();
+            if (x < other.getX() + other.getWidth() &&
+                x + width > other.getX() &&
+                y < other.getY() + other.getHeight() &&
+                y + height > other.getY()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    private Side assignExitSide(Bounds nodeBounds, Bounds connectedNodeBounds, String nodeId,
                                 Map<String, Set<Side>> exitSides, Map<String, Set<Side>> entrySides) {
-        Side preferred = preferredSide(nodeBounds, remoteBounds);
+        Side preferred = preferredSide(nodeBounds, connectedNodeBounds);
         Set<Side> exits = exitSides.computeIfAbsent(nodeId, k -> EnumSet.noneOf(Side.class));
         Set<Side> entries = entrySides.computeIfAbsent(nodeId, k -> EnumSet.noneOf(Side.class));
 
@@ -131,9 +167,9 @@ public class BpmnDiagramLayoutOptimizer {
         return preferred;
     }
 
-    private Side assignEntrySide(Bounds nodeBounds, Bounds remoteBounds, String nodeId,
+    private Side assignEntrySide(Bounds nodeBounds, Bounds connectedNodeBounds, String nodeId,
                                  Map<String, Set<Side>> exitSides, Map<String, Set<Side>> entrySides) {
-        Side preferred = preferredSide(nodeBounds, remoteBounds);
+        Side preferred = preferredSide(nodeBounds, connectedNodeBounds);
         Set<Side> exits = exitSides.computeIfAbsent(nodeId, k -> EnumSet.noneOf(Side.class));
         Set<Side> entries = entrySides.computeIfAbsent(nodeId, k -> EnumSet.noneOf(Side.class));
 
@@ -174,43 +210,49 @@ public class BpmnDiagramLayoutOptimizer {
     }
 
     private void replaceConnectors(BpmnModelInstance model, BpmnEdge edge,
-                                   double[] src, double[] tgt,
+                                   double[] sourcePoint, double[] targetPoint,
                                    Side exitSide, Side entrySide) {
-        for (Waypoint wp : new ArrayList<>(edge.getWaypoints())) {
-            edge.removeChildElement(wp);
+        for (Waypoint existingWaypoint : new ArrayList<>(edge.getWaypoints())) {
+            edge.removeChildElement(existingWaypoint);
         }
 
-        addConnector(model, edge, src[0], src[1]);
+        double sourceX = sourcePoint[0], sourceY = sourcePoint[1];
+        double targetX = targetPoint[0], targetY = targetPoint[1];
 
-        boolean sameAxis = isHorizontal(exitSide) == isHorizontal(entrySide);
-        boolean straight = isHorizontal(exitSide)
-                ? Math.abs(src[1] - tgt[1]) <= 1.0
-                : Math.abs(src[0] - tgt[0]) <= 1.0;
+        addConnector(model, edge, sourceX, sourceY);
 
-        if (!straight) {
-            if (sameAxis) {
-                double mid = (src[isHorizontal(exitSide) ? 0 : 1] + tgt[isHorizontal(exitSide) ? 0 : 1]) / 2.0;
-                if (isHorizontal(exitSide)) {
-                    addConnector(model, edge, mid, src[1]);
-                    addConnector(model, edge, mid, tgt[1]);
+        boolean exitHorizontal = isHorizontal(exitSide);
+        boolean bothSameAxis = exitHorizontal == isHorizontal(entrySide);
+        boolean alreadyAligned = exitHorizontal ? Math.abs(sourceY - targetY) <= 1.0 : Math.abs(sourceX - targetX) <= 1.0;
+
+        if (!alreadyAligned) {
+            if (bothSameAxis) {
+                double midpoint = exitHorizontal ? (sourceX + targetX) / 2.0 : (sourceY + targetY) / 2.0;
+                if (exitHorizontal) {
+                    addConnector(model, edge, midpoint, sourceY);
+                    addConnector(model, edge, midpoint, targetY);
                 } else {
-                    addConnector(model, edge, src[0], mid);
-                    addConnector(model, edge, tgt[0], mid);
+                    addConnector(model, edge, sourceX, midpoint);
+                    addConnector(model, edge, targetX, midpoint);
                 }
             } else {
-                if (isHorizontal(exitSide)) {
-                    addConnector(model, edge, tgt[0], src[1]);
+                if (exitHorizontal) {
+                    addConnector(model, edge, targetX, sourceY);
                 } else {
-                    addConnector(model, edge, src[0], tgt[1]);
+                    addConnector(model, edge, sourceX, targetY);
                 }
             }
         }
 
-        addConnector(model, edge, tgt[0], tgt[1]);
+        addConnector(model, edge, targetX, targetY);
     }
 
     private boolean isHorizontal(Side side) {
         return side == Side.LEFT || side == Side.RIGHT;
+    }
+
+    private boolean isCircularNode(FlowNode node) {
+        return node instanceof StartEvent || node instanceof EndEvent;
     }
 
     private void addConnector(BpmnModelInstance model, BpmnEdge edge, double x, double y) {
