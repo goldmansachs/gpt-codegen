@@ -90,7 +90,6 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
         final var allRules = new ArrayList<ModelInterfaceTransitionRule>();
         allRules.addAll(List.of(
                 new ModelInterfaceTransitionRule(stateStart, StandardSignals.SUCCESS, stateFormaliseIntent),
-                new ModelInterfaceTransitionRule(stateFormaliseIntent, StandardErrorSignals.LLM_PROVIDER_ERROR, new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR()),
                 new ModelInterfaceTransitionRule(stateFormaliseIntent, StandardSignals.SUCCESS, firstTargetState)
         ));
 

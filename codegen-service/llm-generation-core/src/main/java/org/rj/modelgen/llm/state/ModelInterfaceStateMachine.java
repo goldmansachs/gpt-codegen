@@ -36,6 +36,7 @@ public class ModelInterfaceStateMachine {
     private final ModelInterfaceState defaultStateError = new ModelInterfaceStandardStates.FAILED_WITH_ERROR();
     private final ModelInterfaceState defaultStateNoRule = new ModelInterfaceStandardStates.NO_TRANSITION_RULE();
     private final ModelInterfaceState defaultStateMaxInvocations = new ModelInterfaceStandardStates.EXCEEDED_MAX_INVOCATIONS();
+    private final ModelInterfaceState defaultStateLlmProviderError = new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR();
 
     public ModelInterfaceStateMachine(Class<? extends ModelInterfaceStateMachine> modelClass,
                                       ModelInterface modelInterface, List<ModelInterfaceState> states,
@@ -88,6 +89,14 @@ public class ModelInterfaceStateMachine {
         // Execute the action associated with this state
         return input.getState().invoke(input.getInputSignal())
                 .map(outputSignal -> {
+                    // Terminate execution if we receive an LLM provider error, AND we don't
+                    // have an explicit rule to handle that signal type
+                    if (outputSignal.isA(StandardErrorSignals.LLM_PROVIDER_ERROR) &&
+                            !rules.hasRule(input.getState(), StandardErrorSignals.LLM_PROVIDER_ERROR)) {
+                            return new ModelInterfaceStateWithInputSignal(defaultStateLlmProviderError, outputSignal);
+                    }
+
+
                     // Terminate execution if we exceeded the maximum allowed invocations of a state, AND we don't
                     // have an explicit rule to handle that error signal type
                     if (outputSignal.isA(StandardErrorSignals.FAILED_MAX_INVOCATIONS)) {

@@ -107,9 +107,6 @@ public class A2UIGenerationModel extends UIGenerationModel<UIGenerationResult> {
                 // ConvertToA2UI -> ValidateOutput
                 new ModelInterfaceTransitionRule(stateConvertToA2UI, StandardSignals.SUCCESS, stateValidateOutput),
 
-                // ConvertToA2UI -> Failure (if a known LLM Provider Error occurs)
-                new ModelInterfaceTransitionRule(stateConvertToA2UI, StandardErrorSignals.LLM_PROVIDER_ERROR, new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR()),
-
                 // ValidateOutput -> Complete (validation passed)
                 new ModelInterfaceTransitionRule(stateValidateOutput, UIGenerationSignals.OutputValidated,
                         new UIGenerationComplete()),

@@ -18,12 +18,10 @@ import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelModelPr
 import org.rj.modelgen.llm.models.generation.multilevel.signals.MultiLevelModelStandardSignals;
 import org.rj.modelgen.llm.models.generation.multilevel.states.*;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderIntermediateModel;
-import org.rj.modelgen.llm.state.ModelInterfaceStandardStates;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRules;
 import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
-import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.llm.statemodel.states.common.PrepareAndSubmitLlmGenericRequest;
 import org.rj.modelgen.llm.statemodel.states.common.impl.GenerateModelFromIntermediateModelTransformer;
@@ -187,16 +185,13 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
 
                 new ModelInterfaceTransitionRule(stateSanitizingPrePass, StandardSignals.SUCCESS, statePreprocessing),
                 new ModelInterfaceTransitionRule(stateSanitizingPrePass, StandardSignals.SKIPPED, statePreprocessing),  // Optional stage
-                new ModelInterfaceTransitionRule(stateSanitizingPrePass, StandardErrorSignals.LLM_PROVIDER_ERROR, new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR()), // LLM Provider Error
 
                 new ModelInterfaceTransitionRule(statePreprocessing, StandardSignals.SUCCESS, stateGenerateSubproblems),
                 new ModelInterfaceTransitionRule(statePreprocessing, StandardSignals.SKIPPED, stateGenerateSubproblems),  // Optional stage
-                new ModelInterfaceTransitionRule(statePreprocessing, StandardErrorSignals.LLM_PROVIDER_ERROR, new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR()), // LLM Provider Error
 
                 new ModelInterfaceTransitionRule(stateGenerateSubproblems, StandardSignals.SUCCESS, stateExecuteHighLevel),
 
                 new ModelInterfaceTransitionRule(stateExecuteHighLevel, StandardSignals.SUCCESS, stateValidateHighLevel),
-                new ModelInterfaceTransitionRule(stateExecuteHighLevel, StandardErrorSignals.LLM_PROVIDER_ERROR, new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR()), // LLM Provider Error
 
                 new ModelInterfaceTransitionRule(stateValidateHighLevel, StandardSignals.SUCCESS, stateExecuteDetailLevel),
 
@@ -210,7 +205,6 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
                 new ModelInterfaceTransitionRule(stateExecuteDetailLevel, StandardSignals.SUCCESS, stateValidateDetailLevel),
                 new ModelInterfaceTransitionRule(stateExecuteDetailLevel, MultiLevelModelStandardSignals.ReturnToHighLevel, stateExecuteHighLevel), // LLM-directed retry for one-shot generation
                 new ModelInterfaceTransitionRule(stateExecuteDetailLevel, MultiLevelModelStandardSignals.RetryDetailLevel, stateExecuteDetailLevel), // LLM-directed retry for multi-shot generation
-                new ModelInterfaceTransitionRule(stateExecuteDetailLevel, StandardErrorSignals.LLM_PROVIDER_ERROR, new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR()), // LLM Provider Error
 
                 new ModelInterfaceTransitionRule(stateValidateDetailLevel, StandardSignals.SUCCESS, stateCombineSubproblems),
 
