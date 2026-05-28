@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 public class PayloadVariable {
     String name;
     String type;
-    String example;
+    Object example;
 
     public PayloadVariable() {
     }
@@ -17,6 +17,12 @@ public class PayloadVariable {
     }
 
     public PayloadVariable(String name, String type, String example) {
+        this.name = name;
+        this.type = type;
+        this.example = example;
+    }
+
+    public PayloadVariable(String name, String type, Object example) {
         this.name = name;
         this.type = type;
         this.example = example;
@@ -38,11 +44,11 @@ public class PayloadVariable {
         this.type = type;
     }
 
-    public String getExample() {
+    public Object getExample() {
         return example != null ? example : getDefaultValue();
     }
 
-    public void setExample(String example) {
+    public void setExample(Object example) {
         this.example = example;
     }
 
@@ -64,7 +70,8 @@ public class PayloadVariable {
 
     @Override
     public String toString() {
-        return String.format("{\"name\":\"%s\",\"type\":\"%s\",\"example\":\"%s\"}", name, type, getExample());
+        String exampleStr = getExample() instanceof String ? (String) getExample() : String.valueOf(getExample());
+        return String.format("{\"name\":\"%s\",\"type\":\"%s\",\"example\":\"%s\"}", name, type, exampleStr);
     }
 
     @JsonIgnore

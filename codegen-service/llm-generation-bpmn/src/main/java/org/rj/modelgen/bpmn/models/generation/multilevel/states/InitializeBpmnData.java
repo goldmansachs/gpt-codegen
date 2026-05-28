@@ -13,12 +13,14 @@ import org.rj.modelgen.llm.util.Result;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.rj.modelgen.bpmn.models.generation.base.context.BpmnPromptPlaceholders.*;
 
 public class InitializeBpmnData extends ExecuteLogic {
+    private static final Logger LOG = Logger.getLogger(InitializeBpmnData.class.getName());
     private static final Pattern JSON_LIST_EXTRACT = Pattern.compile("^.*?(\\[.*]).*?$", Pattern.DOTALL | Pattern.MULTILINE);
 
     private final BpmnComponentLibrary componentLibrary;
@@ -77,6 +79,7 @@ public class InitializeBpmnData extends ExecuteLogic {
             processVariablesList = mapper.readValue(processVariablesContent, new TypeReference<>() {});
 
         } catch (Exception e) {
+            LOG.warning(String.format("Failed to parse process variables content: %s. Error: %s", processVariablesContent, e.getMessage()));
             processVariablesList = Collections.emptyList();
         }
 
