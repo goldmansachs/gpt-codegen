@@ -198,14 +198,20 @@ RULES FOR THE DETAILED MODEL GENERATION
     c. DO NOT perform any computations, transformations, or logic inside getGlobalVariable() calls. These calls should only read global variables directly.
     d. DO NOT use getGlobalVariable() inside getVariable() or setVariable() or vice versa. Use intermediate variables in scripts if needed.
 
-6. Gateways and branching
+6. Naming and descriptions
+   a. Descriptions should add genuine value to the model. Do not add labels or descriptions just for the sake of it — every description should help a reader understand the purpose or behaviour of that element.
+   b. Gateway naming: The gateway label should be phrased as a question (e.g., "Loan Approved?"). The outbound connectors from the gateway should answer that question (e.g., "Yes", "No", or other concise answers).
+   c. Start/End event naming: Start and end events should have meaningful names that describe what triggers the process or what outcome the end represents. As mentioned above, if the name is not adding any value then leave the name empty.
+   d. Connected To naming: The description of a connection should describe the reason for the flow or the condition under which that path is taken. If there is no meaningful reason or condition, then the description can be left empty. If the connection is outbound from a gateway, the description should be phrased as the answer to the gateway's question.
+
+7. Gateways and branching
    a. Use a gateway if you want to branch execution into several options based on conditions. Use another gateway later to merge multiple flows back into one.
    b. If you want to converge several branches into one and then immediately branch again, use a separate gateway to merge incoming flows (with no conditions) and a separate gateway to branch afterward; DO NOT merge and branch in the same gateway.
    c. Condition keys must match target node IDs exactly.
    d. Condition values must reference variables accessible in the shared state either at process start or written by a prior node: use getVariable('keyName').
    e. If a condition requires computed flags or complex expressions, derive them before the gateway using a ScriptTask.
 
-7. Connections
+8. Connections
    a. processConfig node must have no inbound or outbound connections.
    b. Every non-endEvent node must have at least one outbound connection.
    c. Every non-startEvent node must have at least one inbound connection.
@@ -264,11 +270,11 @@ Finally, ensure that all steps are part of the SAME process.  You should make su
 
 <#if isCopilotMode && !isRetry>
 Return one of two possible responses:
-1. The JSON complying to the schema above, if you successfully apply the requested changes. Return ONLY the JSON and no other text. Include a "commentary" field with a brief, conversational reply to the user summarising what you did at a high level (e.g. "Sure, I've added a new approval step after the review task."). Do NOT mention internal details such as node IDs, input wiring, validation fixes, retries, or schema structure. Make sure the updated model preserves the existing structure and configuration while applying the requested changes, with all required inputs satisfied. DO NOT return empty list of nodes.
+1. The JSON complying to the schema above, if you successfully apply the requested changes. Return ONLY the JSON and no other text. Include a "commentary" field with a brief, conversational reply to the user summarising what you did at a high level (e.g. "Done! I've created a loan approval process with risk evaluation and notification steps."). Also mention any assumptions you made and any parts of the request that could not be implemented, with a brief explanation of why. Do NOT mention internal details such as node IDs, input wiring, validation fixes, retries, or schema structure. Make sure the updated model preserves the existing structure and configuration while applying the requested changes, with all required inputs satisfied. DO NOT return empty list of nodes.
 2. The phrase "CANNOT_APPLY_CHANGES: (REASON)" if you cannot apply the requested changes. Replace (REASON) with the reason(s) that you cannot apply the changes at this time.
 <#elseif !isRetry>
 Please return one of two possible responses:
-1. The JSON complying to the schema above. Return ONLY the JSON and no other text. Include a "commentary" field with a brief, conversational reply to the user summarising what you built at a high level (e.g. "Done! I've created a loan approval process with risk evaluation and notification steps."). Do NOT mention internal details such as node IDs, input wiring, validation fixes, retries, or schema structure. Make sure all required inputs are satisfied and the model is valid. DO NOT return empty list of nodes.
+1. The JSON complying to the schema above. Return ONLY the JSON and no other text. Include a "commentary" field with a brief, conversational reply to the user summarising what you built at a high level (e.g. "Done! I've created a loan approval process with risk evaluation and notification steps."). Also mention any assumptions you made and any parts of the request that could not be implemented, with a brief explanation of why. Do NOT mention internal details such as node IDs, input wiring, validation fixes, retries, or schema structure. Make sure all required inputs are satisfied and the model is valid. DO NOT return empty list of nodes.
 2. The phrase "RETURN_TO_HIGH_LEVEL: (REASON)" if you cannot generate a valid model and need to regenerate from scratch. Replace (REASON) with the reason(s).
 <#else>
 Please fix the issues listed above and return the corrected JSON complying to the schema. Return ONLY the JSON and no other text. Preserve the "commentary" field exactly as it was in the original model. Make sure all required inputs are satisfied and the model is valid. DO NOT return empty list of nodes.
