@@ -99,6 +99,7 @@ public class BpmnDiagramLayoutOptimizer {
 
     private void rebuildConnectors(BpmnModelInstance modelInstance, Map<BpmnEdge, SideAssignment> assignments, Map<String, Bounds> boundsById) {
         Set<String> alignedCircularNodes = new HashSet<>();
+        Set<String> alignedDiamondNodes = new HashSet<>();
 
         for (var entry : assignments.entrySet()) {
             BpmnEdge edge = entry.getKey();
@@ -112,6 +113,8 @@ public class BpmnDiagramLayoutOptimizer {
 
             boolean srcCircular = isCircularNode(source);
             boolean tgtCircular = isCircularNode(target);
+            boolean srcDiamond = isDiamondNode(source);
+            boolean tgtDiamond = isDiamondNode(target);
 
             // Align circular node positions to match connected rectangular node centers,
             // but only if the new position does not overlap any other node
@@ -122,6 +125,19 @@ public class BpmnDiagramLayoutOptimizer {
                 }
             }
             if (tgtCircular && !srcCircular && alignedCircularNodes.add(target.getId())) {
+                double alignedY = centerY(srcBounds) - tgtBounds.getHeight() / 2.0;
+                if (!wouldOverlap(target.getId(), tgtBounds.getX(), alignedY, tgtBounds.getWidth(), tgtBounds.getHeight(), boundsById)) {
+                    tgtBounds.setY(alignedY);
+                }
+            }
+
+            if (srcDiamond && !tgtDiamond && !tgtCircular && alignedDiamondNodes.add(source.getId())) {
+                double alignedY = centerY(tgtBounds) - srcBounds.getHeight() / 2.0;
+                if (!wouldOverlap(source.getId(), srcBounds.getX(), alignedY, srcBounds.getWidth(), srcBounds.getHeight(), boundsById)) {
+                    srcBounds.setY(alignedY);
+                }
+            }
+            if (tgtDiamond && !srcDiamond && !srcCircular && alignedDiamondNodes.add(target.getId())) {
                 double alignedY = centerY(srcBounds) - tgtBounds.getHeight() / 2.0;
                 if (!wouldOverlap(target.getId(), tgtBounds.getX(), alignedY, tgtBounds.getWidth(), tgtBounds.getHeight(), boundsById)) {
                     tgtBounds.setY(alignedY);
@@ -253,6 +269,10 @@ public class BpmnDiagramLayoutOptimizer {
 
     private boolean isCircularNode(FlowNode node) {
         return node instanceof StartEvent || node instanceof EndEvent;
+    }
+
+    private boolean isDiamondNode(FlowNode node) {
+        return node instanceof Gateway;
     }
 
     private void addConnector(BpmnModelInstance model, BpmnEdge edge, double x, double y) {
