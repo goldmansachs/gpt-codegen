@@ -96,6 +96,7 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
         boolean hasRootComponent;
         final Set<String> definedComponentIds = new HashSet<>();
         final Set<String> referencedChildIds = new HashSet<>();
+        final List<JsonNode> allComponents = new ArrayList<>();
     }
 
     /**
@@ -185,6 +186,7 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
         }
 
         validateComponentTree(ctx, validationMessages);
+        validateBehaviourModifierReferences(ctx, validationMessages);
         return validationMessages;
     }
 
@@ -236,6 +238,7 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
                     ctx.hasRootComponent = true;
                 }
             }
+            ctx.allComponents.add(comp);
             collectChildReferences(comp, ctx.referencedChildIds);
         }
     }
@@ -250,6 +253,44 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
         if (!unreferencedChildIds.isEmpty()) {
             validationMessages.add("Warning: The following child IDs are referenced but never defined: " +
                     unreferencedChildIds);
+        }
+    }
+
+    /**
+     * Validates that behaviour modifier rules (visibility, componentRequired, disabled)
+     * only reference component IDs that actually exist in the model.
+     */
+    private void validateBehaviourModifierReferences(LineValidationContext ctx, List<String> validationMessages) {
+        final List<String> modifierNames = List.of("visibility", "componentRequired", "disabled");
+
+        for (JsonNode comp : ctx.allComponents) {
+            String compId = comp.has("id") ? comp.get("id").asText() : "unknown";
+
+            for (String modifier : modifierNames) {
+                if (!comp.has(modifier)) continue;
+
+                JsonNode rules = comp.path(modifier).path("args").path("rules");
+                if (!rules.isArray()) continue;
+
+                for (JsonNode rule : rules) {
+                    JsonNode checks = rule.path("checks");
+                    if (!checks.isArray()) continue;
+
+                    for (JsonNode check : checks) {
+                        String input = check.path("input").asText(null);
+                        if (input == null || input.isBlank()) continue;
+
+                        if (!ctx.definedComponentIds.contains(input)) {
+                            LOG.warn("Component '{}': {} rule references non-existent id '{}'", compId, modifier, input);
+                            validationMessages.add(String.format(
+                                    "Component '%s': %s rule references non-existent component id '%s'. " +
+                                    "The 'input' field in rule checks must reference the 'id' of an existing component. " +
+                                    "Available component ids: %s",
+                                    compId, modifier, input, ctx.definedComponentIds));
+                        }
+                    }
+                }
+            }
         }
     }
 
