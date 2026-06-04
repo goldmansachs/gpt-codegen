@@ -78,6 +78,7 @@ public class BpmnConstants {
         public static final String ATTR_NODE_DESCRIPTION = "nodeDescription";
         public static final String ATTR_NODE_NAME= "name";
         public static final String ATTR_NODE_ID = "nodeId";
+        public static final String ID_ATTR = "elementId";
     }
 
     public static class UserTaskConstants {

@@ -11,6 +11,7 @@ import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 
 import java.util.List;
 
@@ -45,11 +46,5 @@ public class UserTaskNode extends ElementNode {
         }
 
         return taskBuilder.done();
-    }
-
-    @JsonIgnore
-    @Override
-    protected List<ElementNodeInput> reverseRender(FlowNode flowNode, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
-       return super.reverseRender(flowNode, namespace, componentLibrary, globalVariableLibrary);
     }
 }

@@ -1,6 +1,7 @@
 package org.rj.modelgen.llm.models.generation.multilevel.states;
 
 import org.rj.modelgen.llm.intrep.ModelParser;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.core.model.IntermediateModel;
 import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
 import org.rj.modelgen.llm.state.ModelInterfaceSignal;
@@ -9,19 +10,19 @@ import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.util.Result;
 import reactor.core.publisher.Mono;
 
-public class ReverseRenderIntermediateModel<TModel, TIntermediateModel extends IntermediateModel> extends ModelInterfaceState {
+public class ReverseRenderIntermediateModel<TModel, TIntermediateModel extends IntermediateModel, TModelAssets extends ModelAssets<?>> extends ModelInterfaceState {
 
     private final ModelParser<TModel> modelParser;
-    private final ReverseRenderFunction<TModel, TIntermediateModel> reverseRenderFunction;
+    private final ReverseRenderFunction<TModel, TIntermediateModel, TModelAssets> reverseRenderFunction;
 
     public ReverseRenderIntermediateModel(ModelParser<TModel> modelParser,
-                                          ReverseRenderFunction<TModel, TIntermediateModel> reverseRenderFunction) {
+                                          ReverseRenderFunction<TModel, TIntermediateModel, TModelAssets> reverseRenderFunction) {
         this(ReverseRenderIntermediateModel.class, modelParser, reverseRenderFunction);
     }
 
     public ReverseRenderIntermediateModel(Class<? extends ReverseRenderIntermediateModel> cls,
                                           ModelParser<TModel> modelParser,
-                                          ReverseRenderFunction<TModel, TIntermediateModel> reverseRenderFunction) {
+                                          ReverseRenderFunction<TModel, TIntermediateModel, TModelAssets> reverseRenderFunction) {
         super(cls);
         this.modelParser = modelParser;
         this.reverseRenderFunction = reverseRenderFunction;
@@ -61,7 +62,8 @@ public class ReverseRenderIntermediateModel<TModel, TIntermediateModel extends I
     }
 
     protected Result<TIntermediateModel, String> reverseRenderModel(TModel model) {
-        return reverseRenderFunction.reverseRenderModelToIR(model, getModel());
+        final var modelAssets = getPayload().<TModelAssets>get(StandardModelData.ModelAssets.toString());
+        return reverseRenderFunction.reverseRenderModelToIR(model, getModel(), modelAssets);
     }
 
     @Override

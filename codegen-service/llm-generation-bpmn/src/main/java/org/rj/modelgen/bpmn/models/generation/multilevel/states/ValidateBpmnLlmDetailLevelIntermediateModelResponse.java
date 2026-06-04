@@ -70,8 +70,11 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
         final List<String> validationMessages = new ArrayList<>();
         validations.stream().collect(Collectors.groupingBy(IntermediateModelValidationError::getLocation))
                 .forEach((nodeName, nodeValidations) -> {
-                    String message = String.format("Node Name: %s, Issues to resolve: %s", nodeName,
-                            nodeValidations.stream().map(IntermediateModelValidationError::getError).collect(Collectors.joining(", ")));
+                    final var issuesList = new StringBuilder();
+                    for (int i = 0; i < nodeValidations.size(); i++) {
+                        issuesList.append(String.format("\n  %d. %s", i + 1, nodeValidations.get(i).getError()));
+                    }
+                    String message = String.format("Node Name: %s\n Issues to resolve:%s\n", nodeName, issuesList);
                     LOG.warn(message);
                     validationMessages.add(message);
                 });

@@ -12,6 +12,7 @@ import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibra
 import org.rj.modelgen.bpmn.intrep.model.ElementConnection;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +66,12 @@ public class ExclusiveGatewayNode extends ElementNode implements ConditionalGate
     }
 
     // Convenience methods
+    @JsonIgnore
+    @Override
+    public String getUniqueElementIdName() {
+        return TARGET_NODE_ID;
+    }
+
     @JsonIgnore
     public String getDefaultTargetNodeId() {
         return findInput(DEFAULT)

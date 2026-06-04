@@ -124,7 +124,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                                             ContextProvider contextProvider, BpmnComponentLibrary componentLibrary,
                                             MultilevelModelPreprocessingConfig<BpmnComponentLibrary> preprocessingConfig,
                                             MultiLevelModelPhaseConfig<BpmnHighLevelIntermediateModel, BpmnModelAssets, BpmnComponentLibrary, ?, ?, ?> highLevelPhaseConfig,
-                                            ReverseRenderFunction<BpmnModelInstance, BpmnIntermediateModel> reverseRenderFunction,
+                                            ReverseRenderFunction<BpmnModelInstance, BpmnIntermediateModel, BpmnModelAssets> reverseRenderFunction,
                                             MultiLevelModelDetailPhaseConfig<BpmnIntermediateModel, BpmnModelAssets, BpmnComponentLibrary, ?, ?, ?> detailLevelPhaseConfig,
                                             ModelGenerationFunction<BpmnIntermediateModel, BpmnModelInstance> modelGenerationFunction,
                                             Function<BpmnModelInstance, String> renderedModelSerializer,

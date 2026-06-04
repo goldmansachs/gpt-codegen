@@ -5,6 +5,7 @@ import org.rj.modelgen.llm.component.ComponentLibrarySerializer;
 import org.rj.modelgen.llm.component.DefaultComponentLibrarySelector;
 import org.rj.modelgen.llm.context.provider.ContextProvider;
 import org.rj.modelgen.llm.intrep.ModelParser;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.core.model.IntermediateModel;
 import org.rj.modelgen.llm.model.ModelInterface;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderFunction;
@@ -34,32 +35,34 @@ import static org.rj.modelgen.llm.models.interpretation.signals.InterpretationMo
 public abstract class BaseInterpretationModel<TModel,
         TIntermediateModel extends IntermediateModel,
         TComponentLibrary extends ComponentLibrary<?>,
-        TResult extends InterpretationResult>
+        TResult extends InterpretationResult,
+        TModelAssets extends ModelAssets<?>>
         extends InterpretationModel<TResult> {
 
-    public BaseInterpretationModel(Class<? extends BaseInterpretationModel<TModel, TIntermediateModel, TComponentLibrary, TResult>> modelClass,
+    public BaseInterpretationModel(Class<? extends BaseInterpretationModel<TModel, TIntermediateModel, TComponentLibrary, TResult, TModelAssets>> modelClass,
                                    ModelInterface modelInterface, InterpretationModelPromptGenerator promptGenerator,
                                    ComponentLibrarySerializer<TComponentLibrary> componentLibrarySerializer,
                                    ContextProvider contextProvider, TComponentLibrary componentLibrary,
-                                   ReverseRenderFunction<TModel, TIntermediateModel> reverseRenderFunction,
+                                   ReverseRenderFunction<TModel, TIntermediateModel, TModelAssets> reverseRenderFunction,
                                    ModelInterfaceState completionState,
                                    InterpretationModelOptions options,
                                    ModelParser<TModel> modelParser) {
         this(modelClass, modelInterface, buildModelData(promptGenerator, contextProvider, componentLibrary, reverseRenderFunction, completionState, options, componentLibrarySerializer, modelParser));
     }
 
-    private BaseInterpretationModel(Class<? extends BaseInterpretationModel<TModel, TIntermediateModel, TComponentLibrary, TResult>> modelClass,
+    private BaseInterpretationModel(Class<? extends BaseInterpretationModel<TModel, TIntermediateModel, TComponentLibrary, TResult, TModelAssets>> modelClass,
                                     ModelInterface modelInterface, ModelData modelData) {
         super(modelClass, modelInterface, modelData.getStates(), modelData.getRules());
     }
 
     private static <TModel,
             TIntermediateModel extends IntermediateModel,
-            TComponentLibrary extends ComponentLibrary<?>>
+            TComponentLibrary extends ComponentLibrary<?>,
+            TModelAssets extends ModelAssets<?>>
     ModelData buildModelData(
             InterpretationModelPromptGenerator promptGenerator,
             ContextProvider contextProvider, TComponentLibrary componentLibrary,
-            ReverseRenderFunction<TModel, TIntermediateModel> reverseRenderFunction,
+            ReverseRenderFunction<TModel, TIntermediateModel, TModelAssets> reverseRenderFunction,
             ModelInterfaceState completionState,
             InterpretationModelOptions options,
             ComponentLibrarySerializer<TComponentLibrary> componentLibrarySerializer,

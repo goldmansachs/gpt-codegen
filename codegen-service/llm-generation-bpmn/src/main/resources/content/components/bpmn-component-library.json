@@ -86,7 +86,7 @@
         },
         {
           "name": "taskIdentifier",
-          "description": "Unique reference identifier from taskCompletionPayload for the completed task instance. Useful for tracking, auditing, or correlating this specific task execution with external systems",
+          "description": "Unique reference identifier for the completed task instance. Useful for tracking, auditing, or correlating this specific task execution with external systems",
           "type": "string",
           "keyValue": true,
           "resolveValue": "taskCompletionPayload.taskIdentifier"
@@ -618,7 +618,7 @@
         },
         {
           "name": "processName",
-          "description": "Name of the process appearing to the user. This should contain contextual information to allow instances of a process to be distinguished",
+          "description": "Name of the process appearing to the user. This should contain fixed, contextual information to allow instances of a process to be distinguished",
           "alias": "workItemName",
           "type": "string",
           "mandatory": true,
@@ -628,7 +628,7 @@
         },
         {
           "name": "processDescription",
-          "description": "Name of the process appearing to the user. This should contain contextual information to allow instances of a process to be distinguished",
+          "description": "Name of the process appearing to the user. This should contain fixed, contextual information to allow instances of a process to be distinguished",
           "alias": "workItemDescription",
           "type": "string",
           "mandatory": true,

@@ -357,6 +357,8 @@ public class ValidateBpmnModel {
         }
         // If the expression contains interpolation syntax or it is a json object, wrap it with additional quotes to parse it as a GString or PropertyExpression
         if (!expression.startsWith("\"") && !expression.endsWith("\"") && (expression.contains("${") || expression.startsWith("{") && expression.endsWith("}"))) {
+            // Escape any '$' characters that are not part of '${' interpolation to avoid Groovy GString parse errors
+            expression = expression.replaceAll("\\$(?!\\{)", "\\\\\\$");
             expression = "\"" + expression + "\"";
         }
 

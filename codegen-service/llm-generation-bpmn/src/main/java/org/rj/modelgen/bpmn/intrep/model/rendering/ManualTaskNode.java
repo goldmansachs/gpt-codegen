@@ -6,10 +6,8 @@ import org.camunda.bpm.model.bpmn.builder.AbstractFlowNodeBuilder;
 import org.camunda.bpm.model.bpmn.builder.ManualTaskBuilder;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
 import org.camunda.bpm.model.bpmn.instance.ManualTask;
-import org.camunda.bpm.model.xml.instance.DomElement;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
-import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
 
 import java.util.List;
 
@@ -32,11 +30,5 @@ public class ManualTaskNode extends ElementNode {
         configureTaskMetadata(task, namespace);
 
         return taskBuilder.done();
-    }
-
-    @JsonIgnore
-    @Override
-    protected List<ElementNodeInput> reverseRenderValues(DomElement dom, FlowNode flowNode, String namespace, BpmnComponent.InputVariable iv) {
-        return super.reverseRenderValues(dom, flowNode, namespace, iv);
     }
 }

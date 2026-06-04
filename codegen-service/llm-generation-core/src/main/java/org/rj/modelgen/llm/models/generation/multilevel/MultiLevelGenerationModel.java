@@ -37,7 +37,7 @@ import static org.rj.modelgen.llm.models.generation.multilevel.signals.MultiLeve
 
 public abstract class MultiLevelGenerationModel<THighLevelModel extends IntermediateModel,
                                                 TDetailLevelModel extends IntermediateModel,
-                                                TModelAssets extends ModelAssets,
+                                                TModelAssets extends ModelAssets<?>,
                                                 TModel,
                                                 TComponentLibrary extends ComponentLibrary<?>,
                                                 TResult extends GenerationResult>
@@ -48,7 +48,7 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
                                      ContextProvider contextProvider, TComponentLibrary componentLibrary,
                                      MultilevelModelPreprocessingConfig<TComponentLibrary> preprocessingConfig,
                                      MultiLevelModelPhaseConfig<THighLevelModel, TModelAssets, TComponentLibrary, ?, ?, ?> highLevelPhaseConfig,
-                                     ReverseRenderFunction<TModel, TDetailLevelModel> reverseRenderFunction,
+                                     ReverseRenderFunction<TModel, TDetailLevelModel, TModelAssets> reverseRenderFunction,
                                      MultiLevelModelDetailPhaseConfig<TDetailLevelModel, TModelAssets, TComponentLibrary, ?, ?, ?> detailLevelPhaseConfig,
                                      ModelGenerationFunction<TDetailLevelModel, TModel> modelGenerationFunction,
                                      Function<TModel, String> renderedModelSerializer,
@@ -69,7 +69,7 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
 
     private static<THighLevelModel extends IntermediateModel,
                    TDetailLevelModel extends IntermediateModel,
-                   TModelAssets extends ModelAssets,
+                   TModelAssets extends ModelAssets<?>,
                    TModel,
                    TComponentLibrary extends ComponentLibrary<?>>
     ModelData buildModelData(
@@ -77,7 +77,7 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
             ContextProvider contextProvider, TComponentLibrary componentLibrary,
             MultilevelModelPreprocessingConfig<TComponentLibrary> preprocessingConfig,
             MultiLevelModelPhaseConfig<THighLevelModel, TModelAssets, TComponentLibrary, ?, ?, ?> highLevelPhaseConfig,
-            ReverseRenderFunction<TModel, TDetailLevelModel> reverseRenderFunction,
+            ReverseRenderFunction<TModel, TDetailLevelModel, TModelAssets> reverseRenderFunction,
             MultiLevelModelDetailPhaseConfig<TDetailLevelModel, TModelAssets, TComponentLibrary, ?, ?, ?> detailLevelPhaseConfig,
             ModelGenerationFunction<TDetailLevelModel, TModel> modelGenerationFunction,
             Function<TModel, String> renderedModelSerializer,

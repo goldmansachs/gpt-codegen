@@ -45,12 +45,7 @@ public interface ConditionalGateway {
         }
 
         if (defaultTargetNodeId != null) {
-            ElementNodeInput defaultInput = new ElementNodeInput();
-            defaultInput.setName(DEFAULT);
-            defaultInput.setValue(defaultTargetNodeId);
-            defaultInput.setVariableSource("CONSTANT");
-            defaultInput.setIsProvided(true);
-            inputs.add(defaultInput);
+            inputs.add(ElementNodeInput.createConstant(DEFAULT, defaultTargetNodeId));
         }
 
         // 'conditions' input for each outgoing sequence flow
@@ -61,9 +56,13 @@ public interface ConditionalGateway {
             if (ce != null) {
                 conditionExpr = ce.getTextContent() != null ? ce.getTextContent() : "";
             }
+            if (conditionExpr.startsWith("${") && conditionExpr.endsWith("}")) {
+                conditionExpr = conditionExpr.substring(2, conditionExpr.length() - 1);
+            }
 
             ElementNodeInput targetNodeIdProp = ElementNodeInput.createInputFromAttribute(TARGET_NODE_ID, targetId, true);
-            ElementNodeInput conditionExprProp = ElementNodeInput.createInputFromAttribute(CONDITION_EXPRESSION, conditionExpr, true);
+            // Condition expressions are always EXPRESSION type (JUEL syntax wrapped with ${} during pre-rendering)
+            ElementNodeInput conditionExprProp = ElementNodeInput.createExpression(CONDITION_EXPRESSION, conditionExpr);
 
             ElementNodeInput conditionInput = new ElementNodeInput();
             conditionInput.setName(CONDITIONS);

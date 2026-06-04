@@ -154,15 +154,20 @@ public class ElementNodeInput {
             return CONSTANT;
         }
 
-        if (value.contains("\n")) {
+        if (value.contains("\n") || VAR_PAYLOAD_WRITE_PATTERN.matcher(value).find() || VAR_WRITE_PATTERN.matcher(value).find()) {
             return SCRIPT;
         }
 
-        if (VAR_PAYLOAD_WRITE_PATTERN.matcher(value).find()) {
+        String trimmed = value.trim();
+        if (trimmed.startsWith("return ") || trimmed.startsWith("return;") || THROW_ERROR_PATTERN.matcher(value).find()) {
             return SCRIPT;
         }
 
-        if(VAR_PAYLOAD_READ_PATTERN.matcher(value).find() || VAR_INTERPOLATED_PAYLOAD_READ_PATTERN.matcher(value).find()) {
+        if (VAR_PAYLOAD_READ_PATTERN.matcher(value).find()
+                || VAR_INTERPOLATED_PAYLOAD_READ_PATTERN.matcher(value).find()
+                || GLOBAL_VAR_READ_PATTERN.matcher(value).find()
+                || trimmed.contains("${")
+                || (trimmed.startsWith("${") && trimmed.endsWith("}"))) {
             return EXPRESSION;
         }
 

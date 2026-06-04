@@ -11,7 +11,9 @@ import org.camunda.bpm.model.xml.instance.DomElement;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.rj.modelgen.bpmn.intrep.model.rendering.*;
+import org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils;
 import org.rj.modelgen.llm.intrep.graph.GraphNode;
 import java.util.*;
 import java.util.logging.Logger;
@@ -21,7 +23,7 @@ import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.PROCESS_CO
 import static org.rj.modelgen.bpmn.intrep.model.ElementNodeInput.createInputFromAttribute;
 import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.extractAttributeValue;
 import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.getLookupName;
-import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.applyFormatValueToAllInputs;
+import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.applyIsProvidedToAllInputs;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(
@@ -118,6 +120,15 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
 
     /* Convenience methods */
 
+    /**
+     * Returns the attribute name used as a stable element ID for disambiguating repeating inputs
+     * Override in subclasses to use a different ID property.
+     */
+    @JsonIgnore
+    public String getUniqueElementIdName() {
+        return ID_ATTR;
+    }
+
     @JsonIgnore
     public Optional<ElementNodeInput> findInput(String name) {
         if (name == null || inputs == null) return Optional.empty();
@@ -140,7 +151,7 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
     }
 
     @JsonIgnore
-    public void reverseRenderModel(FlowNode flowNode, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+    public void reverseRenderModel(FlowNode flowNode, BpmnModelAssets modelAssets, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
         extractNodeMetadata(flowNode, namespace);
 
         if (flowNode.getOutgoing() != null) {
@@ -151,10 +162,16 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
 
         List<ElementNodeInput> nodeInputs = reverseRender(flowNode, namespace, componentLibrary, globalVariableLibrary);
         setInputs(nodeInputs.isEmpty() ? new ArrayList<>() : nodeInputs);
+
+        BpmnComponent elementDefinition = componentLibrary.getComponentByName(elementType)
+                .orElseThrow(() -> new IllegalStateException("No component definition found for element type: " + elementType));
+
+        applyFormatValuesToAllInputs(getInputs(), componentLibrary, globalVariableLibrary);
+        applyIsProvidedToAllInputs(id, getInputs(), modelAssets, elementDefinition, getUniqueElementIdName());
     }
 
     @JsonIgnore
-    public void reverseRenderModel(BpmnModelInstance model, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+    public void reverseRenderModel(BpmnModelInstance model, BpmnModelAssets modelAssets, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
         // Override in subclasses that are not FlowNode-based (e.g. ProcessConfigNode)
     }
 
@@ -174,7 +191,6 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
             List<ElementNodeInput> extracted = reverseRenderValues(dom, flowNode, namespace, iv);
             nodeInputs.addAll(extracted);
         }
-        applyFormatValueToAllInputs(nodeInputs, componentLibrary, globalVariableLibrary);
 
         return nodeInputs;
     }
@@ -182,7 +198,7 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
     /**
      * Extract input variable values from the DOM. Returns a list because some inputs (like headers) may produce multiple ElementNodeInput entries.
      * If the input variable defines nested properties, they are traversed recursively to build a matching ElementNodeInput with nested properties.
-     * Can be overridden to handle special task-specific inputs
+     * Can be overridden to handle special task-specific inputs.
      */
     @JsonIgnore
     protected List<ElementNodeInput> reverseRenderValues(DomElement dom, FlowNode flowNode, String namespace, BpmnComponent.InputVariable iv) {
@@ -196,11 +212,10 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
             for (DomElement childElement : matchingElements) {
                 ElementNodeInput entry = new ElementNodeInput();
                 entry.setName(inputName);
-                entry.setIsProvided(true);
 
                 List<ElementNodeInput> subProperties = new ArrayList<>();
                 for (BpmnComponent.InputVariable propDef : iv.getProperties()) {
-                    subProperties.addAll(reverseRenderValues(childElement, flowNode, namespace, propDef));
+                    subProperties.addAll(reverseRenderLeafValues(childElement, flowNode, namespace, propDef));
                 }
                 if (!subProperties.isEmpty()) {
                     entry.setProperties(subProperties);
@@ -210,13 +225,37 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
             return result;
         }
 
-        // Leaf: extract value from attribute, or child/extension element text
+        return reverseRenderLeafValues(dom, flowNode, namespace, iv);
+    }
+
+    @JsonIgnore
+    protected List<ElementNodeInput> reverseRenderLeafValues(DomElement dom, FlowNode flowNode, String namespace, BpmnComponent.InputVariable iv) {
+        String inputName = iv.getName();
+        String lookupName = getLookupName(iv);
+
         List<ElementNodeInput> result = new ArrayList<>();
         String value = extractValue(dom, namespace, lookupName);
         if (value != null) {
             result.add(createInputFromAttribute(inputName, value, true));
         }
         return result;
+    }
+
+    @JsonIgnore
+    protected void applyFormatValuesToAllInputs(List<ElementNodeInput> inputs, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+        if (inputs == null) return;
+        for (ElementNodeInput input : inputs) {
+            if (input.hasProperties()) {
+                applyFormatValuesToAllInputs(input.getProperties(), componentLibrary, globalVariableLibrary);
+            } else {
+                formatInputValue(input, componentLibrary, globalVariableLibrary);
+            }
+        }
+    }
+
+    @JsonIgnore
+    protected void formatInputValue(ElementNodeInput input, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+        BpmnScriptUtils.formatInputValue(input, componentLibrary, globalVariableLibrary);
     }
 
     /**
@@ -283,7 +322,6 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
         this.description = Optional.ofNullable(extractAttributeValue(baseElement.getDomElement(), namespace, ATTR_NODE_DESCRIPTION)).orElse(this.elementType);
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -304,7 +342,7 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
     }
 
     @JsonIgnore
-    public static ElementNode fromFlowNode(FlowNode flowNode, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+    public static ElementNode fromFlowNode(FlowNode flowNode, BpmnModelAssets modelAssets, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
         String elementType = flowNode.getElementType().getTypeName();
         Class<? extends ElementNode> nodeClass = ElementNodeTypeRegistry.getNodeClass(elementType);
 
@@ -315,12 +353,12 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
             LOG.warning(String.format("No ElementNode class registered for BPMN element type '{%s}' (id='%s')", elementType, flowNode.getId()));
             elementNode = new ElementNode();
         }
-        elementNode.reverseRenderModel(flowNode, namespace, componentLibrary, globalVariableLibrary);
+        elementNode.reverseRenderModel(flowNode, modelAssets, namespace, componentLibrary, globalVariableLibrary);
         return elementNode;
     }
 
     @JsonIgnore
-    public static ElementNode fromProcess(BpmnModelInstance inputModel, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+    public static ElementNode fromProcess(BpmnModelInstance inputModel, BpmnModelAssets modelAssets, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
 
         Class<? extends ElementNode> nodeClass = ElementNodeTypeRegistry.getNodeClass(PROCESS_CONFIG);
 
@@ -330,7 +368,7 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
         } catch (Exception e) {
             processConfigNode = new ProcessConfigNode();
         }
-        processConfigNode.reverseRenderModel(inputModel, namespace, componentLibrary, globalVariableLibrary);
+        processConfigNode.reverseRenderModel(inputModel, modelAssets, namespace, componentLibrary, globalVariableLibrary);
         return processConfigNode;
     }
 }
