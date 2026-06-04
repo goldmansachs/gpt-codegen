@@ -2,6 +2,8 @@ package org.rj.modelgen.bpmn.models.generation.multilevel.states;
 
 import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
+import org.rj.modelgen.bpmn.component.common.BpmnComponentVariableType;
+import org.rj.modelgen.bpmn.generation.BpmnConstants;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 import static org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.GatewayConstants.CONDITION_EXPRESSION;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.PROCESS_CONFIG;
+import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.generateRandomId;
 import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.*;
 
 public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
@@ -66,6 +69,8 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                 () -> eliminateDuplicateConnections(model),
                 () -> identifyOrphanedSubgraphs(model, node -> !NODES_TO_IGNORE.contains(node.getElementType())),
                 () -> resolveInputs(model),
+                () -> assignStableIdsToArrayInputs(model),
+                () -> addCustomOperations(model),
                 () -> updateModelAssets(model, modelAssets)
         );
 
@@ -95,6 +100,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                 resolveInputValue(model, node, input);
             }
         }
+        resolveProcessConfigNodeId(model);
     }
 
     private void resolveInputValue(BpmnIntermediateModel model, ElementNode node, ElementNodeInput input) {
@@ -113,7 +119,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
 
             // If input is not provided but input definition has a default value, use it only if resolution strategy requires user involvement
             // Otherwise, keep the inferred value
-            if (!input.getIsProvided()
+            if (Boolean.FALSE.equals(input.getIsProvided())
                     && inputDefinition.isPresent() && inputDefinition.get().getDefaultValue() != null
                     && inputDefinition.get().getResolutionStrategy().requiresUserInvolvement()) {
                 inputValue = inputDefinition.get().getDefaultValue();
@@ -143,6 +149,59 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
         }
     }
 
+
+    private void resolveProcessConfigNodeId(BpmnIntermediateModel model) {
+        model.getNodes().stream()
+                .filter(node -> PROCESS_CONFIG.equalsIgnoreCase(node.getElementType()))
+                .findFirst()
+                .ifPresent(node -> node.findInput(BpmnConstants.ProcessConfigConstants.PROCESS_ID)
+                        .map(ElementNodeInput::getValue)
+                        .filter(pid -> !pid.isBlank())
+                        .ifPresent(node::setId));
+    }
+
+    private void assignStableIdsToArrayInputs(BpmnIntermediateModel model) {
+        var componentLibrary = getComponentLibrary();
+        if (componentLibrary == null) return;
+
+        for (var node : model.getNodes()) {
+            if (node.getInputs() == null || node.getInputs().isEmpty()) continue;
+            var component = componentLibrary.getComponentByName(node.getElementType()).orElse(null);
+            if (component == null) continue;
+
+            String stableIdName = node.getUniqueElementIdName();
+            ensureStableIdsAssigned(node.getInputs(), component, stableIdName);
+        }
+    }
+
+    private static void ensureStableIdsAssigned(List<ElementNodeInput> inputs, BpmnComponent component, String stableIdName) {
+        if (inputs == null || stableIdName == null) return;
+        for (var input : inputs) {
+            if (input.hasProperties()) {
+                boolean isArrayType = component.getInputVariable(input.getName())
+                        .map(iv -> iv.getType() == BpmnComponentVariableType.Array)
+                        .orElse(false);
+
+                if (isArrayType && input.findProperty(stableIdName).isEmpty()) {
+                    var updatedProperties = new ArrayList<>(input.getProperties());
+                    updatedProperties.add(ElementNodeInput.createConstant(stableIdName, generateRandomId()));
+                    input.setProperties(updatedProperties);
+                }
+
+                for (var prop : input.getProperties()) {
+                    if (prop.hasProperties()) {
+                        ensureStableIdsAssigned(List.of(prop), component, stableIdName);
+                    }
+                }
+            }
+        }
+    }
+
+    // Hook for subclasses to perform additional processing on the model after input resolution but before model assets are updated
+    protected void addCustomOperations(BpmnIntermediateModel model) {
+        // No-op in base class; override in subclasses
+    }
+
     private void updateModelAssets(BpmnIntermediateModel model, BpmnModelAssets modelAssets) {
         Collection<BpmnUIComponent> uiComponentsRaw = getPayload().get(MultiLevelModelStandardPayloadData.UIComponents);
         List<BpmnUIComponent> uiComponents = uiComponentsRaw != null ? new ArrayList<>(uiComponentsRaw) : new ArrayList<>();
@@ -164,20 +223,24 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                     .getComponentByName(node.getElementType());
             if (component.isEmpty()) continue;
 
+            String uniqueIdName = node.getUniqueElementIdName();
+
             for (final var input : node.getInputs()) {
-                String path = input.getName();
-                identifyUnresolvedInputsProperties(component.get(), node, input, path, unresolvedInputs);
+                String inputKey = buildInputKeySegment(input, component.get(), uniqueIdName);
+                identifyUnresolvedInputsProperties(component.get(), node, input, inputKey, uniqueIdName, unresolvedInputs);
             }
         }
         return unresolvedInputs;
     }
 
-    private void identifyUnresolvedInputsProperties(BpmnComponent component, ElementNode node, ElementNodeInput input, String path, List<ElementNodeUnresolvedInput> unresolvedInputs) {
+
+    private void identifyUnresolvedInputsProperties(BpmnComponent component, ElementNode node, ElementNodeInput input, String inputKey, String uniqueIdPropertyName, List<ElementNodeUnresolvedInput> unresolvedInputs) {
         if (input.hasProperties()) {
             for (var prop : input.getProperties()) {
-                identifyUnresolvedInputsProperties(component, node, prop, path + "." + prop.getName(), unresolvedInputs);
+                String propSegment = buildInputKeySegment(prop, component, uniqueIdPropertyName);
+                identifyUnresolvedInputsProperties(component, node, prop, inputKey + "." + propSegment, uniqueIdPropertyName, unresolvedInputs);
             }
-        } else if (!input.getIsProvided()) {
+        } else if (Boolean.FALSE.equals(input.getIsProvided())) {
             var inputDefinition = component.getInputVariable(input.getName());
             if (inputDefinition.isEmpty()) return;
 
@@ -188,7 +251,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
             String alias = Optional.ofNullable(inputDefinition.get().getAlias()).orElse(input.getName());
 
             if (resolutionStrategy.requiresUserInvolvement()) {
-                unresolvedInputs.add(new ElementNodeUnresolvedInput(node.getId(), node.getElementType(), input.getName(), alias, input.getValue(), defaultValue, path, resolutionStrategy));
+                unresolvedInputs.add(new ElementNodeUnresolvedInput(node.getId(), node.getElementType(), input.getName(), alias, input.getValue(), defaultValue, inputKey, resolutionStrategy));
             }
         }
     }
@@ -202,7 +265,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
         return Optional.ofNullable(inputKeyOverride).orElse(MultiLevelModelStandardPayloadData.DetailLevelModel.toString());
     }
 
-    private BpmnComponentLibrary getComponentLibrary() {
+    protected BpmnComponentLibrary getComponentLibrary() {
         return Optional.ofNullable(getModel())
                 .map(m -> m.getAs(BpmnMultiLevelGenerationModel.class))
                 .map(BpmnMultiLevelGenerationModel::getComponentLibrary)

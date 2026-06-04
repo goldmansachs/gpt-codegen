@@ -10,6 +10,7 @@ import org.rj.modelgen.bpmn.interpretation.data.BpmnModelInterpretationResult;
 import org.rj.modelgen.bpmn.interpretation.prompt.BpmnInterpretationPromptGenerator;
 import org.rj.modelgen.bpmn.intrep.BpmnModelParser;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.rj.modelgen.bpmn.models.generation.base.data.BpmnGenerationModelInputPayload;
 import org.rj.modelgen.llm.context.provider.ContextProvider;
 import org.rj.modelgen.llm.context.provider.impl.DefaultContextProvider;
@@ -30,9 +31,9 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 public class BpmnInterpretationModel extends BaseInterpretationModel<BpmnModelInstance, BpmnIntermediateModel,
-        BpmnComponentLibrary, BpmnModelInterpretationResult> {
+        BpmnComponentLibrary, BpmnModelInterpretationResult, BpmnModelAssets> {
 
-    private BpmnInterpretationModel(ModelInterface modelInterface, InterpretationModelPromptGenerator promptGenerator, ContextProvider contextProvider, BpmnComponentLibrary componentLibrary, ReverseRenderFunction<BpmnModelInstance, BpmnIntermediateModel> reverseRenderFunction, ModelInterfaceState completionState, InterpretationModelOptions options, BpmnModelParser modelParser) {
+    private BpmnInterpretationModel(ModelInterface modelInterface, InterpretationModelPromptGenerator promptGenerator, ContextProvider contextProvider, BpmnComponentLibrary componentLibrary, ReverseRenderFunction<BpmnModelInstance, BpmnIntermediateModel, BpmnModelAssets> reverseRenderFunction, ModelInterfaceState completionState, InterpretationModelOptions options, BpmnModelParser modelParser) {
         super(BpmnInterpretationModel.class, modelInterface, promptGenerator, new BpmnComponentLibraryDetailLevelSerializer(), contextProvider, componentLibrary, reverseRenderFunction, completionState, options, modelParser);
     }
 

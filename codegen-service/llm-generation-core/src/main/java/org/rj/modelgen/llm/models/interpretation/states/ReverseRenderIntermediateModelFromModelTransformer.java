@@ -1,6 +1,7 @@
 package org.rj.modelgen.llm.models.interpretation.states;
 
 import org.rj.modelgen.llm.intrep.ModelParser;
+import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 import org.rj.modelgen.llm.intrep.core.model.IntermediateModel;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderFunction;
 import org.rj.modelgen.llm.models.interpretation.data.InterpretationData;
@@ -10,18 +11,14 @@ import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.util.Result;
 import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
-import java.util.Map;
-
-
-public class ReverseRenderIntermediateModelFromModelTransformer<TModel, TIntermediateModel extends IntermediateModel> extends ModelInterfaceState {
-    private final ReverseRenderFunction<TModel, TIntermediateModel> reverseRenderFunction;
+public class ReverseRenderIntermediateModelFromModelTransformer<TModel, TIntermediateModel extends IntermediateModel, TModelAssets extends ModelAssets<?>> extends ModelInterfaceState {
+    private final ReverseRenderFunction<TModel, TIntermediateModel, TModelAssets> reverseRenderFunction;
     private final ModelParser<TModel> modelParser;
 
     private final String inputModelKey;
     private final String outputModelKey;
 
-    public ReverseRenderIntermediateModelFromModelTransformer(ModelParser<TModel> modelParser, String inputModelKey, String outputModelKey, ReverseRenderFunction<TModel, TIntermediateModel> reverseRenderFunction) {
+    public ReverseRenderIntermediateModelFromModelTransformer(ModelParser<TModel> modelParser, String inputModelKey, String outputModelKey, ReverseRenderFunction<TModel, TIntermediateModel, TModelAssets> reverseRenderFunction) {
         super(ReverseRenderIntermediateModelFromModelTransformer.class);
 
         this.modelParser = modelParser;
@@ -61,7 +58,8 @@ public class ReverseRenderIntermediateModelFromModelTransformer<TModel, TInterme
 
     protected Result<TIntermediateModel, String> reverseRenderModel(TModel model) {
         this.recordAudit("input-model", model.toString());
-        return this.reverseRenderFunction.reverseRenderModelToIR(model, getModel());
+        final var modelAssets = getPayload().<TModelAssets>get(StandardModelData.ModelAssets.toString());
+        return this.reverseRenderFunction.reverseRenderModelToIR(model, getModel(), modelAssets);
     }
 
     public String getDescription() {

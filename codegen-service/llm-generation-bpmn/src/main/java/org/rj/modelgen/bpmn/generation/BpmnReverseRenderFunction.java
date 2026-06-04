@@ -5,12 +5,13 @@ import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.intrep.model.BpmnReverseRenderer;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderFunction;
 import org.rj.modelgen.llm.state.ModelInterfaceStateMachine;
 import org.rj.modelgen.llm.util.Result;
 
-public class BpmnReverseRenderFunction implements ReverseRenderFunction<BpmnModelInstance, BpmnIntermediateModel> {
+public class BpmnReverseRenderFunction implements ReverseRenderFunction<BpmnModelInstance, BpmnIntermediateModel, BpmnModelAssets> {
 
     private final BpmnGlobalVariableLibrary globalVariableLibrary;
     private final BpmnComponentLibrary componentLibrary;
@@ -23,10 +24,11 @@ public class BpmnReverseRenderFunction implements ReverseRenderFunction<BpmnMode
     }
 
     @Override
-    public Result<BpmnIntermediateModel, String> reverseRenderModelToIR(BpmnModelInstance model, ModelInterfaceStateMachine executionModel) {
+    public Result<BpmnIntermediateModel, String> reverseRenderModelToIR(BpmnModelInstance model, ModelInterfaceStateMachine executionModel, BpmnModelAssets modelAssets) {
         try {
             final BpmnComponentLibrary resolvedLibrary = resolveComponentLibrary(executionModel);
-            final var reverseRenderer = new BpmnReverseRenderer(model, resolvedLibrary, globalVariableLibrary);
+            final var bpmnModelAssets = modelAssets != null ? modelAssets : new BpmnModelAssets();
+            final var reverseRenderer = new BpmnReverseRenderer(model, bpmnModelAssets, resolvedLibrary, globalVariableLibrary);
             reverseRenderer.setNamespace(namespace);
             final BpmnIntermediateModel rendered = reverseRenderer.generateBpmnIntermediateModel();
 

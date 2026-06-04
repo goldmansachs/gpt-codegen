@@ -2,13 +2,15 @@ package org.rj.modelgen.bpmn.models.generation.validation;
 
 import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
+import org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariable;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
-import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -159,7 +161,7 @@ public class BpmnScriptUtils {
         }
     }
 
-    private static void formatInputValue(ElementNodeInput input, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+    public static void formatInputValue(ElementNodeInput input, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
         String originalValue = input.getValue();
 
         if (originalValue == null || originalValue.isEmpty()) {
@@ -169,7 +171,7 @@ public class BpmnScriptUtils {
         String formattedValue = formatValue(originalValue, componentLibrary, globalVariableLibrary);
         input.setValue(formattedValue);
 
-        if (!originalValue.equals(formattedValue)) {
+        if (!originalValue.equals(formattedValue) && !BpmnComponentInputSourceType.CONSTANT.toString().equals(input.getVariableSource())) {
             if (isExpression(formattedValue)) {
                 input.setVariableSource("EXPRESSION");
             } else {
@@ -343,4 +345,66 @@ public class BpmnScriptUtils {
         if (value.startsWith("\"") || value.startsWith("'")) return "String";
         return "String";
     }
+
+    /**
+     * Post-processes all inputs after reverse rendering to set isProvided based on unresolved input keys.
+     * Default is true (provided/resolved). Inputs whose keys appear in unresolvedInputKeys are set to false.
+     * Handles nested properties and repeating inputs with stable ID disambiguation.
+     */
+    public static void applyIsProvidedToAllInputs(String nodeId, List<ElementNodeInput> inputs, BpmnModelAssets modelAssets, BpmnComponent elementDefinition, String idPropertyName) {
+        if (inputs == null) return;
+        Set<String> unresolvedInputKeys = modelAssets != null ? modelAssets.collectUnresolvedInputKeys(nodeId) : Set.of();
+
+        if (unresolvedInputKeys == null || unresolvedInputKeys.isEmpty()) {
+            return;
+        }
+
+        for (ElementNodeInput input : inputs) {
+            applyIsProvidedRecursive(input, "", unresolvedInputKeys, elementDefinition, idPropertyName);
+        }
+    }
+
+    private static void applyIsProvidedRecursive(ElementNodeInput input, String parentKey, Set<String> unresolvedInputKeys, BpmnComponent component, String idPropertyName) {
+        String segment = buildInputKeySegment(input, component, idPropertyName);
+
+        if (input.hasProperties()) {
+            String inputKey = buildFullInputKey(parentKey, segment);
+
+            for (ElementNodeInput prop : input.getProperties()) {
+                if (idPropertyName != null && idPropertyName.equals(prop.getName())) {
+                    prop.setIsProvided(true);
+                    continue;
+                }
+                applyIsProvidedRecursive(prop, inputKey, unresolvedInputKeys, component, idPropertyName);
+            }
+        } else {
+            String inputKey = buildFullInputKey(parentKey, segment);
+            input.setIsProvided(!unresolvedInputKeys.contains(inputKey));
+        }
+    }
+
+    public static String buildInputKeySegment(ElementNodeInput input, BpmnComponent component, String idPropertyName) {
+        String alias = resolveInputAlias(input.getName(), component);
+
+        if (input.hasProperties() && idPropertyName != null) {
+            String stableId = input.findPropertyValueOrDefault(idPropertyName, null);
+            if (stableId != null) {
+                return alias + "[" + stableId + "]";
+            }
+        }
+        return alias;
+    }
+
+    private static String buildFullInputKey(String parentKey, String segment) {
+        return parentKey.isEmpty() ? segment : parentKey + "." + segment;
+    }
+
+
+    public static String resolveInputAlias(String inputName, BpmnComponent component) {
+        if (component == null || inputName == null) return inputName;
+        return component.getInputVariable(inputName)
+                .map(iv -> iv.getAlias() != null ? iv.getAlias() : iv.getName())
+                .orElse(inputName);
+    }
+
 }

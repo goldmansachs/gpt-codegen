@@ -110,7 +110,8 @@ public class BpmnComponent extends Component {
             if (input == null) continue;
 
             var sourceTypes = input.getAllowedInputSourceTypes();
-            if (!shouldIncludeConstants && sourceTypes != null && sourceTypes.size() == 1 && sourceTypes.get(0).equals(BpmnComponentInputSourceType.CONSTANT)) {
+            boolean isConstant = sourceTypes != null && sourceTypes.size() == 1 && sourceTypes.get(0).equals(BpmnComponentInputSourceType.CONSTANT);
+            if (!shouldIncludeConstants && !input.isKeyValue() && isConstant) {
                 continue;
             }
 

@@ -6,6 +6,7 @@ import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,12 +18,14 @@ import static org.rj.modelgen.bpmn.generation.BpmnConstants.Namespaces.DEFAULT_N
 public class BpmnReverseRenderer {
     private static final Logger LOG = LoggerFactory.getLogger(BpmnReverseRenderer.class);
     private final BpmnModelInstance inputModel;
+    private final BpmnModelAssets modelAssets;
     private final BpmnComponentLibrary componentLibrary;
     private final BpmnGlobalVariableLibrary globalVariableLibrary;
     private String namespace;
 
-    public BpmnReverseRenderer(BpmnModelInstance inputModel, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
+    public BpmnReverseRenderer(BpmnModelInstance inputModel, BpmnModelAssets modelAssets, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
         this.inputModel = inputModel;
+        this.modelAssets = modelAssets;
         this.componentLibrary = componentLibrary;
         this.globalVariableLibrary = globalVariableLibrary;
         this.namespace = DEFAULT_NAMESPACE_URI;
@@ -41,10 +44,10 @@ public class BpmnReverseRenderer {
         LOG.info("Starting generation of BPMN Intermediate Model");
         BpmnIntermediateModel intermediateModel = new BpmnIntermediateModel();
 
-        intermediateModel.addNode(ElementNode.fromProcess(inputModel, namespace, componentLibrary, globalVariableLibrary));
+        intermediateModel.addNode(ElementNode.fromProcess(inputModel, modelAssets, namespace, componentLibrary, globalVariableLibrary));
 
         for (FlowNode flowNode : getFlowNodesInDocumentOrder()) {
-            intermediateModel.addNode(ElementNode.fromFlowNode(flowNode, namespace, componentLibrary, globalVariableLibrary));
+            intermediateModel.addNode(ElementNode.fromFlowNode(flowNode, modelAssets, namespace, componentLibrary, globalVariableLibrary));
         }
 
         return intermediateModel;
