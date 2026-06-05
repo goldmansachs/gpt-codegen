@@ -7,11 +7,7 @@ import org.camunda.bpm.model.bpmn.builder.ParallelGatewayBuilder;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
 import org.camunda.bpm.model.bpmn.instance.ParallelGateway;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
-import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
-import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
-import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
-import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 
 import java.util.List;
 

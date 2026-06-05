@@ -57,7 +57,7 @@ public class BpmnConstants {
 
         public static final Pattern VAR_INTERPOLATED_PAYLOAD_READ_PATTERN = Pattern.compile("\\$\\{payload\\.([^}]+)}");
         public static final Pattern VAR_PAYLOAD_READ_PATTERN = Pattern.compile("payload\\.([a-zA-Z0-9_.]+)");
-        public static final Pattern VAR_PAYLOAD_WRITE_PATTERN = Pattern.compile("payload\\.([a-zA-Z0-9_]+)\\s*=\\s*([^;]+)");
+        public static final Pattern VAR_PAYLOAD_WRITE_PATTERN = Pattern.compile("payload\\.([a-zA-Z0-9_]+)\\s*(?<![!=<>])=(?!=)\\s*([^;]+)");
     }
 
     public static class Namespaces {

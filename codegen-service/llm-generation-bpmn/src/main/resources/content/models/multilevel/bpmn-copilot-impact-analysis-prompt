@@ -1,0 +1,35 @@
+You are analysing a BPMN process model to determine which nodes are impacted by a requested change.
+
+The existing detail-level model is:
+```
+${serializedReverseRender}
+```
+
+The user has requested the following change:
+```
+${request}
+```
+
+Identify ALL node IDs that must be modified, added, or removed to satisfy this request.
+Also include any DOWNSTREAM nodes whose inputs depend on outputs of a modified node (transitive impact).
+Include nodes whose connections (connectedTo) need to change due to added or removed nodes.
+
+IMPORTANT: If a node is being REMOVED, any node that connects TO that node (has it as a connectedTo target) and any node that the removed node connects TO must be included in "affectedNodeIds" so their connections can be updated to bypass the removed node.
+
+Return ONLY a JSON object with no other text:
+{
+  "affectedNodeIds": ["nodeId1", "nodeId2", "nodeId3"],
+  "addNodes": true,
+  "removeNodeIds": ["nodeId4"],
+  "reasoning": "Brief explanation of why these nodes are affected"
+}
+
+Rules:
+- "affectedNodeIds" should contain ALL IDs of existing nodes that need modification, INCLUDING nodes whose connections must change because a neighbor is being added or removed.
+- "removeNodeIds" should contain IDs of ALL nodes that should be removed entirely. These IDs must NOT also appear in "affectedNodeIds" — the two lists must be disjoint.
+- "addNodes" should be true if any new nodes need to be created, false otherwise.
+- When removing a node: identify all its direct predecessors (nodes that connect TO it) and all its direct successors (nodes it connects TO). All of these must be in "affectedNodeIds" so their connections can be rewired.
+- Always include startEvent/endEvent in affected nodes if the change affects the beginning/end of the process flow.
+- If a gateway's conditions reference a variable that is being changed, include that gateway.
+- If a node's input reads a variable that is written by a modified node, include that downstream node.
+- processConfig node should be included only if process-level configuration changes are needed.

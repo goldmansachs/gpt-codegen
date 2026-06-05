@@ -11,6 +11,10 @@ public enum MultiLevelModelStandardPayloadData {
     AddPlaceholdersForUnknownActions,
     SerializedReverseRender,
     ReverseRenderedIntermediateModel,
+    ScopedDetailLevelModel,
+    ImpactAnalysis,
+    ImpactAnalysisMaskingInstructions,
+    OriginalDetailLevelModel,
     InitialValidations,
     ModelFactory,
     UIComponents;

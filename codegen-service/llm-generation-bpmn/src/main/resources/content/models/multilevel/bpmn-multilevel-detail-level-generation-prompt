@@ -1,12 +1,44 @@
 <#assign isCopilotMode = serializedReverseRender?? && serializedReverseRender?trim?has_content>
 <#assign isRetry = detailLevelModel?? && detailLevelModel?trim?has_content && DETAIL_MODEL_VALIDATION_ISSUES?? && DETAIL_MODEL_VALIDATION_ISSUES?trim?has_content>
+<#assign hasScoping = impactAnalysisMaskingInstructions?? && impactAnalysisMaskingInstructions?has_content>
+<#assign isScopedCopilot = isCopilotMode && hasScoping>
+<#assign isScopedRetry = !isCopilotMode && isRetry && hasScoping>
 
 You are designing a business process model following the BPMN 2.0 standard.
 
 <#if isCopilotMode>
 <#-- ==================== COPILOT MODE ==================== -->
-<#if isRetry>
-<#-- ---- Copilot retry: only show latest model + errors ---- -->
+<#if isRetry && isScopedCopilot>
+<#-- ---- Scoped copilot retry: show full model for context, focus on error nodes ---- -->
+You are working on a BPMN 2.0 process model. You previously generated affected nodes in response to this change request:
+```
+${request}
+```
+
+Full model after merging your changes (for reference):
+```
+${detailLevelModel}
+```
+
+However, the following validation issues were found:
+```
+<#assign issues = DETAIL_MODEL_VALIDATION_ISSUES?replace(", Node Name:", ", \nNode Name:")>
+${issues}
+```
+
+These are the nodes that have validation errors and need to be fixed:
+```
+${scopedDetailLevelModel}
+```
+
+IMPORTANT - SCOPED RETRY:
+The full model is provided above for reference so you can understand the context. You must fix ONLY the error nodes shown above, plus any downstream nodes whose configuration had to change as a result of your fixes. Return ONLY those nodes.
+
+${impactAnalysisMaskingInstructions}
+
+Preserve any connections (connectedTo) that reference nodes not included in your response. Do NOT create new nodes to replace them — they already exist in the full model.
+<#elseif isRetry>
+<#-- ---- Copilot retry: show full model + errors ---- -->
 You have previously generated the following detail-level model in response to a change request:
 ```
 ${request}
@@ -24,8 +56,33 @@ ${issues}
 ```
 
 You should fix these issues in the model following the guidelines provided below.
+<#elseif isScopedCopilot>
+<#-- ---- Scoped copilot: only affected nodes shown ---- -->
+You are working on an existing BPMN 2.0 process model. An impact analysis has identified which nodes in the process are affected by the user's latest change request. You have been given ONLY those affected nodes - this is a subset of the full process, not the complete model. The remaining nodes are unchanged and will be merged back automatically after you apply the requested changes.
+
+Here are the affected nodes:
+```
+${scopedDetailLevelModel}
+```
+
+<#if promptHistory?? && promptHistory?has_content>
+Below is the history of all user prompts in this session, in chronological order. Note that some of these prompts may have targeted other parts of the process that are NOT included above, so not all history entries will be relevant to the current subset of nodes. Use the history only for general context about the process:
+${promptHistory}
+
+</#if>
+Apply the following changes to the affected nodes shown above. These nodes will be integrated back into the full process model after generation:
+```
+${request}
+```
+
+IMPORTANT - SCOPED GENERATION:
+The model shown above contains ONLY the nodes that need modification. The remaining nodes exist in the full process and will be merged back automatically.
+
+${impactAnalysisMaskingInstructions}
+
+You MUST preserve any connections (connectedTo) that reference nodes not included in your response. Do NOT create new nodes to replace them — they already exist in the full model.
 <#else>
-<#-- ---- Copilot first pass: show existing model + change request ---- -->
+<#-- ---- Copilot first pass (no impact analysis): full model shown ---- -->
 You have been given the following existing detail-level model:
 ```
 ${serializedReverseRender}
@@ -46,8 +103,36 @@ Below are the full definitions of all available elements. The 'elementType' of e
 
 <#elseif isRetry>
 <#-- ==================== STANDARD RETRY MODE ==================== -->
-
+<#if isScopedRetry>
+<#-- ---- Scoped standard retry: show full model for context, focus on error nodes ---- -->
 You have previously generated the following detail-level model in response to this request:
+```
+${request}
+```
+
+Full detail-level model (for reference):
+```
+${detailLevelModel}
+```
+
+However, it had the following issues (these are grouped by the Node Names found in the detail-level model you generated):
+```
+<#assign issues = DETAIL_MODEL_VALIDATION_ISSUES?replace(", Node Name:", ", \nNode Name:")>
+${issues}
+```
+
+These are the nodes that have validation errors and need to be fixed:
+```
+${scopedDetailLevelModel}
+```
+
+IMPORTANT - SCOPED RETRY:
+The full model is provided above for reference so you can understand the context. You must fix ONLY the error nodes shown above, plus any downstream nodes whose configuration had to change as a result of your fixes. Return ONLY those nodes — all other nodes will be preserved automatically. Do NOT return the entire model.
+
+${impactAnalysisMaskingInstructions}
+
+Preserve any connections (connectedTo) that reference nodes not included in your response. Do NOT create new nodes to replace them — they already exist in the full model.
+<#else>
 ```
 ${request}
 ```
@@ -67,6 +152,7 @@ You have now been asked to update the detail-level model to fix these issues fol
 
 Below are the full definitions of each element you used in the model. The 'elementType' of each node in your model will match the name of a component in this library:
 
+</#if>
 <#else>
 <#-- ==================== STANDARD INITIAL GENERATION ==================== -->
 We will generate the model in two stages:
@@ -114,7 +200,10 @@ ${STARTING_PAYLOAD_VARIABLES}
 ```
 </#if>
 
-<#if isCopilotMode && !isRetry>You should now apply the requested changes to the existing model. Preserve all existing nodes and configuration unless the request explicitly asks to modify or remove them.
+<#if isScopedCopilot && !isRetry>You should now apply the requested changes to the affected nodes shown above. Return ONLY the affected nodes (modified, added, or unchanged) - do NOT attempt to recreate the full model. The nodes you return will be merged back into the complete process automatically.
+<#elseif isScopedCopilot && isRetry>You should now fix the validation issues in the affected nodes shown above. Return ONLY the affected nodes — they will be merged back into the complete process automatically.
+<#elseif isScopedRetry>You should now fix the validation issues listed above. Return ONLY the fixed error nodes plus any downstream nodes whose configuration had to change. All other nodes will be preserved automatically.
+<#elseif isCopilotMode && !isRetry>You should now apply the requested changes to the existing model. Preserve all existing nodes and configuration unless the request explicitly asks to modify or remove them.
 <#elseif !isRetry>You should now generate the DETAILED model. Feel free to correct/extend the high-level model you initially generated.
 <#else>
 Below are some guidelines to help you fix the issues found in the detail-level model
@@ -123,10 +212,20 @@ Below are some guidelines to help you fix the issues found in the detail-level m
 RULES FOR THE DETAILED MODEL GENERATION
 
 1. Model completeness
+<#if isScopedCopilot || isScopedRetry>
+   a. You are working with a SUBSET of the full BPMN process (only the affected nodes). Return all affected nodes with their complete configuration.
+   b. You may add new nodes if the change request requires them.
+   c. Maintain connections: preserve any connections (connectedTo) that reference node IDs not shown above — those nodes exist in the full model and will be merged back.
+<#if isScopedCopilot>
+   d. Removing nodes: if the impact analysis instructs you to remove a node, do NOT include that node in your response. Update the connections of its neighbors to bypass it. Ensure no connections reference a removed node ID.
+   e. If you cannot apply the requested changes, respond with: CANNOT_APPLY_CHANGES: (reason).
+</#if>
+<#else>
    a. Include all high-level nodes (startEvent, endEvent(s), gateways, tasks) unless you deliberately restructure to satisfy inputs; in that case still produce a valid connected process.
    b. You may add nodes, but do not drop all existing nodes. If you cannot produce any valid nodes, respond with: RETURN_TO_HIGH_LEVEL: (reason) rather than an empty model.
    c. Every model must have exactly one startEvent and at least one endEvent.
    d. Maintain connectivity: all nodes (except processConfig node) must be reachable from startEvent and lead to at least one endEvent.
+</#if>
 
 2. Input resolution
    a. For every node use only inputs listed in that component's requiredInputs (include all mandatory; optional only if clearly beneficial and resolvable).
@@ -279,7 +378,16 @@ ${SCHEMA_CONTENT}
 ---
 Finally, ensure that all steps are part of the SAME process.  You should make sure that steps in your model are correctly linked together to form a single process.  There should be no orphaned steps or processes - every step must be linked.
 
-<#if isCopilotMode && !isRetry>
+<#if isScopedCopilot && isRetry>
+Please fix the issues listed above that relate to the affected nodes and return the corrected JSON containing ONLY the affected nodes. Return ONLY the JSON and no other text. Preserve the "commentary" field exactly as it was. Ignore any validation issues that reference nodes not shown above — those belong to the rest of the process and are not your responsibility. DO NOT return empty list of nodes.
+If you cannot fix the issues, return the phrase "CANNOT_APPLY_CHANGES: (REASON)" with the reason(s).
+<#elseif isScopedRetry>
+Please fix the validation issues listed above and return a JSON containing ONLY the fixed error nodes plus any downstream nodes whose configuration had to change as a result. Return ONLY the JSON and no other text. Preserve the "commentary" field exactly as it was. All other nodes will be merged back automatically. DO NOT return the entire model. DO NOT return empty list of nodes.
+<#elseif isScopedCopilot && !isRetry>
+Return one of two possible responses:
+1. The JSON complying to the schema above containing ONLY the affected nodes (modified and/or newly added). Return ONLY the JSON and no other text. Include a "commentary" field with a brief, conversational reply to the user summarising what you changed (e.g. "Done! I've updated the notification step to use email instead of SMS."). Also mention any assumptions you made and any parts of the request that could not be implemented, with a brief explanation of why. Do NOT mention internal details such as node IDs, input wiring, validation fixes, retries, or schema structure. DO NOT return empty list of nodes.
+2. The phrase "CANNOT_APPLY_CHANGES: (REASON)" if you cannot apply the requested changes. Replace (REASON) with the reason(s) that you cannot apply the changes at this time.
+<#elseif isCopilotMode && !isRetry>
 Return one of two possible responses:
 1. The JSON complying to the schema above, if you successfully apply the requested changes. Return ONLY the JSON and no other text. Include a "commentary" field with a brief, conversational reply to the user summarising what you did at a high level (e.g. "Done! I've created a loan approval process with risk evaluation and notification steps."). Also mention any assumptions you made and any parts of the request that could not be implemented, with a brief explanation of why. Do NOT mention internal details such as node IDs, input wiring, validation fixes, retries, or schema structure. Make sure the updated model preserves the existing structure and configuration while applying the requested changes, with all required inputs satisfied. DO NOT return empty list of nodes.
 2. The phrase "CANNOT_APPLY_CHANGES: (REASON)" if you cannot apply the requested changes. Replace (REASON) with the reason(s) that you cannot apply the changes at this time.

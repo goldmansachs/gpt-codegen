@@ -57,7 +57,7 @@ public class InclusiveGatewayNode extends ElementNode implements ConditionalGate
         Map<String, String> conditions = getConditions();
 
         // Set default sequence flow on the gateway node
-        if (connection.getTargetNode().equals(defaultTargetNodeId)) {
+        if (defaultTargetNodeId != null && !defaultTargetNodeId.isBlank() && connection.getTargetNode().equals(defaultTargetNodeId)) {
             builder.getElement().setAttributeValue(DEFAULT, connectionId);
         }
 

@@ -157,6 +157,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 (customization, data) -> initializeBpmnPayload(customization, contextProvider, promptGenerator, componentLibrary),
                 (customization, data) -> initializeBpmnData(customization, data, componentLibrary, globalVariableLibrary, options),
                 (customization, data) -> preProcessingInsertSyntheticComponents(customization, data, options),
+                (customization, data) -> copilotImpactAnalysis(customization, contextProvider, promptGenerator, componentLibrary),
                 (customization, data) -> processHighLevelModelDataForDetailLevelGeneration(customization, data, globalVariableLibrary),
                 (customization, data) -> initialValidateBpmnDetailLevel(customization, data, globalVariableLibrary, bpmnModelValidator),
                 (customization, data) -> validateDetailLevelModel(customization, data, globalVariableLibrary, bpmnModelValidator),
@@ -206,7 +207,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
 
         return customization
                 .withNewStateInsertedAfter(insertSyntheticComponents, BpmnAdditionalModelStates.InitializeBpmnData.toString())
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InsertSyntheticComponents.toString(), BpmnGenerationSignals.CopilotDataInitialized.toString(), MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()));
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InsertSyntheticComponents.toString(), BpmnGenerationSignals.CopilotDataInitialized.toString(), BpmnAdditionalModelStates.ExecuteCopilotImpactAnalysis.toString()));
     }
 
     private static ModelInterfaceStateMachineCustomization processHighLevelModelDataForDetailLevelGeneration(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData, BpmnGlobalVariableLibrary globalVariableLibrary) {
@@ -240,6 +241,20 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 .withNewStateInsertedAfter(validateBpmnDetailLevelIntermediateModel, MultiLevelGenerationModelStates.ValidateDetailLevel.toString())
                 .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.DetailLevelBpmnIRModelValidation.toString(), BpmnGenerationSignals.IntermediateModelIsInvalid.toString(), MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()))
                 .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.DetailLevelBpmnIRModelValidation.toString(), StandardErrorSignals.FAILED_MAX_INVOCATIONS, BpmnAdditionalModelStates.ResolveSyntheticComponents.toString()));
+    }
+
+    private static ModelInterfaceStateMachineCustomization copilotImpactAnalysis(ModelInterfaceStateMachineCustomization customization,
+                                                                                 ContextProvider contextProvider,
+                                                                                 BpmnGenerationMultiLevelPromptGenerator promptGenerator,
+                                                                                 BpmnComponentLibrary componentLibrary) {
+        final var executeImpactAnalysis = new PrepareAndSubmitLlmGenericRequest<>(
+                contextProvider, promptGenerator, MultiLevelModelPromptType.GenerateCopilotImpactAnalysis, componentLibrary)
+                .withResponseOutputKey(MultiLevelModelStandardPayloadData.ImpactAnalysis)
+                .withOverriddenId(BpmnAdditionalModelStates.ExecuteCopilotImpactAnalysis);
+
+        return customization
+                .withNewState(executeImpactAnalysis)
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.ExecuteCopilotImpactAnalysis.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()));
     }
 
     private static ModelInterfaceStateMachineCustomization postProcessingResolveSyntheticComponents(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData) {

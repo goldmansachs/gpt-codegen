@@ -12,7 +12,6 @@ import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibra
 import org.rj.modelgen.bpmn.intrep.model.ElementConnection;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
-import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,11 +53,8 @@ public class ExclusiveGatewayNode extends ElementNode implements ConditionalGate
         String defaultTargetNodeId = getDefaultTargetNodeId();
         Map<String, String> conditions = getConditions();
 
-        // Set default sequence flow on the gateway node only if all conditions do not have an expression
-        boolean allConditionsHaveExpressions = conditions.size() > 1 &&
-                conditions.values().stream().allMatch(expr -> expr != null && !expr.isBlank());
-
-        if (!allConditionsHaveExpressions && connection.getTargetNode().equals(defaultTargetNodeId)) {
+        // Set default sequence flow on the gateway node when the connection matches the default target
+        if (defaultTargetNodeId != null && !defaultTargetNodeId.isBlank() && connection.getTargetNode().equals(defaultTargetNodeId)) {
             builder.getElement().setAttributeValue(DEFAULT, connectionId);
         }
 
