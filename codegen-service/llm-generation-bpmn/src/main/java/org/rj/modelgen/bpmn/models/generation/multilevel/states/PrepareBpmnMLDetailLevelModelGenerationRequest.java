@@ -109,7 +109,6 @@ public class PrepareBpmnMLDetailLevelModelGenerationRequest<TComponentLibrary ex
 
         BpmnIntermediateModel trimmedModel = new BpmnIntermediateModel();
         trimmedModel.setNodes(affectedNodes);
-        trimmedModel.setCommentary(model.getCommentary());
         getPayload().put(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel, trimmedModel.serialize());
 
         // Build and store masking instructions

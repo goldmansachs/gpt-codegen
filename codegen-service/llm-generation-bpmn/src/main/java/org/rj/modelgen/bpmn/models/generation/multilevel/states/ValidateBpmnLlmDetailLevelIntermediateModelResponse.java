@@ -86,9 +86,11 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
         // Build lookup of generated (affected) nodes by ID
         Map<String, ElementNode> generatedNodesById = generatedModel.getNodes().stream()
                 .collect(Collectors.toMap(ElementNode::getId, Function.identity(), (a, b) -> b));
-        
-        // Save the scoped (subset) model before merging for prompt reference on retry
+
+        String originalCommentary = generatedModel.getCommentary();
+        generatedModel.setCommentary(null); // Strip original commentary to save tokens
         getPayload().put(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel, generatedModel.serialize());
+        generatedModel.setCommentary(originalCommentary);
 
         Set<String> removeIds = new HashSet<>(impactAnalysis.getRemoveNodeIds());
 
@@ -123,6 +125,9 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
                 .count();
 
         generatedModel.setNodes(mergedNodes);
+        if (originalModel.getCommentary() != null && !originalModel.getCommentary().isBlank()) {
+            generatedModel.setCommentary(originalModel.getCommentary());
+        }
 
         LOG.info("Merge complete: {} unaffected nodes restored, {} affected from generation, {} removed. Final: {} nodes.",
                 restoredCount, generatedNodesById.size(), removeIds.size(), mergedNodes.size());
@@ -249,9 +254,7 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
                 .collect(Collectors.toList());
         BpmnIntermediateModel scopedModel = new BpmnIntermediateModel();
         scopedModel.setNodes(errorNodes);
-        scopedModel.setCommentary(model.getCommentary());
         getPayload().put(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel, scopedModel.serialize());
-
         getPayload().put(MultiLevelModelStandardPayloadData.ImpactAnalysisMaskingInstructions, "Nodes with errors: " + errorNodeIds);
 
         LOG.info("Error masking set up for retry: {} error nodes identified out of {} total nodes", errorNodeIds.size(), model.getNodes().size());

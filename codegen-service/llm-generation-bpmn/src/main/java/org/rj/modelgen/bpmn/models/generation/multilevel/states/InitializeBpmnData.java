@@ -52,27 +52,54 @@ public class InitializeBpmnData extends ExecuteLogic {
         }
 
         if (options.shouldAddStartingPayloadVariables()) {
-            final String processVariables = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
-            final var startingPayloadVariables = initializeStartingPayload(processVariables, componentLibrary);
-            // Store the starting payload variables for use in later phases
-            getPayload().put(MultiLevelModelStandardPayloadData.ProcessVariables, startingPayloadVariables);
-
-            // Also serialize them for use in prompt generation
-            final String serializedStartingPayload =  startingPayloadVariables.stream()
-                    .map(v -> String.format("- %s (%s)", v.getName(), v.getType()))
-                    .collect(Collectors.joining("\n"));
-            getPayload().put(STARTING_PAYLOAD_VARIABLES.getValue(), serializedStartingPayload);
+            initializeStartingPayload();
         }
 
         return Mono.just(Result.Ok());
     }
 
-    private Set<PayloadVariable> initializeStartingPayload(String rawProcessVariablesContent, BpmnComponentLibrary componentLibrary) {
+    private void initializeStartingPayload() {
+        final Object processVariables = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
+
+        if (processVariables == null) {
+            final List<PayloadVariable> existingPayloadVars = getPayload().get(STARTING_PAYLOAD_VARIABLES.getValue());
+            if (existingPayloadVars != null) {
+                LOG.info("Payload generation was skipped, preserving existing starting payload variables");
+            } else {
+                getPayload().put(MultiLevelModelStandardPayloadData.ProcessVariables, Collections.<PayloadVariable>emptySet());
+            }
+            return;
+        }
+
+        final Set<PayloadVariable> startingPayloadVariables = parseAndFilterPayloadVariables(processVariables);
+        getPayload().put(MultiLevelModelStandardPayloadData.ProcessVariables, startingPayloadVariables);
+
+        // Also serialize them for use in prompt generation
+        final String serializedStartingPayload = startingPayloadVariables.stream()
+                .map(v -> String.format("- %s (%s)", v.getName(), v.getType()))
+                .collect(Collectors.joining("\n"));
+        getPayload().put(STARTING_PAYLOAD_VARIABLES.getValue(), serializedStartingPayload);
+    }
+
+    private Set<PayloadVariable> parseAndFilterPayloadVariables(Object rawProcessVariablesContent) {
         if (rawProcessVariablesContent == null) {
             return Collections.emptySet();
         }
-        String processVariablesContent = extractJsonList(rawProcessVariablesContent);
 
+        if (rawProcessVariablesContent instanceof Collection<?> existingVariables) {
+            LOG.info("Process variables already parsed; filtering existing collection");
+            return filterPayloadVariables(existingVariables.stream()
+                    .filter(PayloadVariable.class::isInstance)
+                    .map(PayloadVariable.class::cast)
+                    .collect(Collectors.toList()));
+        }
+
+        if (!(rawProcessVariablesContent instanceof String processVariablesString)) {
+            LOG.warning("Unexpected process variables type: " + rawProcessVariablesContent.getClass().getName() + "; defaulting to empty set");
+            return Collections.emptySet();
+        }
+
+        String processVariablesContent = extractJsonList(processVariablesString);
         List<PayloadVariable> processVariablesList;
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -83,6 +110,10 @@ public class InitializeBpmnData extends ExecuteLogic {
             processVariablesList = Collections.emptyList();
         }
 
+        return filterPayloadVariables(processVariablesList);
+    }
+
+    private Set<PayloadVariable> filterPayloadVariables(List<PayloadVariable> processVariablesList) {
         List<PayloadVariable> automaticallyGeneratedOutputs = componentLibrary.getComponents().stream()
                 .filter(component -> component.getGeneratedOutputs() != null)
                 .flatMap(component -> component.getGeneratedOutputs().stream())

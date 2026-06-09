@@ -5,6 +5,13 @@ The existing detail-level model is:
 ${serializedReverseRender}
 ```
 
+<#if STARTING_PAYLOAD_VARIABLES?? && STARTING_PAYLOAD_VARIABLES?trim?has_content>
+The current starting payload variables for this process are:
+```
+${STARTING_PAYLOAD_VARIABLES}
+```
+</#if>
+
 The user has requested the following change:
 ```
 ${request}
@@ -13,6 +20,7 @@ ${request}
 Identify ALL node IDs that must be modified, added, or removed to satisfy this request.
 Also include any DOWNSTREAM nodes whose inputs depend on outputs of a modified node (transitive impact).
 Include nodes whose connections (connectedTo) need to change due to added or removed nodes.
+Also determine whether the starting payload variables need to change. Starting payload variables are the variables that are read before they are ever written to (i.e. they are provided when the process starts). Set "payloadChangeRequired" to true ONLY if the user's request explicitly asks to add, remove, rename, or change the type of a starting payload variable. If the request only modifies node configuration, connections, or logic, set it to false.
 
 IMPORTANT: If a node is being REMOVED, any node that connects TO that node (has it as a connectedTo target) and any node that the removed node connects TO must be included in "affectedNodeIds" so their connections can be updated to bypass the removed node.
 
@@ -21,6 +29,7 @@ Return ONLY a JSON object with no other text:
   "affectedNodeIds": ["nodeId1", "nodeId2", "nodeId3"],
   "addNodes": true,
   "removeNodeIds": ["nodeId4"],
+  "payloadChangeRequired": false,
   "reasoning": "Brief explanation of why these nodes are affected"
 }
 
@@ -28,6 +37,7 @@ Rules:
 - "affectedNodeIds" should contain ALL IDs of existing nodes that need modification, INCLUDING nodes whose connections must change because a neighbor is being added or removed.
 - "removeNodeIds" should contain IDs of ALL nodes that should be removed entirely. These IDs must NOT also appear in "affectedNodeIds" — the two lists must be disjoint.
 - "addNodes" should be true if any new nodes need to be created, false otherwise.
+- "payloadChangeRequired" should be true ONLY if the user explicitly requests adding, removing, renaming, or changing the type of a starting payload variable. Changes to node logic, connections, or internal configuration do NOT require payload changes.
 - When removing a node: identify all its direct predecessors (nodes that connect TO it) and all its direct successors (nodes it connects TO). All of these must be in "affectedNodeIds" so their connections can be rewired.
 - Always include startEvent/endEvent in affected nodes if the change affects the beginning/end of the process flow.
 - If a gateway's conditions reference a variable that is being changed, include that gateway.

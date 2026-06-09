@@ -38,10 +38,14 @@ public class BpmnInterpretationModel extends BaseInterpretationModel<BpmnModelIn
     }
 
     public static BpmnInterpretationModel create(ModelInterface modelInterface, InterpretationModelOptions options, String namespaceUri) {
+        return create(modelInterface, options, namespaceUri, BpmnComponentLibrary.defaultLibrary(), BpmnGlobalVariableLibrary.defaultLibrary());
+    }
+
+    public static BpmnInterpretationModel create(ModelInterface modelInterface, InterpretationModelOptions options, String namespaceUri,
+                                                  BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
         final var promptGenerator = new BpmnInterpretationPromptGenerator();
         final var contextProvider = new DefaultContextProvider();
-        final var componentLibrary = BpmnComponentLibrary.defaultLibrary();
-        final var reverseRenderFunction = new BpmnReverseRenderFunction(componentLibrary, BpmnGlobalVariableLibrary.defaultLibrary(), namespaceUri);
+        final var reverseRenderFunction = new BpmnReverseRenderFunction(componentLibrary, globalVariableLibrary, namespaceUri);
         final var modelParser = new BpmnModelParser();
 
         final var completionState = new BpmnInterpretationComplete();

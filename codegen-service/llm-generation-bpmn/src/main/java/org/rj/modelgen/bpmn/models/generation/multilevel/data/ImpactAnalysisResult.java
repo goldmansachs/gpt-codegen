@@ -24,6 +24,9 @@ public class ImpactAnalysisResult {
     @JsonProperty("removeNodeIds")
     private List<String> removeNodeIds = new ArrayList<>();
 
+    @JsonProperty("payloadChangeRequired")
+    private boolean payloadChangeRequired;
+
     @JsonProperty("reasoning")
     private String reasoning;
 
@@ -31,9 +34,14 @@ public class ImpactAnalysisResult {
     }
 
     public ImpactAnalysisResult(List<String> affectedNodeIds, boolean addNodes, List<String> removeNodeIds, String reasoning) {
+        this(affectedNodeIds, addNodes, removeNodeIds, false, reasoning);
+    }
+
+    public ImpactAnalysisResult(List<String> affectedNodeIds, boolean addNodes, List<String> removeNodeIds, boolean payloadChangeRequired, String reasoning) {
         this.affectedNodeIds = affectedNodeIds != null ? affectedNodeIds : new ArrayList<>();
         this.addNodes = addNodes;
         this.removeNodeIds = removeNodeIds != null ? removeNodeIds : new ArrayList<>();
+        this.payloadChangeRequired = payloadChangeRequired;
         this.reasoning = reasoning;
     }
 
@@ -51,6 +59,10 @@ public class ImpactAnalysisResult {
 
     public String getReasoning() {
         return reasoning;
+    }
+
+    public boolean isPayloadChangeRequired() {
+        return payloadChangeRequired;
     }
 
     public boolean isNodeAffected(String nodeId) {
@@ -73,7 +85,7 @@ public class ImpactAnalysisResult {
 
     @Override
     public String toString() {
-        return String.format("ImpactAnalysisResult{affected=%s, addNodes=%s, remove=%s, reasoning='%s'}",
-                affectedNodeIds, addNodes, removeNodeIds, reasoning);
+        return String.format("ImpactAnalysisResult{affected=%s, addNodes=%s, remove=%s, payloadChangeRequired=%s, reasoning='%s'}",
+                affectedNodeIds, addNodes, removeNodeIds, payloadChangeRequired, reasoning);
     }
 }

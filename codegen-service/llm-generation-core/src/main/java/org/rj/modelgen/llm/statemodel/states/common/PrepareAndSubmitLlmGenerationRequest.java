@@ -21,6 +21,7 @@ import java.util.Optional;
 public class PrepareAndSubmitLlmGenerationRequest extends ModelInterfaceState implements CommonStateInterface {
     private final PrepareModelGenerationRequest prepareRequestPhase;
     private final SubmitGenerationRequestToLlm submitRequestPhase;
+    private String description;
 
     public PrepareAndSubmitLlmGenerationRequest(Class<? extends PrepareAndSubmitLlmGenerationRequest> cls,
                                                 PrepareModelGenerationRequest prepareRequestPhase,
@@ -32,7 +33,12 @@ public class PrepareAndSubmitLlmGenerationRequest extends ModelInterfaceState im
 
     @Override
     public String getDescription() {
-        return "Prepare and submit model generation request to LLM";
+        return description != null ? description : "Prepare and submit model generation request to LLM";
+    }
+
+    public PrepareAndSubmitLlmGenerationRequest withDescription(String description) {
+        this.description = description;
+        return this;
     }
 
     @Override
