@@ -129,4 +129,8 @@ public class BpmnConstants {
         public static final String CONDITION_EXPRESSION = "conditionExpression";
     }
 
+    public static class Validation {
+        public static final String FULL_PROCESS = "full_process";
+    }
+
 }

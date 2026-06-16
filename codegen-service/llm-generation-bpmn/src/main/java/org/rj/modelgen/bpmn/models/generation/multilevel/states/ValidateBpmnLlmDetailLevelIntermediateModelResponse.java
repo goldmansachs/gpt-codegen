@@ -23,6 +23,7 @@ import reactor.core.publisher.Mono;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.Validation.FULL_PROCESS;
 import static org.rj.modelgen.bpmn.models.generation.base.context.BpmnPromptPlaceholders.DETAIL_MODEL_VALIDATION_ISSUES;
 import static org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData.InitialValidations;
 import static org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData.SerializedReverseRender;
@@ -65,7 +66,7 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
         final var model = parser.parse(content).orElseThrow(e -> new LlmGenerationModelException(String.format(
                 "Validate BPMN Detail Level Intermediate Model Response could not parse detail-level intermediate model: %s (content: %s)", e, content)));
 
-        final Set<PayloadVariable> startingPayload = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
+        final Set<PayloadVariable> startingPayload = new HashSet<>(getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables));
         final List<IntermediateModelValidationError> validations = bpmnModelValidator.validate(model, startingPayload);
 
         final Map<String, String> validationMessages = new LinkedHashMap<>();
@@ -137,16 +138,22 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
         if (detailModel == null || detailModel.isBlank()) return;
         if (errorNodeIds.isEmpty()) return;
 
+        final var parser = new IntermediateModelParser<>(BpmnIntermediateModel.class);
+        final var model = parser.parse(detailModel).orElse(null);
+        if (model == null) return;
+
+        if (errorNodeIds.contains(FULL_PROCESS)) {
+            LOG.info("Process-level error IDs detected in {}; skipping scoped masking to include full model in retry", errorNodeIds);
+            clearScopingData();
+            return;
+        }
+
         getPayload().put(MultiLevelModelStandardPayloadData.OriginalDetailLevelModel, detailModel);
 
         final var impact = new ImpactAnalysisResult(
                 new ArrayList<>(errorNodeIds), false, List.of(),
                 "Validation errors found in nodes: " + errorNodeIds);
         getPayload().put(MultiLevelModelStandardPayloadData.ImpactAnalysis, impact);
-
-        final var parser = new IntermediateModelParser<>(BpmnIntermediateModel.class);
-        final var model = parser.parse(detailModel).orElse(null);
-        if (model == null) return;
 
         List<ElementNode> errorNodes = model.getNodes().stream()
                 .filter(node -> errorNodeIds.contains(node.getId()))
@@ -157,6 +164,13 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
         getPayload().put(MultiLevelModelStandardPayloadData.ImpactAnalysisMaskingInstructions, "Nodes with errors: " + errorNodeIds);
 
         LOG.info("Error masking set up for retry: {} error nodes identified out of {} total nodes", errorNodeIds.size(), model.getNodes().size());
+    }
+
+    private void clearScopingData() {
+        getPayload().remove(MultiLevelModelStandardPayloadData.OriginalDetailLevelModel);
+        getPayload().remove(MultiLevelModelStandardPayloadData.ImpactAnalysis);
+        getPayload().remove(MultiLevelModelStandardPayloadData.ImpactAnalysisMaskingInstructions);
+        getPayload().remove(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel);
     }
 
     private BpmnComponentLibrary getComponentLibrary() {

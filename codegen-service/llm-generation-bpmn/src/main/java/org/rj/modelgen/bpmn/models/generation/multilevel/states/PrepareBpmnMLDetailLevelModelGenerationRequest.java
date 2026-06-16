@@ -33,26 +33,19 @@ public class PrepareBpmnMLDetailLevelModelGenerationRequest<TComponentLibrary ex
 
     @Override
     protected List<PromptSubstitution> generateAdditionalPromptSubstitutions(ModelSchema modelSchema, Context context, String request) {
+        final var substitutions = new ArrayList<>(super.generateAdditionalPromptSubstitutions(modelSchema, context, request));
         final boolean isCopilotMode = getPayload().hasData(MultiLevelModelStandardPayloadData.SerializedReverseRender.toString());
 
         // Apply copilot scoping before prompt generation (parse impact analysis, trim, mask)
         if (isCopilotMode) {
             prepareImpactAnalysisScoping();
+
+            // Override component library with the full unfiltered library
+            substitutions.add(new PromptSubstitution(StandardPromptPlaceholders.COMPONENT_LIBRARY, getComponentLibrary().defaultSerialize()));
+            
+            // Provide all global variables (in normal mode, this is filtered to those used in the HL model)
+            substitutions.add(new PromptSubstitution(BpmnPromptPlaceholders.GLOBAL_VARIABLES_USED_IN_HL_MODEL, getGlobalVariableLibrary().defaultSerialize()));
         }
-
-        if (!isCopilotMode) {
-            return super.generateAdditionalPromptSubstitutions(modelSchema, context, request);
-        }
-
-        // In copilot mode, provide the full component library and all global variables
-        // so the LLM can use any component or global variable when modifying the existing model
-        final var substitutions = new ArrayList<>(super.generateAdditionalPromptSubstitutions(modelSchema, context, request));
-
-        // Override component library with the full unfiltered library
-        substitutions.add(new PromptSubstitution(StandardPromptPlaceholders.COMPONENT_LIBRARY, getComponentLibrary().defaultSerialize()));
-
-        // Provide all global variables (in normal mode, this is filtered to those used in the HL model)
-        substitutions.add(new PromptSubstitution(BpmnPromptPlaceholders.GLOBAL_VARIABLES_USED_IN_HL_MODEL, getGlobalVariableLibrary().defaultSerialize()));
 
         addPayloadSubstitutionIfPresent(substitutions, MultiLevelModelStandardPayloadData.ScopedDetailLevelModel);
         addPayloadSubstitutionIfPresent(substitutions, MultiLevelModelStandardPayloadData.ImpactAnalysisMaskingInstructions);

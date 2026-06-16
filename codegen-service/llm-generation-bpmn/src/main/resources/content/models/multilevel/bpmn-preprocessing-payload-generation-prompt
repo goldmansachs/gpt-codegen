@@ -44,6 +44,8 @@ d. For complex objects, provide the full path to each field (e.g., user.address.
 e. If a variable path references payload, omit the payload. prefix (e.g., for payload.result, return result).
 
 IMPORTANT: DO NOT return any other content or commentary. Only return a single JSON list as described below. Each object in the list must have a name, a type, and an example. Name should be a valid groovy variable name with camel case format. Allowed types are: "string", "integer", "float", "boolean", "object", and "array". The example should be a realistic value estimated from the process context.
+- DO NOT include any commentary, thinking, or re-examination in your response
+- Do NOT output multiple versions or drafts.
 
 [
     {

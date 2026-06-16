@@ -160,8 +160,8 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 (customization, data) -> initializeBpmnData(customization, data, componentLibrary, globalVariableLibrary, options),
                 (customization, data) -> preProcessingInsertSyntheticComponents(customization, data, options),
                 (customization, data) -> processHighLevelModelDataForDetailLevelGeneration(customization, data, globalVariableLibrary),
-                (customization, data) -> validateDetailLevelModel(customization, data, globalVariableLibrary, bpmnModelValidator),
                 BpmnMultiLevelGenerationModel::mergeScopedDetailLevelModel,
+                (customization, data) -> validateDetailLevelModel(customization, data, globalVariableLibrary, bpmnModelValidator),
                 BpmnMultiLevelGenerationModel::postProcessingResolveSyntheticComponents,
                 (customization, data) -> postProcessingPrepareForRendering(customization, data, globalVariableLibrary),
                 BpmnMultiLevelGenerationModel::validateBpmnModelCorrectness
@@ -254,7 +254,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
         validateBpmnDetailLevelIntermediateModel.setInvokeLimit(3);
 
         return customization
-                .withNewStateInsertedAfter(validateBpmnDetailLevelIntermediateModel, MultiLevelGenerationModelStates.ValidateDetailLevel.toString())
+                .withNewStateInsertedAfter(validateBpmnDetailLevelIntermediateModel, BpmnAdditionalModelStates.MergeScopedDetailLevelModel.toString())
                 .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.DetailLevelBpmnIRModelValidation.toString(), BpmnGenerationSignals.IntermediateModelIsInvalid.toString(), MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()))
                 .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.DetailLevelBpmnIRModelValidation.toString(), StandardErrorSignals.FAILED_MAX_INVOCATIONS, BpmnAdditionalModelStates.ResolveSyntheticComponents.toString()));
     }

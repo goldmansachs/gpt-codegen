@@ -204,10 +204,18 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
 
     private void updateModelAssets(BpmnIntermediateModel model, BpmnModelAssets modelAssets) {
         Collection<BpmnUIComponent> uiComponentsRaw = getPayload().get(MultiLevelModelStandardPayloadData.UIComponents);
-        List<BpmnUIComponent> uiComponents = uiComponentsRaw != null ? new ArrayList<>(uiComponentsRaw) : new ArrayList<>();
+        List<BpmnUIComponent> uiComponents = modelAssets.getUiComponents() != null ? modelAssets.getUiComponents() : new ArrayList<>();
+        if (uiComponentsRaw != null) {
+            uiComponents = new ArrayList<>(uiComponentsRaw); // Update UI components, if available
+        }
+
         List<ElementNodeUnresolvedInput> unresolvedInputs = identifyUnresolvedInputs(model);
+
         Collection<PayloadVariable> processVarsRaw = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
-        List<PayloadVariable> startingPayload = processVarsRaw != null ? new ArrayList<>(processVarsRaw) : new ArrayList<>();
+        List<PayloadVariable> startingPayload = modelAssets.getStartingPayload() != null ? modelAssets.getStartingPayload() : new ArrayList<>();
+        if (processVarsRaw != null) {
+            startingPayload = processVarsRaw.stream().toList();
+        }
 
         modelAssets.setStartingPayload(startingPayload);
         modelAssets.setUiComponents(uiComponents);
@@ -246,7 +254,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
 
             ComponentInputResolutionStrategy resolutionStrategy = inputDefinition.get().getResolutionStrategy();
             if(resolutionStrategy == null) return;
-            
+
             String defaultValue = inputDefinition.get().getDefaultValue();
             String alias = Optional.ofNullable(inputDefinition.get().getAlias()).orElse(input.getName());
 

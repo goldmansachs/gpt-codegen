@@ -48,7 +48,7 @@ ${GLOBAL_VARIABLE_LIBRARY}
 No global variables are available at the moment. Inputs should be satisfied using constant values, expressions, or scripts.
 </#if>
 
-<#if STARTING_PAYLOAD_VARIABLES?has_content>
+<#if STARTING_PAYLOAD_VARIABLES?? && STARTING_PAYLOAD_VARIABLES?has_content>
 These are the initial payload variables available at the start of the process that can be used to satisfy inputs:
 ```
 ${STARTING_PAYLOAD_VARIABLES}

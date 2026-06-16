@@ -62,12 +62,8 @@ public class InitializeBpmnData extends ExecuteLogic {
         final Object processVariables = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
 
         if (processVariables == null) {
-            final List<PayloadVariable> existingPayloadVars = getPayload().get(STARTING_PAYLOAD_VARIABLES.getValue());
-            if (existingPayloadVars != null) {
-                LOG.info("Payload generation was skipped, preserving existing starting payload variables");
-            } else {
-                getPayload().put(MultiLevelModelStandardPayloadData.ProcessVariables, Collections.<PayloadVariable>emptySet());
-            }
+            getPayload().put(MultiLevelModelStandardPayloadData.ProcessVariables, Collections.<PayloadVariable>emptySet());
+            getPayload().remove(STARTING_PAYLOAD_VARIABLES.getValue());
             return;
         }
 

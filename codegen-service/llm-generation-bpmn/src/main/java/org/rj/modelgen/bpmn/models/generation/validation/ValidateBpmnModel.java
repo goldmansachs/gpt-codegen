@@ -26,12 +26,12 @@ import java.util.stream.Stream;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.Patterns.*;
 import static org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType.*;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.Validation.FULL_PROCESS;
 import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.*;
 import static org.rj.modelgen.llm.util.ValidationUtils.identifyNumberOfRoots;
 
 public class ValidateBpmnModel {
 
-    private static final String FULL_PROCESS = "full_process";
     private static final String COMMA_DELIMITER = ",";
     private static final List<String> NODES_TO_IGNORE = List.of(PROCESS_CONFIG);
 

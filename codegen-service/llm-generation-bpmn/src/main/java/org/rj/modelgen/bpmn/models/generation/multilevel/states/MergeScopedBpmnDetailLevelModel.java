@@ -40,7 +40,10 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
 
     private void mergeAffectedNodes() {
         final ImpactAnalysisResult impactAnalysis = getPayload().getOrElse(MultiLevelModelStandardPayloadData.ImpactAnalysis, (ImpactAnalysisResult) null);
-        if (impactAnalysis == null) return;
+        if (impactAnalysis == null) {
+            LOG.debug("No impact analysis available - skipping merge");
+            return;
+        }
 
         // Full model: OriginalDetailLevelModel (retry) or SerializedReverseRender (copilot first pass)
         String originalModelContent = getPayload().getOrElse(MultiLevelModelStandardPayloadData.OriginalDetailLevelModel, (String) null);
@@ -51,7 +54,10 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
         final String generatedModelContent = getPayload().getOrElse(MultiLevelModelStandardPayloadData.DetailLevelModel, (String) null);
 
         if (originalModelContent == null || originalModelContent.isBlank() || generatedModelContent == null || generatedModelContent.isBlank()) {
-            return; // Nothing to merge (e.g. copilot initial pass before first generation)
+            LOG.warn("Merge skipped - original model is {} and generated model is {}",
+                    (originalModelContent == null || originalModelContent.isBlank()) ? "missing" : "present",
+                    (generatedModelContent == null || generatedModelContent.isBlank()) ? "missing" : "present");
+            return;
         }
 
         final var parser = new IntermediateModelParser<>(BpmnIntermediateModel.class);
@@ -68,18 +74,47 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
         Map<String, ElementNode> generatedNodesById = generatedModel.getNodes().stream()
                 .collect(Collectors.toMap(ElementNode::getId, Function.identity(), (a, b) -> b));
 
-        String originalCommentary = generatedModel.getCommentary();
+        String generatedCommentary = generatedModel.getCommentary();
         generatedModel.setCommentary(null); // Strip original commentary to save tokens
         getPayload().put(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel, generatedModel.serialize());
-        generatedModel.setCommentary(originalCommentary);
+        generatedModel.setCommentary(generatedCommentary);
+
+        List<ElementNode> mergedNodes = mergeNodeLists(originalModel.getNodes(), generatedNodesById, impactAnalysis);
+        int restoredCount = (int) mergedNodes.stream()
+                .filter(node -> !generatedNodesById.containsKey(node.getId()))
+                .count();
+
+        generatedModel.setNodes(mergedNodes);
+        if (originalModel.getCommentary() != null && !originalModel.getCommentary().isBlank()) {
+            generatedModel.setCommentary(originalModel.getCommentary());
+        }
+        LOG.info("Merge complete: {} unaffected nodes restored, {} affected from generation. Final: {} nodes.", restoredCount, generatedNodesById.size(), mergedNodes.size());
+
+        // Store merged model and clear scoping data for a fresh cycle
+        final String mergedModelContent = generatedModel.serialize();
+        getPayload().put(MultiLevelModelStandardPayloadData.DetailLevelModel, mergedModelContent);
+        recordAudit("full-dl", mergedModelContent);
+        clearScopingData();
+    }
+
+    private List<ElementNode> mergeNodeLists(List<ElementNode> originalNodes, Map<String, ElementNode> generatedNodesById, ImpactAnalysisResult impactAnalysis) {
 
         Set<String> removeIds = new HashSet<>(impactAnalysis.getRemoveNodeIds());
+
+        // Any affected node NOT returned by the LLM was implicitly replaced (e.g. split/renamed).
+        // Treat it as removed so the stale original node doesn't remain in the merged model.
+        for (String affectedId : impactAnalysis.getAffectedNodeIds()) {
+            if (!generatedNodesById.containsKey(affectedId)) {
+                removeIds.add(affectedId);
+                LOG.info("Affected node '{}' not returned by LLM during scoped retry — treating as implicitly removed/replaced", affectedId);
+            }
+        }
 
         // Merge: use generated version for affected nodes, original for unaffected, skip removed
         List<ElementNode> mergedNodes = new ArrayList<>();
         Set<String> processedIds = new HashSet<>();
 
-        for (ElementNode originalNode : originalModel.getNodes()) {
+        for (ElementNode originalNode : originalNodes) {
             String id = originalNode.getId();
             if (removeIds.contains(id)) continue;
             mergedNodes.add(generatedNodesById.getOrDefault(id, originalNode));
@@ -87,9 +122,9 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
         }
 
         // Add any new nodes from the generated model
-        for (ElementNode generatedNode : generatedModel.getNodes()) {
-            if (!processedIds.contains(generatedNode.getId())) {
-                mergedNodes.add(generatedNode);
+        for (Map.Entry<String, ElementNode> entry : generatedNodesById.entrySet()) {
+            if (!processedIds.contains(entry.getKey())) {
+                mergedNodes.add(entry.getValue());
             }
         }
 
@@ -101,27 +136,7 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
             }
         }
 
-        int restoredCount = (int) mergedNodes.stream()
-                .filter(node -> !generatedNodesById.containsKey(node.getId()))
-                .count();
-
-        generatedModel.setNodes(mergedNodes);
-        if (originalModel.getCommentary() != null && !originalModel.getCommentary().isBlank()) {
-            generatedModel.setCommentary(originalModel.getCommentary());
-        }
-
-        LOG.info("Merge complete: {} unaffected nodes restored, {} affected from generation, {} removed. Final: {} nodes.",
-                restoredCount, generatedNodesById.size(), removeIds.size(), mergedNodes.size());
-
-        // Store merged model and clear scoping data for a fresh cycle
-        getPayload().put(MultiLevelModelStandardPayloadData.DetailLevelModel, generatedModel.serialize());
-        clearScopingData();
-    }
-
-    private void clearScopingData() {
-        getPayload().remove(MultiLevelModelStandardPayloadData.OriginalDetailLevelModel);
-        getPayload().remove(MultiLevelModelStandardPayloadData.ImpactAnalysis);
-        getPayload().remove(MultiLevelModelStandardPayloadData.ImpactAnalysisMaskingInstructions);
+        return mergedNodes;
     }
 
     private int sanitizeConnections(List<ElementNode> nodes, Set<String> removedIds) {
@@ -134,6 +149,13 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
             count += (before - connections.size());
         }
         return count;
+    }
+
+    private void clearScopingData() {
+        getPayload().remove(MultiLevelModelStandardPayloadData.OriginalDetailLevelModel);
+        getPayload().remove(MultiLevelModelStandardPayloadData.ImpactAnalysis);
+        getPayload().remove(MultiLevelModelStandardPayloadData.ImpactAnalysisMaskingInstructions);
+        getPayload().remove(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel);
     }
 }
 

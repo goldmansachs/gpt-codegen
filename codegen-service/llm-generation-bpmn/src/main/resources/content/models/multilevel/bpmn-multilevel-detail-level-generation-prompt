@@ -32,7 +32,8 @@ ${scopedDetailLevelModel}
 ```
 
 IMPORTANT - SCOPED RETRY:
-The full model is provided above for reference so you can understand the context. You must fix ONLY the error nodes shown above, plus any downstream nodes whose configuration had to change as a result of your fixes. Return ONLY those nodes.
+The full model is provided above for reference so you can understand the context. You must fix ONLY the error nodes shown above, plus any nodes (upstream or downstream) whose connections (connectedTo) had to change as a result of your fixes. Return ONLY those nodes.
+If you need to replace an error node with new nodes, you MUST also return the upstream nodes that previously connected to the replaced node, with their connectedTo updated to point to the new replacement node.
 
 ${impactAnalysisMaskingInstructions}
 
@@ -127,7 +128,9 @@ ${scopedDetailLevelModel}
 ```
 
 IMPORTANT - SCOPED RETRY:
-The full model is provided above for reference so you can understand the context. You must fix ONLY the error nodes shown above, plus any downstream nodes whose configuration had to change as a result of your fixes. Return ONLY those nodes — all other nodes will be preserved automatically. Do NOT return the entire model.
+The full model is provided above for reference so you can understand the context. You must fix ONLY the error nodes shown above, plus any nodes (upstream or downstream) whose connections (connectedTo) had to change as a result of your fixes. Return ONLY those nodes — all other nodes will be preserved automatically. Do NOT return the entire model.
+
+If you need to replace an error node with new nodes (e.g. splitting one gateway into two), you MUST also return the upstream nodes that previously connected to the replaced node, with their connectedTo updated to point to the new replacement node. Otherwise the new nodes will be stranded with no incoming connections.
 
 ${impactAnalysisMaskingInstructions}
 
@@ -193,7 +196,7 @@ ${GLOBAL_VARIABLE_LIBRARY}
 No global variables are available at the moment.
 </#if>
 
-<#if STARTING_PAYLOAD_VARIABLES?has_content>
+<#if STARTING_PAYLOAD_VARIABLES?? && STARTING_PAYLOAD_VARIABLES?trim?has_content>
 These are the initial payload variables available at the start of the process that can be used to satisfy inputs:
 ```
 ${STARTING_PAYLOAD_VARIABLES}
@@ -202,7 +205,7 @@ ${STARTING_PAYLOAD_VARIABLES}
 
 <#if isScopedCopilot && !isRetry>You should now apply the requested changes to the affected nodes shown above. Return ONLY the affected nodes (modified, added, or unchanged) - do NOT attempt to recreate the full model. The nodes you return will be merged back into the complete process automatically.
 <#elseif isScopedCopilot && isRetry>You should now fix the validation issues in the affected nodes shown above. Return ONLY the affected nodes — they will be merged back into the complete process automatically.
-<#elseif isScopedRetry>You should now fix the validation issues listed above. Return ONLY the fixed error nodes plus any downstream nodes whose configuration had to change. All other nodes will be preserved automatically.
+<#elseif isScopedRetry>You should now fix the validation issues listed above. Return ONLY the fixed error nodes plus any nodes (upstream or downstream) whose connections had to change. All other nodes will be preserved automatically.
 <#elseif isCopilotMode && !isRetry>You should now apply the requested changes to the existing model. Preserve all existing nodes and configuration unless the request explicitly asks to modify or remove them.
 <#elseif !isRetry>You should now generate the DETAILED model. Feel free to correct/extend the high-level model you initially generated.
 <#else>
@@ -382,7 +385,7 @@ Finally, ensure that all steps are part of the SAME process.  You should make su
 Please fix the issues listed above that relate to the affected nodes and return the corrected JSON containing ONLY the affected nodes. Return ONLY the JSON and no other text. Preserve the "commentary" field exactly as it was. Ignore any validation issues that reference nodes not shown above — those belong to the rest of the process and are not your responsibility. DO NOT return empty list of nodes.
 If you cannot fix the issues, return the phrase "CANNOT_APPLY_CHANGES: (REASON)" with the reason(s).
 <#elseif isScopedRetry>
-Please fix the validation issues listed above and return a JSON containing ONLY the fixed error nodes plus any downstream nodes whose configuration had to change as a result. Return ONLY the JSON and no other text. Preserve the "commentary" field exactly as it was. All other nodes will be merged back automatically. DO NOT return the entire model. DO NOT return empty list of nodes.
+Please fix the validation issues listed above and return a JSON containing ONLY the fixed error nodes plus any nodes (upstream or downstream) whose connections had to change as a result. If you replace a node with new nodes, you MUST also include the upstream nodes with their connectedTo updated to point to the replacement. Return ONLY the JSON and no other text. Preserve the "commentary" field exactly as it was. All other nodes will be merged back automatically. DO NOT return the entire model. DO NOT return empty list of nodes.
 <#elseif isScopedCopilot && !isRetry>
 Return one of two possible responses:
 1. The JSON complying to the schema above containing ONLY the affected nodes (modified and/or newly added). Return ONLY the JSON and no other text. Include a "commentary" field with a brief, conversational reply to the user summarising what you changed (e.g. "Done! I've updated the notification step to use email instead of SMS."). Also mention any assumptions you made and any parts of the request that could not be implemented, with a brief explanation of why. Do NOT mention internal details such as node IDs, input wiring, validation fixes, retries, or schema structure. DO NOT return empty list of nodes.
