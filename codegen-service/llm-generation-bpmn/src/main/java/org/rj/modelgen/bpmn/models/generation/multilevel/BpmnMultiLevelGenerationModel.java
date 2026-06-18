@@ -161,7 +161,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 (customization, data) -> preProcessingInsertSyntheticComponents(customization, data, options),
                 (customization, data) -> processHighLevelModelDataForDetailLevelGeneration(customization, data, globalVariableLibrary),
                 BpmnMultiLevelGenerationModel::mergeScopedDetailLevelModel,
-                (customization, data) -> validateDetailLevelModel(customization, data, globalVariableLibrary, bpmnModelValidator),
+                (customization, data) -> validateDetailLevelModel(customization, data, globalVariableLibrary, bpmnModelValidator, options),
                 BpmnMultiLevelGenerationModel::postProcessingResolveSyntheticComponents,
                 (customization, data) -> postProcessingPrepareForRendering(customization, data, globalVariableLibrary),
                 BpmnMultiLevelGenerationModel::validateBpmnModelCorrectness
@@ -246,12 +246,17 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 .withNewStateInsertedAfter(processHighLevelData, MultiLevelGenerationModelStates.ValidateHighLevel.toString());
     }
 
-    private static ModelInterfaceStateMachineCustomization validateDetailLevelModel(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator) {
+    private static ModelInterfaceStateMachineCustomization validateDetailLevelModel(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator, BpmnMultiLevelGenerationModelOptions options) {
 
         final var validateBpmnDetailLevelIntermediateModel = new ValidateBpmnLlmDetailLevelIntermediateModelResponse(globalVariableLibrary, bpmnModelValidator)
                 .withOverriddenId(BpmnAdditionalModelStates.DetailLevelBpmnIRModelValidation);
 
-        validateBpmnDetailLevelIntermediateModel.setInvokeLimit(3);
+        int invokeLimit = switch (options.getReasoningMode()) {
+            case FLASH -> 1;
+            case MEDIUM -> 2;
+            default -> 3; // REASONING
+        };
+        validateBpmnDetailLevelIntermediateModel.setInvokeLimit(invokeLimit);
 
         return customization
                 .withNewStateInsertedAfter(validateBpmnDetailLevelIntermediateModel, BpmnAdditionalModelStates.MergeScopedDetailLevelModel.toString())

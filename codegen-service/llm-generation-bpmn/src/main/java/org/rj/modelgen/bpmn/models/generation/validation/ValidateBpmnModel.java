@@ -242,19 +242,23 @@ public class ValidateBpmnModel {
     }
 
     private void validateNodeConnectionsRules(ElementNode node) {
+        if (StringUtils.isBlank(node.getElementType())) return;
+
         var incomingConnections = model.getNodes().stream()
                 .filter(n -> n.getConnectedTo() != null)
                 .filter(n -> n.getConnectedTo().stream().anyMatch(c -> c.getTargetNode().equals(node.getId())))
                 .toList();
+        final Collection<ElementConnection> connectedTo = node.getConnectedTo() != null ? node.getConnectedTo() : List.of();
+
         if (node.getElementType().equals(START_EVENT)) {
             if (!incomingConnections.isEmpty()) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("Start event node '%s' has incoming connections. A start event can only have outgoing connections.", node.getId()), node.getId()));
             }
-            if (node.getConnectedTo() == null || node.getConnectedTo().isEmpty()) {
+            if (connectedTo.isEmpty()) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("Start event node '%s' has no outgoing connections. A start event must have at least one outgoing connection.", node.getId()), node.getId()));
             }
         } else if (node.getElementType().equals(END_EVENT)) {
-            if (node.getConnectedTo() != null && !node.getConnectedTo().isEmpty()) {
+            if (!connectedTo.isEmpty()) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("End event node '%s' has outgoing connections. An end event can only have incoming connections.", node.getId()), node.getId()));
             }
             if (incomingConnections.isEmpty()) {
@@ -262,24 +266,25 @@ public class ValidateBpmnModel {
             }
         } else if (node.getElementType().endsWith(GATEWAY_SUFFIX)) {
             // Gateway can either be a split (one incoming, multiple outgoing) or a merge (multiple incoming, one outgoing), but not both at the same time
-            if (incomingConnections.size() > 1 && node.getConnectedTo().size() > 1) {
-                invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' has multiple incoming connections (%d) and multiple outgoing connections (%d). A gateway node can either be a split (one incoming, multiple outgoing) or a merge (multiple incoming, one outgoing), but not both at the same time. Create a separate gateway node for split and merge functionality.", node.getId(), incomingConnections.size(), node.getConnectedTo().size()), node.getId()));
+            if (incomingConnections.size() > 1 && connectedTo.size() > 1) {
+                invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' has multiple incoming connections (%d) and multiple outgoing connections (%d). A gateway node can either be a split (one incoming, multiple outgoing) or a merge (multiple incoming, one outgoing), but not both at the same time. Create a separate gateway node for split and merge functionality.", node.getId(), incomingConnections.size(), connectedTo.size()), node.getId()));
             }
             if (node instanceof ConditionalGateway conditionalGateway) {
                 String defaultTargetNodeName = conditionalGateway.getDefaultTargetNodeId();
                 Map<String, String> conditions = conditionalGateway.getConditions();
+                if (conditions == null) conditions = Map.of();
 
                 // Validate that default node and conditions are mapped to existing nodes. Merge gateways with one outgoing connection do not need to have default node or conditions defined
-                if (node.getConnectedTo().size() > 1) {
+                if (connectedTo.size() > 1) {
                     if(StringUtils.isBlank(defaultTargetNodeName)) {
                         invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' is missing a 'default' input specifying the default target node.", node.getId()), node.getId()));
-                    } else if(node.getConnectedTo().stream().noneMatch(c -> c.getTargetNode().equals(defaultTargetNodeName))) {
+                    } else if(connectedTo.stream().noneMatch(c -> c.getTargetNode().equals(defaultTargetNodeName))) {
                         invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' has a default target node '%s' which is not among its outgoing connections. The 'default' input must specify target node from one of the outgoing connections.", node.getId(), defaultTargetNodeName), node.getId()));
                     }
                 }
 
                 for (String conditionTargetNode : conditions.keySet()) {
-                    if (node.getConnectedTo().stream().noneMatch(c -> c.getTargetNode().equals(conditionTargetNode))) {
+                    if (connectedTo.stream().noneMatch(c -> c.getTargetNode().equals(conditionTargetNode))) {
                         invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' has a condition target node '%s' which is not among its outgoing connections. All condition target nodes must be one of the outgoing connections.", node.getId(), conditionTargetNode), node.getId()));
                     }
                 }
@@ -294,13 +299,13 @@ public class ValidateBpmnModel {
             if (!incomingConnections.isEmpty()) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("Process configuration node '%s' has incoming connections. A process configuration must be an orphan node.", node.getId()), node.getId()));
             }
-            if (!node.getConnectedTo().isEmpty()) {
+            if (!connectedTo.isEmpty()) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("Process configuration node '%s' has outgoing connections. A process configuration must be an orphan node.", node.getId()), node.getId()));
             }
         }
         else {
-            if (incomingConnections.size() != 1 && node.getConnectedTo().size() != 1) {
-                invalidMessages.add(new IntermediateModelValidationError(String.format("Node '%s' of type '%s' has %d incoming connections and %d outgoing connections. This type of node must have exactly one incoming and one outgoing connection.", node.getId(), node.getElementType(), incomingConnections.size(), node.getConnectedTo().size()), node.getId()));
+            if (incomingConnections.size() != 1 && connectedTo.size() != 1) {
+                invalidMessages.add(new IntermediateModelValidationError(String.format("Node '%s' of type '%s' has %d incoming connections and %d outgoing connections. This type of node must have exactly one incoming and one outgoing connection.", node.getId(), node.getElementType(), incomingConnections.size(), connectedTo.size()), node.getId()));
             }
         }
     }
@@ -688,6 +693,8 @@ public class ValidateBpmnModel {
     }
 
     private Set<BpmnComponent.Variable> getGeneratedOutputsByElementType(String elementType) {
-        return new HashSet<>(Optional.ofNullable(componentLibrary.getAutoGeneratedOutputs().get(elementType)).orElseGet(Set::of));
+        var autoGeneratedOutputs = componentLibrary.getAutoGeneratedOutputs();
+        if (autoGeneratedOutputs == null) return new HashSet<>();
+        return new HashSet<>(Optional.ofNullable(autoGeneratedOutputs.get(elementType)).orElseGet(Set::of));
     }
 }

@@ -8,6 +8,7 @@ public class MultiLevelGenerationModelOptions extends GenerationModelOptionsImpl
     private ModelSchema highLevelSchemaOverride;
     private ModelSchema detailLevelSchemaOverride;
     private boolean performSubproblemDecomposition = false;
+    ReasoningMode reasoningMode = ReasoningMode.REASONING;
 
     protected MultiLevelGenerationModelOptions() { }
 
@@ -53,4 +54,18 @@ public class MultiLevelGenerationModelOptions extends GenerationModelOptionsImpl
         setPerformSubproblemDecomposition(performSubproblemDecomposition);
         return this;
     }
+
+    public ReasoningMode getReasoningMode() {
+        return reasoningMode;
+    }
+
+    public void setReasoningMode(ReasoningMode reasoningMode) {
+        this.reasoningMode = reasoningMode;
+    }
+    public MultiLevelGenerationModelOptions withReasoningMode(ReasoningMode reasoningMode) {
+        setReasoningMode(reasoningMode);
+        return this;
+    }
+
+
 }

@@ -46,7 +46,7 @@ public class ImpactAnalysisResult {
     }
 
     public List<String> getAffectedNodeIds() {
-        return affectedNodeIds;
+        return affectedNodeIds != null ? affectedNodeIds : List.of();
     }
 
     public boolean isAddNodes() {
@@ -54,7 +54,7 @@ public class ImpactAnalysisResult {
     }
 
     public List<String> getRemoveNodeIds() {
-        return removeNodeIds;
+        return removeNodeIds != null ? removeNodeIds : List.of();
     }
 
     public String getReasoning() {
@@ -66,12 +66,12 @@ public class ImpactAnalysisResult {
     }
 
     public boolean isNodeAffected(String nodeId) {
-        return affectedNodeIds.contains(nodeId) || removeNodeIds.contains(nodeId);
+        return getAffectedNodeIds().contains(nodeId) || getRemoveNodeIds().contains(nodeId);
     }
 
     public Set<String> allImpactedIds() {
-        Set<String> ids = new HashSet<>(affectedNodeIds);
-        ids.addAll(removeNodeIds);
+        Set<String> ids = new HashSet<>(getAffectedNodeIds());
+        ids.addAll(getRemoveNodeIds());
         return ids;
     }
 

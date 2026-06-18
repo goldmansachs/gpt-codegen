@@ -193,11 +193,20 @@
         },
         {
           "name": "inputExpression",
-          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request (e.g 'getVariable('requestDetails')'). Not required for GET requests",
+          "description": "Provide a simple expression to resolve the body of the HTTP request (e.g getVariable('requestDetails')). Use this ONLY for simple variable references or expressions without multi-line logic. Not required for GET requests. Specify either inputExpression OR inputScript, but not both",
           "type": "string",
           "mandatory": false,
           "keyValue": false,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "SCRIPT"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "inputScript",
+          "description": "Groovy script to compute or transform the body of the HTTP request. Use this when the input requires multi-line logic, variable manipulation, control flow, or complex transformations. Not required for GET requests. Specify either inputExpression OR inputScript, but not both",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -436,11 +445,20 @@
         },
         {
           "name": "inputExpression",
-          "description": "Provide an expression or a Groovy script to be used to resolve the body of the HTTP request (e.g 'getVariable('requestDetails')'). Not required for GET requests",
+          "description": "Provide a simple expression to resolve the body of the HTTP request (e.g getVariable('requestDetails')). Use this ONLY for simple variable references or expressions without multi-line logic. Not required for GET requests. Specify either inputExpression OR inputScript, but not both",
           "type": "string",
           "mandatory": false,
           "keyValue": false,
-          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION", "SCRIPT"],
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "inputScript",
+          "description": "Groovy script to compute or transform the body of the HTTP request. Use this when the input requires multi-line logic, variable manipulation, control flow, or complex transformations. Not required for GET requests. Specify either inputExpression OR inputScript, but not both",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
           "resolutionStrategy": "INFERRED"
         },
         {
@@ -499,7 +517,7 @@
     {
       "name": "exclusiveGateway",
       "description": "Allows branching based on a condition or merging from multiple paths",
-      "usage": "Use when the process flow can branch to multiple nodes, but ONLY ONE of the paths can be followed. Each outgoing connection flow has a condition which must be met for the process to take that path",
+      "usage": "Use when the process flow can branch to multiple nodes, but ONLY ONE of the paths can be followed. Each outgoing connection flow has a condition which must be met for the process to take that path. Each gateway must be EITHER a split OR a merge - never both. If you need to merge and then split, use two separate gateways",
       "requiredInputs": [
         {
           "name": "default",
@@ -545,7 +563,7 @@
     {
       "name": "inclusiveGateway",
       "description": "Allows branching based on a condition or merging from multiple paths",
-      "usage": "Use when the process flow can branch to multiple nodes, and MULTIPLE paths can be followed simultaneously. Each outgoing connection flow has a condition which must be met for the process to take that path.",
+      "usage": "Use when the process flow can branch to multiple nodes, and MULTIPLE paths can be followed simultaneously. Each outgoing connection flow has a condition which must be met for the process to take that path. Each gateway must be EITHER a split OR a merge - never both. If you need to merge and then split, use two separate gateways.",
       "requiredInputs": [
         {
           "name": "default",
@@ -591,14 +609,14 @@
     {
       "name": "parallelGateway",
       "description": "Allows diverging into, or converging from, multiple parallel paths",
-      "usage": "Use when the process flow should split into multiple parallel paths or merge from multiple parallel paths simultaneously. All outgoing sequence flows are followed in parallel, and all incoming sequence flows must complete before proceeding",
+      "usage": "Use when the process flow should split into multiple parallel paths or merge from multiple parallel paths simultaneously. All outgoing sequence flows are followed in parallel, and all incoming sequence flows must complete before proceeding. Each gateway must be EITHER a split OR a merge - never both. If you need to merge and then split, use two separate gateways",
       "requiredInputs": [],
       "generatedOutputs": []
     },
     {
       "name": "eventGateway",
       "description": "Allows pausing the process flow and waiting until a subsequent catching event is triggered. At that point, the process proceeds.",
-      "usage": "Use whenever a workflow is required to wait for two or more events at the same time, for instance a message to be received or the passage of time to reach a certain point",
+      "usage": "Use whenever a workflow is required to wait for two or more events at the same time, for instance a message to be received or the passage of time to reach a certain point. Each gateway must be EITHER a split OR a merge - never both. If you need to merge and then split, use two separate gateways",
       "requiredInputs": [],
       "generatedOutputs": []
     },

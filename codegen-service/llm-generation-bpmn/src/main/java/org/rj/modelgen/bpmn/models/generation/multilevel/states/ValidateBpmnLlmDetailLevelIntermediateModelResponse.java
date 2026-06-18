@@ -66,7 +66,8 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
         final var model = parser.parse(content).orElseThrow(e -> new LlmGenerationModelException(String.format(
                 "Validate BPMN Detail Level Intermediate Model Response could not parse detail-level intermediate model: %s (content: %s)", e, content)));
 
-        final Set<PayloadVariable> startingPayload = new HashSet<>(getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables));
+        final Collection<PayloadVariable> processVarsRaw = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
+        final Set<PayloadVariable> startingPayload = processVarsRaw != null ? new HashSet<>(processVarsRaw) : new HashSet<>();
         final List<IntermediateModelValidationError> validations = bpmnModelValidator.validate(model, startingPayload);
 
         final Map<String, String> validationMessages = new LinkedHashMap<>();
