@@ -614,7 +614,7 @@
       "generatedOutputs": []
     },
     {
-      "name": "eventGateway",
+      "name": "eventBasedGateway",
       "description": "Allows pausing the process flow and waiting until a subsequent catching event is triggered. At that point, the process proceeds.",
       "usage": "Use whenever a workflow is required to wait for two or more events at the same time, for instance a message to be received or the passage of time to reach a certain point. Each gateway must be EITHER a split OR a merge - never both. If you need to merge and then split, use two separate gateways",
       "requiredInputs": [],

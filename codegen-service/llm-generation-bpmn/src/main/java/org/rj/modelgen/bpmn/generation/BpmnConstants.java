@@ -34,7 +34,7 @@ public class BpmnConstants {
         public static final String GATEWAY_EXCLUSIVE = "exclusiveGateway";
         public static final String GATEWAY_INCLUSIVE = "inclusiveGateway";
         public static final String GATEWAY_PARALLEL = "parallelGateway";
-        public static final String GATEWAY_EVENT = "eventGateway";
+        public static final String GATEWAY_EVENT = "eventBasedGateway";
         public static final String GATEWAY_SUFFIX = "Gateway";
 
         public static final String START_EVENT = "startEvent";
@@ -125,6 +125,7 @@ public class BpmnConstants {
     public static class GatewayConstants {
         public static final String DEFAULT = "default";
         public static final String CONDITIONS = "conditions";
+        public static final String ROUTES = "routes";
         public static final String TARGET_NODE_ID = "targetNodeId";
         public static final String CONDITION_EXPRESSION = "conditionExpression";
     }
