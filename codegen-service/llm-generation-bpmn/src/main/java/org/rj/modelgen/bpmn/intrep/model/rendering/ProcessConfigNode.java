@@ -1,6 +1,7 @@
 package org.rj.modelgen.bpmn.intrep.model.rendering;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.commons.lang3.StringUtils;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.builder.AbstractFlowNodeBuilder;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
@@ -41,12 +42,7 @@ public class ProcessConfigNode extends ElementNode {
 
     public void configure(BpmnModelInstance modelInstance, BpmnComponent elementDefinition, String namespace) {
         Process process = modelInstance.getModelElementsByType(Process.class).iterator().next();
-
-        String id = this.findInput(PROCESS_ID).map(ElementNodeInput::getValue).orElse(ATTR_NOT_CONFIGURED);
-        String name = this.findInput(PROCESS_NAME).map(ElementNodeInput::getValue).orElse(ATTR_NOT_CONFIGURED);
-        process.setId(id);
-        process.setName(name);
-        configureTaskMetadata(process, namespace);
+        configureProcess(process, namespace);
 
         if (inputs != null) {
             this.inputs.forEach(input -> {
@@ -56,6 +52,14 @@ public class ProcessConfigNode extends ElementNode {
                 }
             });
         }
+    }
+
+    public void configureProcess(Process process, String namespace) {
+        String id = StringUtils.isNotBlank(this.id) ? this.id : this.findInput(PROCESS_ID).map(ElementNodeInput::getValue).orElse(ATTR_NOT_CONFIGURED);
+        String name = StringUtils.isNotBlank(this.name) ? this.name : this.findInput(PROCESS_NAME).map(ElementNodeInput::getValue).orElse(ATTR_NOT_CONFIGURED);
+        process.setId(id);
+        process.setName(name);
+        configureTaskMetadata(process, namespace);
     }
 
     @Override
@@ -78,6 +82,7 @@ public class ProcessConfigNode extends ElementNode {
         Process process = model.getModelElementsByType(Process.class).iterator().next();
         DomElement processDom = process.getDomElement();
         List<ElementNodeInput> nodeInputs = new ArrayList<>();
+        nodeInputs.add(createInputFromAttribute(PROCESS_ID, id, true));
 
         BpmnComponent elementDefinition = componentLibrary.getComponentByName(elementType)
                 .orElseThrow(() -> new IllegalStateException("No component definition found for element type: " + elementType));

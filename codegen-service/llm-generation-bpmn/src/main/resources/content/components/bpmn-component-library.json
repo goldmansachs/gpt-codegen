@@ -622,8 +622,8 @@
     },
     {
       "name": "processConfig",
-      "description": "Use this node to represent a configuration of the process. This node has no effect besides documentation. It should not have any inputs or outputs as it will not be rendered as a node in the executable model",
-      "usage": "Use this node to represent a configuration of the process. This node has no effect besides documentation. It should not have any inputs or outputs as it will not be rendered as a node in the executable model.",
+      "description": "Use this node to represent a configuration of the process. This node has no effect besides documentation. It should not have any outputs or connections to other nodes as it will not be rendered as a node in the executable model",
+      "usage": "Use this node to represent a configuration of the process. This node has no effect besides documentation. It should not have any outputs or connections to other nodes as it will not be rendered as a node in the executable model.",
       "requiredInputs": [
         {
           "name": "processId",
