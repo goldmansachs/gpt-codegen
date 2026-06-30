@@ -15,6 +15,7 @@ public class ElementNodeTypeRegistry {
         registerType(START_EVENT, StartEventNode.class);
         registerType(END_EVENT, EndEventNode.class);
         registerType(TASK_USER_TASK, UserTaskNode.class);
+        registerType(TASK_USER_TASK, ManualTaskNode.class);
         registerType(TASK_SERVICE_TASK, ServiceTaskNode.class);
         registerType(TASK_SCRIPT_TASK, ScriptTaskNode.class);
         registerType(TASK_MANUAL_TASK, ManualTaskNode.class);
