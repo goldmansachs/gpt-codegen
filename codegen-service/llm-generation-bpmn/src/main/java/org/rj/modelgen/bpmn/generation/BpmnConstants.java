@@ -30,6 +30,7 @@ public class BpmnConstants {
         public static final String TASK_SEND_TASK = "sendTask";
         public static final String TASK_CALL = "call";
         public static final String TASK_CALL_TASK = "callTask";
+        public static final String TASK_CALL_ACTIVITY_TASK = "callActivity";
 
         public static final String GATEWAY_EXCLUSIVE = "exclusiveGateway";
         public static final String GATEWAY_INCLUSIVE = "inclusiveGateway";
@@ -112,6 +113,17 @@ public class BpmnConstants {
     public static class BusinessRuleTaskConstants {
         public static final List<String> ATTRIBUTES = List.of("executionEngine", "applicationId", "ruleName", "ruleVersion", "factTypesExpression", "metadataExpression");
         public static final List<String> EXTENSIONS = List.of("factTypesScript", "metadataScript", "outputScript");
+    }
+
+    public static class CallActivityTaskConstants {
+        public static final String CALLED_ELEMENT = "calledElement";
+        public static final String INPUT_MAPPING = "inputMapping";
+        public static final String OUTPUT_MAPPING = "outputMapping";
+        public static final String CAMUNDA_IN_ELEMENT = "in";
+        public static final String CAMUNDA_OUT_ELEMENT = "out";
+        public static final String SOURCE = "source";
+        public static final String SOURCE_EXPRESSION = "sourceExpression";
+        public static final String TARGET = "target";
     }
 
     public static class ProcessConfigConstants {

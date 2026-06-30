@@ -21,6 +21,7 @@ public class ElementNodeTypeRegistry {
         registerType(TASK_RECEIVE_TASK, ReceiveTaskNode.class);
         registerType(TASK_SEND_TASK, SendTaskNode.class);
         registerType(TASK_BUSINESS_RULE_TASK, BusinessRuleTaskNode.class);
+        registerType(TASK_CALL_ACTIVITY_TASK, CallActivityTaskNode.class);
         registerType(GATEWAY_EXCLUSIVE, ExclusiveGatewayNode.class);
         registerType(GATEWAY_INCLUSIVE, InclusiveGatewayNode.class);
         registerType(GATEWAY_PARALLEL, ParallelGatewayNode.class);
