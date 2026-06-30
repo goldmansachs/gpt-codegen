@@ -247,7 +247,7 @@
       "generatedOutputs": []
     },
     {
-      "name": "callActivityTask",
+      "name": "callActivity",
       "description": "A task that allows the current process to call another process from within its execution.",
       "usage": "Use call activity tasks to call another BPMN process by id. It should only be used if an id to the external process is provided.",
       "requiredInputs": [
