@@ -155,7 +155,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                                                                                      BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator) {
         final List<BiFunction<ModelInterfaceStateMachineCustomization, ModelCustomizationData, ModelInterfaceStateMachineCustomization>> customizations = List.of(
                 (customization, data) -> initialValidateBpmnDetailLevel(customization, data, globalVariableLibrary, bpmnModelValidator),
-                (customization, data) -> copilotImpactAnalysis(customization, contextProvider, promptGenerator, componentLibrary),
+                (customization, data) -> impactAnalysis(customization, contextProvider, promptGenerator, componentLibrary),
                 (customization, data) -> initializeBpmnPayload(customization, contextProvider, promptGenerator, componentLibrary),
                 (customization, data) -> initializeBpmnData(customization, data, componentLibrary, globalVariableLibrary, options),
                 (customization, data) -> preProcessingInsertSyntheticComponents(customization, data, options),
@@ -181,22 +181,38 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
         return customization
                 .withReplacedState(initialValidation, MultiLevelGenerationModelStates.InitialValidateDetailLevel.toString())
                 .withRemovedRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()))
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.ExecuteCopilotImpactAnalysis.toString()));
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.SanitizingPrePass.toString()));
     }
 
-    private static ModelInterfaceStateMachineCustomization copilotImpactAnalysis(ModelInterfaceStateMachineCustomization customization,
-                                                                                 ContextProvider contextProvider,
-                                                                                 BpmnGenerationMultiLevelPromptGenerator promptGenerator,
-                                                                                 BpmnComponentLibrary componentLibrary) {
+    private static ModelInterfaceStateMachineCustomization impactAnalysis(ModelInterfaceStateMachineCustomization customization,
+                                                                          ContextProvider contextProvider,
+                                                                          BpmnGenerationMultiLevelPromptGenerator promptGenerator,
+                                                                          BpmnComponentLibrary componentLibrary) {
         final var executeImpactAnalysis = new PrepareAndSubmitLlmGenericRequest<>(
-                contextProvider, promptGenerator, MultiLevelModelPromptType.GenerateCopilotImpactAnalysis, componentLibrary)
+                contextProvider, promptGenerator, MultiLevelModelPromptType.GenerateImpactAnalysis, componentLibrary)
                 .withResponseOutputKey(MultiLevelModelStandardPayloadData.ImpactAnalysis)
-                .withDescription("Analyzing which parts of the workflow are affected by the requested change")
-                .withOverriddenId(BpmnAdditionalModelStates.ExecuteCopilotImpactAnalysis);
+                .withDescription("Analyzing the request to determine which parts of the workflow need to change")
+                .withOverriddenId(BpmnAdditionalModelStates.ExecuteImpactAnalysis);
+
+        final var evaluateImpactAnalysis = new EvaluateImpactAnalysis()
+                .withOverriddenId(BpmnAdditionalModelStates.EvaluateImpactAnalysis);
 
         return customization
                 .withNewState(executeImpactAnalysis)
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.ExecuteCopilotImpactAnalysis.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.InitializeBpmnPayload.toString()));
+                .withNewState(evaluateImpactAnalysis)
+
+                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.PreProcessing.toString()))
+                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SKIPPED, MultiLevelGenerationModelStates.PreProcessing.toString()))
+
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SKIPPED, BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString()))
+
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString()))
+
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.InitializeBpmnPayload.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), StandardSignals.SKIPPED, BpmnAdditionalModelStates.InitializeBpmnData.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), BpmnGenerationSignals.InitialGenerationRequired.toString(), MultiLevelGenerationModelStates.PreProcessing.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), BpmnGenerationSignals.NoGenerationRequired.toString(), MultiLevelGenerationModelStates.Complete.toString()));
     }
 
     private static ModelInterfaceStateMachineCustomization initializeBpmnPayload(ModelInterfaceStateMachineCustomization customization, ContextProvider contextProvider,

@@ -10,6 +10,6 @@ public class BpmnGenerationMultiLevelPromptGenerator extends MultiLevelGeneratio
         addPrompt(MultiLevelModelPromptType.PayloadGeneration, Util.loadStringResource("content/models/multilevel/bpmn-preprocessing-payload-generation-prompt"));
         addPrompt(MultiLevelModelPromptType.GenerateHighLevel, Util.loadStringResource("content/models/multilevel/bpmn-multilevel-high-level-generation-prompt"));
         addPrompt(MultiLevelModelPromptType.GenerateDetailLevel, Util.loadStringResource("content/models/multilevel/bpmn-multilevel-detail-level-generation-prompt"));
-        addPrompt(MultiLevelModelPromptType.GenerateCopilotImpactAnalysis, Util.loadStringResource("content/models/multilevel/bpmn-copilot-impact-analysis-prompt"));
+        addPrompt(MultiLevelModelPromptType.GenerateImpactAnalysis, Util.loadStringResource("content/models/multilevel/bpmn-impact-analysis-prompt"));
     }
 }

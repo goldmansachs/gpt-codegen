@@ -12,7 +12,7 @@ public enum MultiLevelModelPromptType implements StringSerializable {
     CorrectHighLevelSchemaErrors,
 
     GenerateDetailLevel,
-    GenerateCopilotImpactAnalysis,
+    GenerateImpactAnalysis,
     CorrectDetailLevelSchemaErrors,
 
     CorrectGeneratedModelErrors,

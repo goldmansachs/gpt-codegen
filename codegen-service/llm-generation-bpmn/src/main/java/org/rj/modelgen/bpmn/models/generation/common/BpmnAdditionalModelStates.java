@@ -11,7 +11,8 @@ public enum BpmnAdditionalModelStates implements StringSerializable {
     MergeScopedDetailLevelModel,
     DetailLevelBpmnIRModelValidation,
     ResolveSyntheticComponents,
-    ExecuteCopilotImpactAnalysis,
+    ExecuteImpactAnalysis,
+    EvaluateImpactAnalysis,
     UIGeneration,
     PrepareForRendering,
     ValidateBpmnModelCorrectness;
@@ -32,7 +33,8 @@ public enum BpmnAdditionalModelStates implements StringSerializable {
             case MergeScopedDetailLevelModel -> "Merging scoped detail-level model";
             case DetailLevelBpmnIRModelValidation -> "Validating detail-level BPMN intermediate representation model";
             case ResolveSyntheticComponents -> "Resolving synthetic components in the BPMN model";
-            case ExecuteCopilotImpactAnalysis -> "Executing Copilot impact analysis on the BPMN model";
+            case ExecuteImpactAnalysis -> "Executing impact analysis on the requested change";
+            case EvaluateImpactAnalysis -> "Evaluating impact analysis to determine generation strategy";
             case UIGeneration -> "Generating user interface components for the BPMN model";
             case PrepareForRendering -> "Preparing BPMN model for rendering";
             case ValidateBpmnModelCorrectness -> "Validating BPMN model correctness";
