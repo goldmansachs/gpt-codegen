@@ -342,8 +342,8 @@
         },
         {
           "name": "businessKey",
-          "description": "Enabling this property on a call activity task will give the user search capabilities for the child process based on the business key",
-          "type": "boolean",
+          "description": "A boolean expression which gives the user search capabilities for the child process based on the business key. Is set to true by default.",
+          "type": "string",
           "mandatory": true,
           "keyValue": true,
           "defaultValue": "true",
