@@ -275,7 +275,7 @@
               "type": "string",
               "mandatory": false,
               "keyValue": false,
-              "allowedInputSourceTypes": ["CONSTANT"],
+              "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
               "resolutionStrategy": "INFERRED"
             },
             {
@@ -295,7 +295,7 @@
               "type": "string",
               "mandatory": true,
               "keyValue": true,
-              "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+              "allowedInputSourceTypes": ["CONSTANT"],
               "resolutionStrategy": "INFERRED"
             }
           ]
