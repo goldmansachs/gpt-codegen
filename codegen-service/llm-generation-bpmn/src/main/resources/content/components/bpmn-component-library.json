@@ -262,7 +262,7 @@
         },
         {
           "name": "inputMapping",
-          "description": "Variables to be sent to Called Element (the external process) as payload data. E.g, to send payload.myVariable, source expression should be ${payload.myVariable} and target should be payload.someVariable. payload.someVariable is then accessible in the external process (the called element)",
+          "description": "Variables to be sent to Called Element (the external process) as payload data. E.g, to send payload.myVariable, source expression should be  getVariable('myVariable')  and target should be payload.someVariable. payload.someVariable is then accessible in the external process (the called element)",
           "alias": "inputMapping",
           "type": "array",
           "mandatory": false,
@@ -280,7 +280,7 @@
             },
             {
               "name": "sourceExpression",
-              "description": "The source expression to send to the external process, e.g. ${payload.myVariable}",
+              "description": "The source expression to send to the external process, e.g.  getVariable('myVariable') ",
               "alias": "sourceExpression",
               "type": "string",
               "mandatory": true,
@@ -302,7 +302,7 @@
         },
         {
           "name": "outputMapping",
-          "description": "Variable to be received back from the external process call (the called element). E.g, to use payload.myVariable from the external process, the source expression should be ${payload.myVariable}. Keep the target as a variable that can be used in this this BPMN. The target variable is directly accessible and can be stored onto payload by persisting in a script task by using `payload.foo = targetVariable.`",
+          "description": "Variable to be received back from the external process call (the called element). E.g, to use payload.myVariable from the external process, the source expression should be  getVariable('myVariable') . Keep the target as a variable that can be used in this this BPMN. The target variable is directly accessible and can be stored onto payload by persisting in a script task by using `payload.foo = targetVariable.`",
           "alias": "outputMapping",
           "type": "array",
           "mandatory": false,
@@ -320,7 +320,7 @@
             },
             {
               "name": "sourceExpression",
-              "description": "The source expression coming from the external process, e.g. ${payload.myVariable}",
+              "description": "The source expression coming from the external process, e.g.  getVariable('myVariable') ",
               "alias": "expression",
               "type": "string",
               "mandatory": true,
