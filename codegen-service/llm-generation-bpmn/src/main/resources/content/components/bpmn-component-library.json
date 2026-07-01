@@ -339,6 +339,15 @@
               "resolutionStrategy": "INFERRED"
             }
           ]
+        },
+        {
+          "name": "businessKey",
+          "description": "Enabling this property on a call activity task will give the user search capabilities for the child process based on the business key",
+          "type": "boolean",
+          "mandatory": true,
+          "keyValue": true,
+          "defaultValue": "true",
+          "resolutionStrategy": "INFERRED"
         }
       ],
       "generatedOutputs": []
