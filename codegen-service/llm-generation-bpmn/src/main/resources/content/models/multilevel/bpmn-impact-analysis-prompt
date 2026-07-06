@@ -31,7 +31,14 @@ No starting payload variables are available for this process yet.
 There is no existing process model yet - the user is making an initial request and a new BPMN model would need to be generated from scratch if the request is a valid generation request.
 </#if>
 
-The user has requested the following:
+<#if promptHistory?? && promptHistory?has_content>
+Below is the history of previous user prompts in this session, in chronological order, provided for context only. Use it to understand the user's evolving intent and to disambiguate the CURRENT request (e.g. resolving pronouns like "it"/"that", follow-up questions like "why?"/"and then?", or clarifications that answer a question you asked in a previous turn). Do NOT re-act on prior prompts - only the CURRENT request below should drive your decision. Prompts that originated from an uploaded document have been collapsed into a short placeholder or summary to keep this history compact; treat those as background context rather than actionable requests.
+```
+${promptHistory}
+```
+
+</#if>
+The user's CURRENT request is:
 ```
 ${request}
 ```
