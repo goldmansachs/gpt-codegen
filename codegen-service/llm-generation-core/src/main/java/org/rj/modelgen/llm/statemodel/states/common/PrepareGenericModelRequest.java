@@ -32,14 +32,15 @@ public class PrepareGenericModelRequest<TPromptGenerator extends TemplatedPrompt
                                       TComponentLibrary componentLibrary, ComponentLibrarySelector<TComponentLibrary> componentLibrarySelector,
                                       ComponentLibrarySerializer<TComponentLibrary> componentLibrarySerializer) {
         this(PrepareGenericModelRequest.class, contextProvider, promptGenerator, promptType, componentLibrary,
-                componentLibrarySelector, componentLibrarySerializer);
+                componentLibrarySelector, componentLibrarySerializer, null);
     }
 
     protected PrepareGenericModelRequest(Class<? extends PrepareGenericModelRequest> cls,
                                          ContextProvider contextProvider, TPromptGenerator promptGenerator, StringSerializable promptType,
                                          TComponentLibrary componentLibrary, ComponentLibrarySelector<TComponentLibrary> componentLibrarySelector,
-                                         ComponentLibrarySerializer<TComponentLibrary> componentLibrarySerializer) {
-        super(cls, null, contextProvider);
+                                         ComponentLibrarySerializer<TComponentLibrary> componentLibrarySerializer,
+                                         ModelSchema modelSchema) {
+        super(cls, modelSchema, contextProvider);
         this.promptGenerator = promptGenerator;
         this.promptType = promptType;
         this.componentLibrary = componentLibrary;

@@ -98,15 +98,12 @@ Rules:
 - "payloadChangeRequired" should be true only if the request explicitly specifies one or more starting payload variables for the new process.
 </#if>
 
-Return ONLY a JSON object with no other text
-- DO NOT include any commentary, thinking, or re-examination in your response
+Return ONLY a JSON object complying to the following schema, with no other text.  Do NOT return a schema.  Return JSON which complies with the schema:
+```
+${SCHEMA_CONTENT}
+```
+
+- DO NOT include any commentary, thinking, or re-examination in your response.
 - Do NOT output multiple versions or drafts.
 
-{
-  "affectedNodeIds": ["nodeId1", "nodeId2", "nodeId3"],
-  "addNodes": true or false,
-  "removeNodeIds": ["nodeId4"],
-  "payloadChangeRequired": true or false,
-  "reasoning": "Brief explanation of why these nodes are affected, OR the user-friendly message if no generation/changes are required."
-}
 

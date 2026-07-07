@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Result of the copilot impact analysis LLM call.
@@ -14,6 +15,9 @@ import java.util.*;
 public class ImpactAnalysisResult {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static final Pattern JSON_EXTRACT = Pattern.compile("^.*?(\\{.*}).*?$", Pattern.DOTALL | Pattern.MULTILINE);
+    private static final String FIX_INVALID_ESCAPES = "([^\\\\])\\\\([^\"\\\\/bfnrt])";
 
     @JsonProperty("affectedNodeIds")
     private List<String> affectedNodeIds = new ArrayList<>();
@@ -73,6 +77,23 @@ public class ImpactAnalysisResult {
         Set<String> ids = new HashSet<>(getAffectedNodeIds());
         ids.addAll(getRemoveNodeIds());
         return ids;
+    }
+
+    public static String sanitize(String rawContent) {
+        if (rawContent == null) return null;
+
+        // Remove invalid control chars, preserving standard whitespace
+        String content = rawContent.replaceAll("[\\p{Cntrl}&&[^\n\r\t]]", "");
+
+        // Extract the outermost JSON object from any surrounding text or markdown fences
+        final var matcher = JSON_EXTRACT.matcher(content);
+        if (matcher.find()) {
+            content = matcher.group(1);
+        }
+
+        content = content.replaceAll(FIX_INVALID_ESCAPES, "$1$2");
+
+        return content;
     }
 
     public static ImpactAnalysisResult fromJson(String json) {

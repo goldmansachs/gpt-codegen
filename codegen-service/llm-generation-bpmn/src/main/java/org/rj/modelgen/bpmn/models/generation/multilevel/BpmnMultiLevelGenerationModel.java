@@ -22,6 +22,7 @@ import org.rj.modelgen.bpmn.models.generation.multilevel.options.BpmnMultiLevelG
 import org.rj.modelgen.bpmn.models.generation.multilevel.prompt.BpmnGenerationMultiLevelPromptGenerator;
 import org.rj.modelgen.bpmn.models.generation.multilevel.schema.BpmnGenerationMultiLevelSchemaDetailLevel;
 import org.rj.modelgen.bpmn.models.generation.multilevel.schema.BpmnGenerationMultiLevelSchemaHighLevel;
+import org.rj.modelgen.bpmn.models.generation.multilevel.schema.BpmnGenerationMultiLevelSchemaImpactAnalysis;
 import org.rj.modelgen.bpmn.models.generation.multilevel.states.*;
 import org.rj.modelgen.bpmn.models.generation.validation.ValidateBpmnModel;
 import org.rj.modelgen.bpmn.subproblem.BpmnCombineSubproblems;
@@ -189,7 +190,8 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                                                                           BpmnGenerationMultiLevelPromptGenerator promptGenerator,
                                                                           BpmnComponentLibrary componentLibrary) {
         final var executeImpactAnalysis = new PrepareAndSubmitLlmGenericRequest<>(
-                contextProvider, promptGenerator, MultiLevelModelPromptType.GenerateImpactAnalysis, componentLibrary)
+                contextProvider, promptGenerator, MultiLevelModelPromptType.GenerateImpactAnalysis,
+                componentLibrary, new BpmnGenerationMultiLevelSchemaImpactAnalysis())
                 .withResponseOutputKey(MultiLevelModelStandardPayloadData.ImpactAnalysis)
                 .withDescription("Analyzing the request to determine which parts of the workflow need to change")
                 .withOverriddenId(BpmnAdditionalModelStates.ExecuteImpactAnalysis);

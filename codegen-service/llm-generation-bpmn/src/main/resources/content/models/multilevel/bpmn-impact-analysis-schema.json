@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Impact analysis result",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "affectedNodeIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of existing nodes that need modification, including nodes whose connections must change. Empty if no changes are required."
+    },
+    "addNodes": {
+      "type": "boolean",
+      "description": "True if any new nodes need to be created, false otherwise."
+    },
+    "removeNodeIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of nodes that should be removed entirely or replaced/split into new nodes. Must be disjoint from affectedNodeIds."
+    },
+    "payloadChangeRequired": {
+      "type": "boolean",
+      "description": "True only if the user explicitly requests adding, removing, renaming, or changing the type of a starting payload variable."
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Brief explanation of why nodes are affected, OR a user-friendly conversational message if no generation is required."
+    }
+  },
+  "required": ["affectedNodeIds", "addNodes", "removeNodeIds", "payloadChangeRequired", "reasoning"]
+}
+

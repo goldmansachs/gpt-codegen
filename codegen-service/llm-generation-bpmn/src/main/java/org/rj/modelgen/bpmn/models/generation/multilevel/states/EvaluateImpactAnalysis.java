@@ -5,7 +5,9 @@ import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.rj.modelgen.bpmn.models.generation.base.signals.BpmnGenerationSignals;
 import org.rj.modelgen.bpmn.models.generation.multilevel.data.ImpactAnalysisResult;
+import org.rj.modelgen.bpmn.models.generation.multilevel.schema.BpmnGenerationMultiLevelSchemaImpactAnalysis;
 import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
+import org.rj.modelgen.llm.schema.ModelSchema;
 import org.rj.modelgen.llm.state.ModelInterfaceSignal;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
@@ -20,6 +22,7 @@ import java.util.List;
 public class EvaluateImpactAnalysis extends ModelInterfaceState implements CommonStateInterface {
 
     private static final Logger LOG = LoggerFactory.getLogger(EvaluateImpactAnalysis.class);
+    private static final ModelSchema SCHEMA = new BpmnGenerationMultiLevelSchemaImpactAnalysis();
 
     private static final String DEFAULT_NO_CHANGE_COMMENTARY = "It looks like no changes are needed to satisfy this request.";
     private static final String DEFAULT_NO_GENERATION_COMMENTARY = "It looks like your request isn't asking me to generate a new process model. Could you tell me more about the workflow you'd like to build?";
@@ -134,11 +137,21 @@ public class EvaluateImpactAnalysis extends ModelInterfaceState implements Commo
         }
 
         try {
-            final ImpactAnalysisResult result = ImpactAnalysisResult.fromJson(raw.toString());
+            final String json = ImpactAnalysisResult.sanitize(raw.toString());
+
+            final var validation = SCHEMA.validate(json);
+            if (!validation.isValid()) {
+                LOG.warn("Impact analysis response does not comply with schema ({}); falling back to normal generation", validation.getValidationErrors());
+                getPayload().remove(MultiLevelModelStandardPayloadData.ImpactAnalysis);
+                return null;
+            }
+
+            final ImpactAnalysisResult result = ImpactAnalysisResult.fromJson(json);
             getPayload().put(MultiLevelModelStandardPayloadData.ImpactAnalysis, result);
             return result;
         } catch (Exception e) {
-            LOG.warn("Failed to parse impact analysis JSON in evaluation phase ({}); falling back to normal generation", e.getMessage());
+            LOG.warn("Failed to parse impact analysis JSON in evaluation phase ({}); raw content: [{}]; falling back to normal generation",
+                    e.getMessage(), raw);
             getPayload().remove(MultiLevelModelStandardPayloadData.ImpactAnalysis);
             return null;
         }

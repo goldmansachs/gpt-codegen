@@ -66,8 +66,7 @@ public class PrepareBpmnMLDetailLevelModelGenerationRequest<TComponentLibrary ex
             return;
         }
 
-        // Resolve impact analysis: parse raw JSON from LLM if needed
-        final ImpactAnalysisResult impact = resolveImpactAnalysis();
+        final ImpactAnalysisResult impact = getPayload().getOrElse(MultiLevelModelStandardPayloadData.ImpactAnalysis, (ImpactAnalysisResult) null);
         if (impact == null) {
             return; // No impact analysis, use standard (unscoped) copilot generation
         }
@@ -108,27 +107,6 @@ public class PrepareBpmnMLDetailLevelModelGenerationRequest<TComponentLibrary ex
         getPayload().put(MultiLevelModelStandardPayloadData.ImpactAnalysisMaskingInstructions, buildTrimmedModelInstructions(impact));
     }
 
-    private ImpactAnalysisResult resolveImpactAnalysis() {
-        final Object impactAnalysisContent = getPayload().getOrElse(MultiLevelModelStandardPayloadData.ImpactAnalysis, (Object) null);
-        if (impactAnalysisContent == null) return null;
-
-        if (impactAnalysisContent instanceof ImpactAnalysisResult result) {
-            return result;
-        }
-
-        try {
-            ImpactAnalysisResult result = ImpactAnalysisResult.fromJson(impactAnalysisContent.toString());
-            LOG.info("Impact analysis parsed: affected={}, addNodes={}, remove={}, reasoning='{}'",
-                    result.getAffectedNodeIds(), result.isAddNodes(), result.getRemoveNodeIds(),
-                    result.getReasoning());
-            getPayload().put(MultiLevelModelStandardPayloadData.ImpactAnalysis, result);
-            return result;
-        } catch (Exception e) {
-            LOG.warn("Failed to parse impact analysis response, proceeding without scoping: {}", e.getMessage());
-            getPayload().remove(MultiLevelModelStandardPayloadData.ImpactAnalysis);
-            return null;
-        }
-    }
 
     private static String buildTrimmedModelInstructions(ImpactAnalysisResult impact) {
         StringBuilder sb = new StringBuilder();
