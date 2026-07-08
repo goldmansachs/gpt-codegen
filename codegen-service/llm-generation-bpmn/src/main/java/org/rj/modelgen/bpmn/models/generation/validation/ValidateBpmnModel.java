@@ -15,6 +15,7 @@ import org.rj.modelgen.bpmn.component.common.BpmnComponentVariableType;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType;
 import org.rj.modelgen.bpmn.intrep.model.*;
+import org.rj.modelgen.bpmn.intrep.model.rendering.gateways.ConditionalGateway;
 import org.rj.modelgen.bpmn.intrep.model.rendering.gateways.*;
 import org.rj.modelgen.llm.validation.beans.IntermediateModelValidationError;
 
@@ -27,6 +28,7 @@ import static org.rj.modelgen.bpmn.generation.BpmnConstants.EventConstants.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.Patterns.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_CALL_NODE;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_ID;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.TRIGGERED_BY_EVENT;
 import static org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType.*;
@@ -51,11 +53,18 @@ public class ValidateBpmnModel {
     }
 
     public List<IntermediateModelValidationError> validate(BpmnIntermediateModel model, Set<PayloadVariable> startingPayload) {
+        return validate(model, startingPayload, false);
+    }
+
+    public List<IntermediateModelValidationError> validate(BpmnIntermediateModel model, Set<PayloadVariable> startingPayload, boolean isSubprocessDL) {
         this.model = model;
         invalidMessages = new ArrayList<>();
 
-        validateProcessStructure(model);
-        validateSubModelStructure(model);
+        if (isSubprocessDL) {
+            validateSubModelStructure(model);
+        } else {
+            validateProcessStructure(model);
+        }
 
         for (ElementNode node : model.getNodes()) {
             validateNodeNames(node);
@@ -195,7 +204,8 @@ public class ValidateBpmnModel {
 
     private void validateRequiredInputs(ElementNode node) {
         final Collection<IntermediateModelValidationError> invalidInputMessages = new ArrayList<>();
-        final var component = componentLibrary.getComponentByName(node.getElementType());
+        final String componentName = node.isSubprocessCallNode() ? SUBPROCESS_CALL_NODE : node.getElementType();
+        final var component = componentLibrary.getComponentByName(componentName);
         if (component.isEmpty()) return;   // Unknown action type, should probably never happen by the time we reach this point
         if (node.getInputs() == null) return;
 
@@ -421,12 +431,12 @@ public class ValidateBpmnModel {
 
     private void validateSubProcessIdFormat(BpmnIntermediateModel model) {
         for (ElementNode node : model.getNodes()) {
-            if (!SUBPROCESS.equals(node.getElementType())) continue;
-
-            boolean isCallNode = node.getConnectedTo() != null && !node.getConnectedTo().isEmpty();
+            final boolean isCallNode = node.isSubprocessCallNode();
+            final boolean isDefinitionNode = SUBPROCESS.equals(node.getElementType());
+            if (!isCallNode && !isDefinitionNode) continue;
 
             // Skip event subprocess config nodes
-            if (!isCallNode) {
+            if (isDefinitionNode) {
                 boolean isEventSubProcess = node.findInput(TRIGGERED_BY_EVENT)
                         .map(input -> "true".equalsIgnoreCase(input.getValue()))
                         .orElse(false);
@@ -435,7 +445,7 @@ public class ValidateBpmnModel {
 
             String spId = node.findInput(SUBPROCESS_ID).map(ElementNodeInput::getValue).orElse(null);
 
-            String nodeType = isCallNode ? "Inline subProcess call node" : "SubProcess config node";
+            String nodeType = isCallNode ? "Inline subprocessCallNode" : "SubProcess config node";
             if (spId == null || spId.isBlank()) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("%s '%s' is missing a 'subProcessId' input. The subProcessId must match the format SP<number> (e.g. SP1, SP2) to enable stable matching between the main process and its subprocesses.", nodeType, node.getId()), node.getId()));
             } else if (!isValidSubProcessIdFormat(spId)) {
@@ -524,7 +534,7 @@ public class ValidateBpmnModel {
                     invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' has multiple condition expressions but %d of them are empty. Only one condition expression can be empty and it should match the default path.", node.getId(), emptyConditionExpressions.size()), node.getId()));
                 }
             }
-        } else if (node.getElementType().equals(PROCESS_CONFIG) || (node.getElementType().equals(SUBPROCESS))) {
+        } else if (node.getElementType().equals(PROCESS_CONFIG) || (node.getElementType().equals(SUBPROCESS) && !node.isSubprocessCallNode())) {
             // processConfig and subProcess definition nodes must be orphan nodes with no connections.
             // Inline subProcess call nodes (those with connections) are NOT definition nodes and are exempt.
             if (!incomingConnections.isEmpty()) {

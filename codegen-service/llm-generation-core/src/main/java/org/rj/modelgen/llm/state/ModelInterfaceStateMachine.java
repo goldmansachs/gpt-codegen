@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +31,7 @@ public class ModelInterfaceStateMachine {
     private final ModelInterfaceTransitionRules rules;
     private final List<Consumer<ModelInterfaceStateEmittedSignal>> stateListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<AuditEntry>> auditListeners = new CopyOnWriteArrayList<>();
+    private final Set<String> suppressedStateEventIds = new HashSet<>();
 
     private final ModelInterfaceStateMachineAuditLog auditLog;
 
@@ -255,6 +258,10 @@ public class ModelInterfaceStateMachine {
         return cls.cast(this);
     }
 
+    public boolean isSubModel() {
+        return false;
+    }
+
     public Set<ModelInterfaceTransitionRule.Reference> getLayoutInfo() {
         return rules.getReferences();
     }
@@ -303,7 +310,12 @@ public class ModelInterfaceStateMachine {
         stateListeners.add(listener);
     }
 
+    public void suppressStateEvents(String... stateIds) {
+        suppressedStateEventIds.addAll(Arrays.asList(stateIds));
+    }
+
     public void publishStateListener(ModelInterfaceStateEmittedSignal event) {
+        if (suppressedStateEventIds.contains(event.getState().getId())) return;
         stateListeners.forEach(listener -> listener.accept(event));
     }
 

@@ -18,8 +18,10 @@ import static org.camunda.bpm.model.bpmn.impl.BpmnModelConstants.ACTIVITI_NS;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.Namespaces.DEFAULT_NAMESPACE_URI;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.MultiInstanceConstants.*;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_CALL_NODE;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_DESCRIPTION;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_ID;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_NAME;
 import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.extractAttributeValue;
 
 public class BpmnReverseRenderer {
@@ -79,10 +81,7 @@ public class BpmnReverseRenderer {
             // Embedded subprocesses get an inline call node in the main model (with external connections)
             // Event subprocesses do NOT get a call node as they are only represented as sub-models
             if (!isEventSubProcess) {
-                ElementNode callNode = ElementNode.fromFlowNode(subProcess, modelAssets, namespace, componentLibrary, globalVariableLibrary);
-                // Override ID back to the BPMN element ID so that main process can connect to inline subprocess
-                callNode.setId(subProcess.getId());
-                intermediateModel.addNode(callNode);
+                intermediateModel.addNode(buildCallNodeFromSubProcess(subProcess));
             }
 
             // Build and attach the sub-model containing the subprocess internal flow
@@ -96,6 +95,50 @@ public class BpmnReverseRenderer {
         attachBoundaryEvents(intermediateModel, boundaryEvents);
 
         return intermediateModel;
+    }
+
+    private ElementNode buildCallNodeFromSubProcess(SubProcess subProcess) {
+        final DomElement spDom = subProcess.getDomElement();
+
+        final String storedSubProcessId = extractAttributeValue(spDom, namespace, SUBPROCESS_ID);
+        final String subProcessId = storedSubProcessId != null ? storedSubProcessId : subProcess.getId();
+
+        final String storedSubProcessName = extractAttributeValue(spDom, namespace, "workItemName");
+        final String subProcessName = storedSubProcessName != null ? storedSubProcessName : resolveSubProcessName(subProcess);
+
+        final String description = extractAttributeValue(spDom, namespace, "nodeDescription");
+
+        final ElementNode callNode = new ElementNode();
+        callNode.setElementType(SUBPROCESS_CALL_NODE);
+        callNode.setId(subProcess.getId());
+        callNode.setName(subProcess.getName() != null && !subProcess.getName().isBlank()
+                ? subProcess.getName() : subProcess.getId());
+        callNode.setDescription(description);
+
+        if (subProcess.getOutgoing() != null && !subProcess.getOutgoing().isEmpty()) {
+            callNode.setConnectedTo(subProcess.getOutgoing().stream()
+                    .map(sf -> new ElementConnection(sf.getTarget().getId(), sf.getName()))
+                    .collect(Collectors.toList()));
+        }
+
+        final List<ElementNodeInput> inputs = new ArrayList<>();
+        addCallNodeInput(inputs, SUBPROCESS_ID, subProcessId, true);
+        if (subProcessName != null && !subProcessName.isBlank()) {
+            addCallNodeInput(inputs, SUBPROCESS_NAME, subProcessName, false);
+        }
+        callNode.setInputs(inputs);
+
+        return callNode;
+    }
+
+    private static void addCallNodeInput(List<ElementNodeInput> inputs, String name, String value, boolean isProvided) {
+        if (value == null || value.isBlank()) return;
+        final ElementNodeInput input = new ElementNodeInput();
+        input.setName(name);
+        input.setValue(value);
+        input.setVariableSource("CONSTANT");
+        input.setIsProvided(isProvided);
+        inputs.add(input);
     }
 
     private void attachBoundaryEvents(BpmnIntermediateModel intermediateModel, List<BoundaryEvent> boundaryEvents) {

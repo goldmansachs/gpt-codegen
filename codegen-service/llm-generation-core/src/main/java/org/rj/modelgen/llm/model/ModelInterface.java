@@ -14,20 +14,40 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
+
 import static org.rj.modelgen.llm.util.FuncUtil.*;
 
 public abstract class ModelInterface {
     private final LlmClient client;
     private final Function<String, SessionState> sessionGenerator;
     private final ConcurrentMap<String, SessionState> sessions;
+    private final LlmSubmissionScheduler scheduler;
 
     public ModelInterface(LlmClient client) {
-        this(client, SessionState::new);
+        this(client, SessionState::new, new DirectLlmSubmissionScheduler());
     }
+
     public ModelInterface(LlmClient client, Function<String, SessionState> sessionGenerator) {
+        this(client, sessionGenerator, new DirectLlmSubmissionScheduler());
+    }
+
+    public ModelInterface(LlmClient client, int maxConcurrentLlmCalls) {
+        this(client, SessionState::new, schedulerFor(maxConcurrentLlmCalls));
+    }
+
+    public ModelInterface(LlmClient client, Function<String, SessionState> sessionGenerator, int maxConcurrentLlmCalls) {
+        this(client, sessionGenerator, schedulerFor(maxConcurrentLlmCalls));
+    }
+
+    public ModelInterface(LlmClient client, LlmSubmissionScheduler scheduler) {
+        this(client, SessionState::new, scheduler);
+    }
+
+    public ModelInterface(LlmClient client, Function<String, SessionState> sessionGenerator, LlmSubmissionScheduler scheduler) {
         this.client = client;
         this.sessionGenerator = sessionGenerator;
         this.sessions = new ConcurrentHashMap<>();
+        this.scheduler = scheduler;
     }
 
     protected Mono<Optional<SessionState>> onNewSessionCreated(SessionState sessionState) {
@@ -70,7 +90,11 @@ public abstract class ModelInterface {
     }
 
     public final Mono<ModelResponse> submit(String id, ModelRequest request, ModelInterfacePayload payload) {
-        final var httpOptions = buildHttpOptions(id, payload);
+        final var work = buildSubmitWork(id, request, buildHttpOptions(id, payload));
+        return scheduler.schedule(work);
+    }
+
+    private Mono<ModelResponse> buildSubmitWork(String id, ModelRequest request, ModelRequestHttpOptions httpOptions) {
         return createSessionIfRequired(id)
                 .flatMap(session -> onSubmissionStart(session, request, httpOptions))
                 .flatMap(__ -> createSessionIfRequired(id))
@@ -82,6 +106,10 @@ public abstract class ModelInterface {
 
     private void recordResponse(String id, ModelResponse response) {
         getOrCreateSession(id).recordModelResponse(response);
+    }
+
+    private static LlmSubmissionScheduler schedulerFor(int maxConcurrentLlmCalls) {
+        return maxConcurrentLlmCalls > 0 ? new BoundedLlmSubmissionScheduler(maxConcurrentLlmCalls) : new DirectLlmSubmissionScheduler();
     }
 
     public final Optional<SessionState> getSession(String id) {
@@ -104,5 +132,4 @@ public abstract class ModelInterface {
 
         return sessionState;
     }
-
 }

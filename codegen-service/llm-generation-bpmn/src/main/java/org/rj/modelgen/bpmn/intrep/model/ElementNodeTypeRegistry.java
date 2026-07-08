@@ -18,6 +18,7 @@ import java.util.function.Predicate;
 
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_CALL_NODE;
 
 
 public class ElementNodeTypeRegistry {
@@ -71,6 +72,7 @@ public class ElementNodeTypeRegistry {
 
         // Process config & Subprocess
         register(PROCESS_CONFIG, ProcessConfigNode.class, fn -> false);  // never matched from FlowNode
+        register(SUBPROCESS_CALL_NODE, SubProcessNode.class, fn -> false);  // call nodes not matched from FlowNode
         register(SUBPROCESS, SubProcessNode.class, bpmnType("subProcess"));
     }
 

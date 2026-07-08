@@ -4,10 +4,12 @@ import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.models.generation.base.signals.BpmnGenerationSignals;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
+import org.rj.modelgen.bpmn.models.generation.multilevel.data.ImpactAnalysisResult;
 import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
 import org.rj.modelgen.llm.state.ModelInterfaceSignal;
 import org.rj.modelgen.llm.state.ModelInterfaceStateMachine;
 import org.rj.modelgen.llm.statemodel.states.common.InsertSyntheticComponents;
+import org.rj.modelgen.llm.subproblem.data.SubproblemDecompositionPayloadData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -33,14 +35,53 @@ public class InsertSyntheticBpmnComponents extends InsertSyntheticComponents<Bpm
         return executeLogic()
                 .flatMap(result -> result
                         .map(__ -> {
-                            // In copilot mode, emit CopilotDataInitialized to proceed directly to detail-level generation
                             final boolean isCopilotMode = getPayload().hasData(MultiLevelModelStandardPayloadData.ReverseRenderedIntermediateModel.toString());
-                            final String signal = isCopilotMode
-                                    ? BpmnGenerationSignals.CopilotDataInitialized.toString()
-                                    : getSuccessSignalId();
-                            return outboundSignal(signal).mono();
+                            if (!isCopilotMode) {
+                                return outboundSignal(getSuccessSignalId()).mono();
+                            }
+
+                            // Use the full IR as a single subproblem when adding new nodes or if impact analysis res is malformed
+                            if (shouldUseFullIr()) {
+                                setupSingleSubproblemContext();
+                                return outboundSignal(BpmnGenerationSignals.CopilotAddNodesRequired.toString()).mono();
+                            }
+
+                            return outboundSignal(BpmnGenerationSignals.CopilotDataInitialized.toString()).mono();
                         })
                         .orElse(this::error));
+    }
+
+    private boolean shouldUseFullIr() {
+        final Object raw = getPayload().getOrElse(MultiLevelModelStandardPayloadData.ImpactAnalysis, (Object) null);
+        if (raw == null) {
+            LOG.warn("No impact analysis result available in copilot mode so using complete IR model");
+            return true;
+        }
+
+        try {
+            final ImpactAnalysisResult impact = raw instanceof ImpactAnalysisResult res
+                    ? res
+                    : ImpactAnalysisResult.fromJson(raw.toString());
+            return impact.isAddNodes();
+        } catch (Exception e) {
+            LOG.warn("Failed to parse impact analysis result in copilot mode so using complete IR model");
+            return true;
+        }
+    }
+
+    private void setupSingleSubproblemContext() {
+        final String fullIr = getPayload().getOrElse(
+                MultiLevelModelStandardPayloadData.SerializedReverseRender, (String) null);
+
+        getPayload().put(SubproblemDecompositionPayloadData.CurrentSubproblem, 0);
+        getPayload().put(SubproblemDecompositionPayloadData.SubproblemCount, 1);
+
+        if (fullIr != null) {
+            final String requestKey = "%s-%d".formatted(SubproblemDecompositionPayloadData.SubproblemRequestContent, 0);
+            getPayload().put(requestKey, fullIr);
+        }
+
+        LOG.info("addNodes required: bypassing subproblem decomposition, sending full IR to detail-level stage as single subproblem");
     }
 
     @Override

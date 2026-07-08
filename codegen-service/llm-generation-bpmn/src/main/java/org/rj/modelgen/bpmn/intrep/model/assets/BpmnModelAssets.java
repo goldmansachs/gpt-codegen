@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.rj.modelgen.bpmn.models.generation.validation.PayloadVariable;
 import org.rj.modelgen.llm.intrep.assets.ModelAssets;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -59,5 +60,22 @@ public class BpmnModelAssets extends ModelAssets<ElementNodeUnresolvedInput> {
 
     public void setStartingPayload(List<PayloadVariable> startingPayload) {
         this.startingPayload = startingPayload;
+    }
+
+    @Override
+    public void merge(ModelAssets<ElementNodeUnresolvedInput> other) {
+        super.merge(other);
+        if (!(other instanceof BpmnModelAssets bpmnOther)) return;
+
+        if (bpmnOther.getUiComponents() != null && !bpmnOther.getUiComponents().isEmpty()) {
+            if (this.uiComponents == null) {
+                this.uiComponents = new ArrayList<>();
+            }
+            this.uiComponents.addAll(bpmnOther.getUiComponents());
+        }
+
+        if (this.startingPayload == null && bpmnOther.getStartingPayload() != null) {
+            this.startingPayload = new ArrayList<>(bpmnOther.getStartingPayload());
+        }
     }
 }

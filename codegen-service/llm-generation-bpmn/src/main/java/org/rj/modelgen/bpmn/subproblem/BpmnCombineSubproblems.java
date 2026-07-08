@@ -4,12 +4,14 @@ import org.json.JSONObject;
 import org.rj.modelgen.bpmn.component.synthetic.types.BpmnSyntheticTerminateWorkflowNode;
 import org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
+import org.rj.modelgen.bpmn.intrep.model.ElementConnection;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
 import org.rj.modelgen.bpmn.intrep.model.SubProcessConfig;
 import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
-import org.rj.modelgen.bpmn.intrep.model.assets.ElementNodeUnresolvedInput;
-import org.rj.modelgen.bpmn.models.generation.validation.PayloadVariable;
+import org.rj.modelgen.bpmn.intrep.model.assets.BpmnUIComponent;
+import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
+import org.rj.modelgen.llm.models.generation.multilevel.MultiLevelGenerationModelStates;
 import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.subproblem.data.SubproblemDecomposition;
 import org.rj.modelgen.llm.subproblem.data.SubproblemDetails;
@@ -19,11 +21,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.isEndEventType;
-import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.isStartEventType;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.EventConstants.IS_INTERRUPTING;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.EventConstants.MESSAGE_REF;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.GatewayConstants.DEFAULT;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.*;
 
 public class BpmnCombineSubproblems extends CombineSubproblems {
@@ -53,10 +58,11 @@ public class BpmnCombineSubproblems extends CombineSubproblems {
         }
 
         // 1. parse the main process (subprocess 0)
-        final BpmnIntermediateModel model = parseMainProcess(subproblems.get(0));
+        final var mainProcess = subproblems.get(0);
+        final BpmnIntermediateModel model = parseMainProcess(mainProcess);
 
         // 2. attach each subprocess sub-model (subprocess 1..n)
-        final var attachResult = attachSubprocessModels(model, subproblems);
+        final var attachResult = attachSubprocessModels(model, subproblems, mainProcess);
         if (attachResult.isErr()) return Result.Err(attachResult.getError());
 
         // 3. post-processing: connect process to subprocess, inject synthetic nodes, validation
@@ -74,23 +80,20 @@ public class BpmnCombineSubproblems extends CombineSubproblems {
         return model;
     }
 
-    private Result<Void, String> attachSubprocessModels(BpmnIntermediateModel model,
-                                                        List<SubproblemDetails> subproblems) {
-        final Set<String> mainNodeIds = model.getNodes().stream()
-                .map(ElementNode::getId)
-                .collect(Collectors.toSet());
-
+    private Result<Void, String> attachSubprocessModels(BpmnIntermediateModel model, List<SubproblemDetails> subproblems, SubproblemDetails mainProcess) {
         final StringBuilder commentary = new StringBuilder();
         if (model.getCommentary() != null) {
             commentary.append(model.getCommentary());
         }
 
-        for (int i = 1; i < subproblems.size(); ++i) {
-            final String subprocessId = resolveSubprocessId(i);
-            final BpmnIntermediateModel subprocess = BpmnIntermediateModel.fromJson(
-                    new JSONObject(subproblems.get(i).result()));
+        for (SubproblemDetails details : subproblems) {
+            if (details == mainProcess) continue;   // already used as the main process
 
-            final var validationResult = validateSubprocess(subprocess, mainNodeIds);
+            final String subprocessId = resolveSubprocessId(details.subproblemId());
+            final BpmnIntermediateModel subprocess = BpmnIntermediateModel.fromJson(
+                    new JSONObject(details.result()));
+
+            final var validationResult = validateSubprocess(subprocess);
             if (validationResult.isErr()) {
                 return Result.Err("Subprocess validation failed for '%s': %s"
                         .formatted(subprocessId, validationResult.getError()));
@@ -142,24 +145,146 @@ public class BpmnCombineSubproblems extends CombineSubproblems {
     private void reconcileSubprocessReferences(BpmnIntermediateModel model) {
         if (!model.hasSubModels()) return;
 
-        for (BpmnIntermediateModel subModel : model.getSubModels()) {
-            SubProcessConfig config = subModel.getSubProcessConfig();
-            if (config == null || config.isTriggeredByEvent()) continue;
+        final List<ElementNode> callNodes = model.getNodes().stream()
+                .filter(ElementNode::isSubprocessCallNode)
+                .collect(Collectors.toList());
+        final Set<String> claimedCallNodeIds = new HashSet<>();
 
-            String spId = config.getSubProcessId();
-            if (spId == null) continue;
+        final List<BpmnIntermediateModel> subModels = model.getSubModels().stream()
+                .filter(sm -> sm.getSubProcessConfig() != null
+                        && sm.getSubProcessConfig().getSubProcessId() != null)
+                .sorted(Comparator.comparing(sm -> sm.getSubProcessConfig().getSubProcessId()))
+                .collect(Collectors.toList());
 
-            boolean hasCallNode = model.getNodes().stream()
-                    .filter(BpmnCombineSubproblems::isInlineSubProcessCallNode)
-                    .anyMatch(node -> spId.equals(
-                            node.findInput(SUBPROCESS_ID).map(ElementNodeInput::getValue).orElse(null)));
+        // Pass 1: match each sub-model to its call node(s) by subProcessId / normalized id / node id.
+        final List<BpmnIntermediateModel> unmatchedInline = new ArrayList<>();
+        for (BpmnIntermediateModel subModel : subModels) {
+            final SubProcessConfig config = subModel.getSubProcessConfig();
+            final String spId = config.getSubProcessId();
 
-            if (hasCallNode) {
-                LOG.info("Matched inline subprocess '{}' to call node in main process", spId);
+            final List<ElementNode> matches = findAllMatchingCallNodes(callNodes, claimedCallNodeIds, spId);
+            if (matches.isEmpty()) {
+                // event sub-models never need a call node
+                if (!config.isTriggeredByEvent()) {
+                    unmatchedInline.add(subModel);
+                }
+                continue;
+            }
+
+            final ElementNode primary = matches.get(0);
+            claimedCallNodeIds.add(primary.getId());
+
+            if (config.isTriggeredByEvent()) {
+                config.setTriggeredByEvent(false);
+            }
+
+            final String currentInputValue = primary.findInput(SUBPROCESS_ID)
+                    .map(ElementNodeInput::getValue).orElse(null);
+            if (!spId.equals(currentInputValue)) {
+                setSubProcessIdInput(primary, spId);
             } else {
-                LOG.warn("No inline subProcess call node with subProcessId='{}' found in main process. Subprocess will be rendered as a standalone embedded subprocess", spId);
+                LOG.info("Matched inline subprocess '{}' to call node '{}' in main process", spId, primary.getId());
+            }
+
+            for (int i = 1; i < matches.size(); i++) {
+                final ElementNode secondary = matches.get(i);
+                claimedCallNodeIds.add(secondary.getId());
+                mergeSecondaryCallNode(model, secondary, primary, spId);
             }
         }
+
+        for (BpmnIntermediateModel subModel : unmatchedInline) {
+            convertToEventSubprocess(subModel);
+        }
+    }
+
+    // Converts an inline subprocess with no call node in the main process into a event subprocess
+    // if its start is a plain startEvent, convert it to a messageStartEvent
+    private void convertToEventSubprocess(BpmnIntermediateModel subModel) {
+        final SubProcessConfig config = subModel.getSubProcessConfig();
+        final String spId = config != null ? config.getSubProcessId() : null;
+        if (config != null) {
+            config.setTriggeredByEvent(true);
+        }
+
+        subModel.getNodes().stream()
+                .filter(n -> isStartEventType(n.getElementType()))
+                .findFirst()
+                .filter(n -> START_EVENT.equals(n.getElementType()))
+                .ifPresent(startNode -> {
+                    startNode.setElementType(MESSAGE_START_EVENT);
+                    final List<ElementNodeInput> inputs = startNode.getInputs() != null
+                            ? new ArrayList<>(startNode.getInputs()) : new ArrayList<>();
+                    if (startNode.findInput(IS_INTERRUPTING).isEmpty()) {
+                        inputs.add(ElementNodeInput.createConstant(IS_INTERRUPTING, "true"));
+                    }
+                    if (startNode.findInput(MESSAGE_REF).isEmpty()) {
+                        inputs.add(ElementNodeInput.createConstant(MESSAGE_REF, "triggerEvent" + spId));
+                    }
+                    startNode.setInputs(inputs);
+                });
+
+        LOG.warn("Inline subprocess '{}' has no matching subprocessCallNode in the main process; converting it to a message-triggered event subprocess", spId);
+    }
+
+    private static List<ElementNode> findAllMatchingCallNodes(List<ElementNode> callNodes, Set<String> claimed, String spId) {
+        final Set<String> seen = new LinkedHashSet<>();
+        final List<ElementNode> result = new ArrayList<>();
+        for (ElementNode node : callNodes) {
+            if (claimed.contains(node.getId()) || seen.contains(node.getId())) continue;
+            final String inputVal = node.findInput(SUBPROCESS_ID).map(ElementNodeInput::getValue).orElse(null);
+            if (spId.equals(inputVal) || spId.equals(node.getId())) {
+                result.add(node);
+                seen.add(node.getId());
+            }
+        }
+        return result;
+    }
+
+    private static void mergeSecondaryCallNode(BpmnIntermediateModel model, ElementNode secondary,
+                                               ElementNode primary, String spId) {
+        for (ElementNode node : model.getNodes()) {
+            if (node == secondary) continue;
+            if (node.getConnectedTo() != null) {
+                node.getConnectedTo().forEach(conn -> {
+                    if (secondary.getId().equals(conn.getTargetNode())) {
+                        conn.setTargetNode(primary.getId());
+                    }
+                });
+            }
+            if (node.getInputs() != null) {
+                node.getInputs().stream()
+                        .filter(inp -> DEFAULT.equals(inp.getName())
+                                && secondary.getId().equals(inp.getValue()))
+                        .forEach(inp -> inp.setValue(primary.getId()));
+            }
+        }
+
+        // repoint the into same subprocess
+        if (secondary.getConnectedTo() != null && !secondary.getConnectedTo().isEmpty()) {
+            final List<ElementConnection> merged = new ArrayList<>(primary.getConnectedTo());
+            merged.addAll(secondary.getConnectedTo());
+            primary.setConnectedTo(merged);
+        }
+
+        model.getNodes().removeIf(n -> secondary.getId().equals(n.getId()));
+        LOG.info("Subprocess '{}': merged call node '{}' into primary '{}'", spId, secondary.getId(), primary.getId());
+    }
+
+    private static void setSubProcessIdInput(ElementNode callNode, String spId) {
+        final Optional<ElementNodeInput> existing = callNode.findInput(SUBPROCESS_ID);
+        if (existing.isPresent()) {
+            existing.get().setValue(spId);
+            return;
+        }
+        final ElementNodeInput input = new ElementNodeInput();
+        input.setName(SUBPROCESS_ID);
+        input.setValue(spId);
+        final List<ElementNodeInput> inputs = callNode.getInputs() != null
+                ? new ArrayList<>(callNode.getInputs())
+                : new ArrayList<>();
+        inputs.add(input);
+        callNode.setInputs(inputs);
     }
 
     private void warnOnUnresolvedDependencies(BpmnIntermediateModel model) {
@@ -169,12 +294,10 @@ public class BpmnCombineSubproblems extends CombineSubproblems {
         }
     }
 
-    private Result<Void, String> validateSubprocess(BpmnIntermediateModel subprocess,
-                                                    Set<String> mainNodeIds) {
+    private Result<Void, String> validateSubprocess(BpmnIntermediateModel subprocess) {
         if (subprocess == null) return Result.Err("Subprocess model is null");
 
         stripInvalidNodeTypes(subprocess);
-        deduplicateMainProcessNodes(subprocess, mainNodeIds);
 
         boolean hasStart = subprocess.getNodes().stream().anyMatch(n -> isStartEventType(n.getElementType()));
         boolean hasEnd = subprocess.getNodes().stream().anyMatch(n -> isEndEventType(n.getElementType()));
@@ -209,48 +332,43 @@ public class BpmnCombineSubproblems extends CombineSubproblems {
         });
     }
 
-    private void deduplicateMainProcessNodes(BpmnIntermediateModel subprocess,
-                                             Set<String> mainNodeIds) {
-        int before = subprocess.getNodes().size();
-        subprocess.getNodes().removeIf(n -> mainNodeIds.contains(n.getId()));
-        int removed = before - subprocess.getNodes().size();
-        if (removed > 0) {
-            LOG.warn("Removed {} node(s) from subprocess that duplicated main process IDs", removed);
-        }
-    }
-
-    private static boolean isInlineSubProcessCallNode(ElementNode node) {
-        return SUBPROCESS.equals(node.getElementType())
-                && node.getConnectedTo() != null
-                && !node.getConnectedTo().isEmpty();
-    }
-
-    // Combines model assets (unresolved inputs, starting payload)
+    // Combines model assets from all subproblems into a single authoritative BpmnModelAssets.
+    // Delegates deduplication semantics to BpmnModelAssets.merge(List<>).
     private void combineModelAssets(int subproblemCount) {
-        List<ElementNodeUnresolvedInput> combinedUnresolvedInputs = new ArrayList<>();
-        List<PayloadVariable> combinedStartingPayload = null;
-
+        final List<BpmnModelAssets> perSubproblemAssets = new ArrayList<>();
         for (int i = 0; i < subproblemCount; i++) {
             final Object raw = getPayload().getData().get(subproblemAssetsKey(i));
-            if (!(raw instanceof BpmnModelAssets assets)) continue;
-
-            // Unresolved inputs: accumulate from every subproblem
-            if (assets.getUnresolvedInputs() != null) {
-                combinedUnresolvedInputs.addAll(assets.getUnresolvedInputs());
-            }
-
-            // Starting payload: take from the main process (subproblem 0), which is the process-level payload
-            if (i == 0 && assets.getStartingPayload() != null) {
-                combinedStartingPayload = new ArrayList<>(assets.getStartingPayload());
+            if (raw instanceof BpmnModelAssets assets) {
+                perSubproblemAssets.add(assets);
             }
         }
 
         final BpmnModelAssets combinedAssets = new BpmnModelAssets();
-        combinedAssets.setUnresolvedInputs(combinedUnresolvedInputs);
-        combinedAssets.setStartingPayload(combinedStartingPayload);
+        perSubproblemAssets.forEach(combinedAssets::merge);
+
+        // Deduplicate unresolved inputs by (nodeId, inputKey)
+        if (combinedAssets.getUnresolvedInputs() != null) {
+            final var seen = new java.util.LinkedHashSet<String>();
+            final var deduped = combinedAssets.getUnresolvedInputs().stream()
+                    .filter(u -> seen.add(u.getNodeId() + ":" + u.getInputKey()))
+                    .toList();
+            combinedAssets.setUnresolvedInputs(new ArrayList<>(deduped));
+        }
 
         getPayload().getData().put(StandardModelData.ModelAssets.toString(), combinedAssets);
 
-        LOG.info("Combined model assets from {} subproblems: {} unresolved inputs, {} starting payload variables", subproblemCount, combinedUnresolvedInputs.size(), combinedStartingPayload != null ? combinedStartingPayload.size() : 0);
+        final List<BpmnUIComponent> uiComponents = combinedAssets.getUiComponents();
+        if (uiComponents != null && !uiComponents.isEmpty()) {
+            // Publish UIComponents to the payload key UIGeneration reads
+            getPayload().put(MultiLevelModelStandardPayloadData.UIComponents, uiComponents);
+            // Explicit flag so UIGeneration does not need to inspect content to decide whether to skip
+            getPayload().put(MultiLevelGenerationModelStates.SubproblemUIGenerationComplete, Boolean.TRUE);
+        }
+
+        LOG.info("Combined model assets from {} subproblems: {} unresolved inputs, {} starting payload variables, {} UI components",
+                subproblemCount,
+                combinedAssets.getUnresolvedInputs() != null ? combinedAssets.getUnresolvedInputs().size() : 0,
+                combinedAssets.getStartingPayload() != null ? combinedAssets.getStartingPayload().size() : 0,
+                uiComponents != null ? uiComponents.size() : 0);
     }
 }

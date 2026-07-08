@@ -4,6 +4,7 @@ import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
+import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
 import org.rj.modelgen.bpmn.models.generation.base.signals.BpmnGenerationSignals;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
 import org.rj.modelgen.bpmn.models.generation.multilevel.data.ImpactAnalysisResult;
@@ -23,6 +24,8 @@ import reactor.core.publisher.Mono;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.EXPECTED_INLINE_SUBPROCESS_IDS;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_ID;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.Validation.FULL_PROCESS;
 import static org.rj.modelgen.bpmn.models.generation.base.context.BpmnPromptPlaceholders.DETAIL_MODEL_VALIDATION_ISSUES;
 import static org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData.InitialValidations;
@@ -68,7 +71,8 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
 
         final Collection<PayloadVariable> processVarsRaw = getPayload().get(MultiLevelModelStandardPayloadData.ProcessVariables);
         final Set<PayloadVariable> startingPayload = processVarsRaw != null ? new HashSet<>(processVarsRaw) : new HashSet<>();
-        final List<IntermediateModelValidationError> validations = bpmnModelValidator.validate(model, startingPayload);
+        final boolean isSubprocessDL = getModel().isSubModel();
+        final List<IntermediateModelValidationError> validations = bpmnModelValidator.validate(model, startingPayload, isSubprocessDL);
 
         final Map<String, String> validationMessages = new LinkedHashMap<>();
         validations.stream().collect(Collectors.groupingBy(IntermediateModelValidationError::getLocation))
@@ -82,7 +86,46 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
                     validationMessages.put(nodeName, message);
                 });
 
+        if (!isReverseRender) {
+            appendMissingInlineSubprocessCallNodeIssues(model, validationMessages);
+        }
+
         return validationMessages;
+    }
+
+    private void appendMissingInlineSubprocessCallNodeIssues(BpmnIntermediateModel model, Map<String, String> validationMessages) {
+        final List<String> expectedInlineIds = resolveExpectedInlineSubprocessIds(model);
+        if (expectedInlineIds.isEmpty()) return;
+
+        final Set<String> presentCallNodeIds = model.getNodes().stream()
+                .filter(ElementNode::isSubprocessCallNode)
+                .map(node -> node.findInput(SUBPROCESS_ID).map(ElementNodeInput::getValue).orElse(null))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        for (String spId : expectedInlineIds) {
+            if (presentCallNodeIds.contains(spId)) continue;
+
+            final String message = String.format("Node Name: %s\n Issues to resolve:\n  1. The main process must invoke subprocess '%s'. Add a node with elementType 'subprocessCallNode' whose 'subProcessId' input is '%s', connected inline in the flow with inbound and outbound connections.\n", FULL_PROCESS, spId, spId);
+            validationMessages.put("subprocessCallNode:" + spId, message);
+        }
+    }
+
+    private List<String> resolveExpectedInlineSubprocessIds(BpmnIntermediateModel model) {
+        final Object plumbed = getPayload().getOrElse(EXPECTED_INLINE_SUBPROCESS_IDS, (Object) null);
+        if (plumbed instanceof Collection<?> ids) {
+            return ids.stream()
+                    .map(String::valueOf)
+                    .filter(id -> id != null && !id.isBlank())
+                    .collect(Collectors.toList());
+        }
+
+        // Non-decomposed case: the model carries its own subModels inline
+        return model.getSubModels().stream()
+                .filter(sm -> sm.getSubProcessConfig() != null && !sm.isTriggeredByEvent())
+                .map(sm -> sm.getSubProcessConfig().getSubProcessId())
+                .filter(id -> id != null && !id.isBlank())
+                .collect(Collectors.toList());
     }
 
     private Mono<ModelInterfaceSignal> handleExistingValidations(Map<String, String> validationsByNode) {
@@ -175,10 +218,4 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
         getPayload().remove(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel);
     }
 
-    private BpmnComponentLibrary getComponentLibrary() {
-        return Optional.ofNullable(getModel())
-                .map(m -> m.getAs(BpmnMultiLevelGenerationModel.class))
-                .map(BpmnMultiLevelGenerationModel::getComponentLibrary)
-                .orElse(null);
-    }
 }

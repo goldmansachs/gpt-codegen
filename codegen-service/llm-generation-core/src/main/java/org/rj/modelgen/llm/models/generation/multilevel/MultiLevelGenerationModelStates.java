@@ -7,10 +7,12 @@ public enum MultiLevelGenerationModelStates implements StringSerializable {
     SanitizingPrePass,
     PreProcessing,
     GenerateSubproblems,
+    ParallelSubproblemExecution,
     ExecuteHighLevel,
     ValidateHighLevel,
     ReverseRender,
     GenerateReverseRenderSubproblems,
+    ParallelReverseRenderSubproblemExecution,
     ExecuteDetailLevel,
     InitialValidateDetailLevel,
     ValidateDetailLevel,
@@ -18,6 +20,7 @@ public enum MultiLevelGenerationModelStates implements StringSerializable {
     CombineSubproblems,
     PostProcessing,
     GenerateModel,
+    SubproblemUIGenerationComplete,
     Complete;
 
     @Override
@@ -32,10 +35,12 @@ public enum MultiLevelGenerationModelStates implements StringSerializable {
             case SanitizingPrePass -> "Sanitizing provided input";
             case PreProcessing -> "Pre-processing provided input";
             case GenerateSubproblems -> "Decomposing the input into sub-problems";
+            case ParallelSubproblemExecution -> "Executing sub-problems in parallel";
             case ExecuteHighLevel -> "Generating high-level intermediate model";
             case ValidateHighLevel -> "Validating high-level intermediate model";
             case ReverseRender -> "Translating the automation model to intermediate model";
             case GenerateReverseRenderSubproblems -> "Decomposing the intermediate model into sub-problems";
+            case ParallelReverseRenderSubproblemExecution -> "Executing reverse-render sub-problems in parallel";
             case ExecuteDetailLevel -> "Executing detail-level intermediate model";
             case InitialValidateDetailLevel -> "Performing initial validation of reverse-rendered detail-level intermediate model";
             case ValidateDetailLevel -> "Validating detail-level intermediate model schema";
@@ -43,6 +48,7 @@ public enum MultiLevelGenerationModelStates implements StringSerializable {
             case CombineReverseRenderSubproblems -> "Combining results from sub-problems";
             case PostProcessing -> "Processing final intermediate model";
             case GenerateModel -> "Generating final workflow";
+            case SubproblemUIGenerationComplete -> "Completed all UI model generation";
             case Complete -> "Multi-level generation process complete";
         };
     }

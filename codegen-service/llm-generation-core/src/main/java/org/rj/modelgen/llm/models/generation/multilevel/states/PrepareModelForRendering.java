@@ -134,7 +134,9 @@ public abstract class PrepareModelForRendering extends ExecuteLogic {
             }
 
             // Follow all connections
-            node.getConnectedTo().forEach(conn -> queue.add(conn.getTargetNode()));
+            if (node.getConnectedTo() != null) {
+                node.getConnectedTo().forEach(conn -> queue.add(conn.getTargetNode()));
+            }
         }
 
         return visited.stream().toList();

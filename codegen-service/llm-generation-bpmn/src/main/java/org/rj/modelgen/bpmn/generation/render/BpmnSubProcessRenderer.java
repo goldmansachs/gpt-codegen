@@ -250,15 +250,11 @@ public class BpmnSubProcessRenderer {
     }
 
 
-    /**
-     * Finds the main process' inline subprocess call node whose {@code subProcessId} input matches the given ID.
-     */
     private String findInlineSubProcessNodeId(BpmnIntermediateModel parentModel, String subProcessId) {
         if (subProcessId == null || subProcessId.isBlank()) return null;
 
         return parentModel.getNodes().stream()
-                .filter(node -> BpmnConstants.SubProcessConfigConstants.SUBPROCESS.equals(node.getElementType()))
-                .filter(node -> node.getConnectedTo() != null && !node.getConnectedTo().isEmpty())
+                .filter(ElementNode::isSubprocessCallNode)
                 .filter(node -> {
                     String nodeSpId = node.findInput(BpmnConstants.SubProcessConfigConstants.SUBPROCESS_ID)
                             .map(ElementNodeInput::getValue)

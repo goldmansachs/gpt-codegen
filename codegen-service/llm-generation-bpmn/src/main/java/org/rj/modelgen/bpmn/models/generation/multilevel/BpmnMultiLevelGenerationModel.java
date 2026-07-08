@@ -39,8 +39,9 @@ import org.rj.modelgen.llm.models.generation.multilevel.config.MultiLevelModelPh
 import org.rj.modelgen.llm.models.generation.multilevel.config.MultilevelModelPreprocessingConfig;
 import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
 import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelGenerationModelPromptGenerator;
-
 import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelModelPromptType;
+import org.rj.modelgen.llm.models.generation.multilevel.signals.MultiLevelModelStandardSignals;
+import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderFunction;
 import org.rj.modelgen.llm.response.ModelResponse;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
@@ -50,11 +51,14 @@ import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.llm.statemodel.states.common.PrepareAndSubmitLlmGenericRequest;
 import org.rj.modelgen.llm.subproblem.config.SubproblemDecompositionConfig;
+import org.rj.modelgen.llm.subproblem.config.SubproblemParallelExecutor;
+import org.rj.modelgen.llm.subproblem.data.SubproblemDecompositionSignals;
 import org.rj.modelgen.bpmn.models.generation.base.signals.*;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -67,15 +71,29 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
     private final BpmnComponentLibrary componentLibrary;
 
     public static BpmnMultiLevelGenerationModel create(ModelInterface modelInterface, BpmnMultiLevelGenerationModelOptions options) {
+        return create(modelInterface, options, null);
+    }
+
+    public static BpmnMultiLevelGenerationModel create(ModelInterface modelInterface, BpmnMultiLevelGenerationModelOptions options,
+                                                        SubproblemParallelExecutor parallelExecutor) {
         final var componentLibrary = BpmnComponentLibrary.defaultLibrary();
         final var globalVariableLibrary = BpmnGlobalVariableLibrary.defaultLibrary();
         final var reverseRenderFunction = new BpmnReverseRenderFunction(componentLibrary, globalVariableLibrary, DEFAULT_NAMESPACE_URI);
 
-        return create(modelInterface, options, new BpmnModelGenerationFunction(), new ValidateBpmnModel(componentLibrary, globalVariableLibrary),
+        return create(modelInterface, options, parallelExecutor, new BpmnModelGenerationFunction(),
+                new ValidateBpmnModel(componentLibrary, globalVariableLibrary),
                 componentLibrary, globalVariableLibrary, reverseRenderFunction);
     }
 
     public static BpmnMultiLevelGenerationModel create(ModelInterface modelInterface, BpmnMultiLevelGenerationModelOptions options, BpmnModelGenerationFunction modelGenerationFunction,
+                                                       ValidateBpmnModel bpmnModelValidator, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary,
+                                                       BpmnReverseRenderFunction reverseRenderFunction) {
+        return create(modelInterface, options, null, modelGenerationFunction, bpmnModelValidator, componentLibrary, globalVariableLibrary, reverseRenderFunction);
+    }
+
+    public static BpmnMultiLevelGenerationModel create(ModelInterface modelInterface, BpmnMultiLevelGenerationModelOptions options,
+                                                       SubproblemParallelExecutor parallelExecutor,
+                                                       BpmnModelGenerationFunction modelGenerationFunction,
                                                        ValidateBpmnModel bpmnModelValidator, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary,
                                                        BpmnReverseRenderFunction reverseRenderFunction) {
         final var promptGenerator = new BpmnGenerationMultiLevelPromptGenerator();
@@ -103,13 +121,15 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
 
         final var subproblemDecompositionConfig = SubproblemDecompositionConfig.defaultConfig()
                 .withSubproblemGeneratorImplementation(BpmnGenerateSubproblems::new)
-                .withSubproblemCombinationImplementation(BpmnCombineSubproblems::new);
+                .withSubproblemCombinationImplementation(BpmnCombineSubproblems::new)
+                .withParallelExecutor(parallelExecutor);
 
         final var reverseRenderSubproblemDecompositionConfig = SubproblemDecompositionConfig.defaultConfig()
                 .withSubproblemGeneratorImplementation(() -> new BpmnGenerateSubproblems()
                         .withInputKey(MultiLevelModelStandardPayloadData.SerializedReverseRender)
                         .withOutputKey(MultiLevelModelStandardPayloadData.SerializedReverseRender))
-                .withSubproblemCombinationImplementation(BpmnCombineSubproblems::new);
+                .withSubproblemCombinationImplementation(BpmnCombineSubproblems::new)
+                .withParallelExecutor(parallelExecutor);
 
 
         final var completionState = new BpmnGenerationComplete();
@@ -144,20 +164,29 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
 
     @Override
     public Mono<BpmnGenerationResult> executeModel(String sessionId, String request, String canvasModel, Map<String, Object> data) {
-        final var initialState = MultiLevelGenerationModelStates.StartMultiLevelGeneration.toString();
+        final var initialState = isSubModel()
+                ? BpmnAdditionalModelStates.InitializeBpmnData.toString()
+                : MultiLevelGenerationModelStates.StartMultiLevelGeneration.toString();
 
         BpmnGenerationModelInputPayload input = new BpmnGenerationModelInputPayload(sessionId, request, canvasModel);
         if (data != null) input.putAll(data);
 
-        return this.execute(initialState, getStartSignal(canvasModel), input)
-                .map(BpmnGenerationResult::fromModelExecutionResult);
+        final Mono<org.rj.modelgen.llm.state.ModelInterfaceExecutionResult> execution = isSubModel()
+                ? this.execute(initialState, StandardSignals.SUCCESS, input)
+                : this.execute(initialState, getStartSignal(canvasModel), input);
+
+        return execution.map(BpmnGenerationResult::fromModelExecutionResult);
     }
 
     private static ModelInterfaceStateMachineCustomization addBpmnModelCustomization(ModelCustomizationData modelData, BpmnMultiLevelGenerationModelOptions options, BpmnGenerationMultiLevelPromptGenerator promptGenerator, ContextProvider contextProvider,
                                                                                      BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator) {
         final List<BiFunction<ModelInterfaceStateMachineCustomization, ModelCustomizationData, ModelInterfaceStateMachineCustomization>> customizations = List.of(
                 (customization, data) -> initialValidateBpmnDetailLevel(customization, data, globalVariableLibrary, bpmnModelValidator),
-                (customization, data) -> impactAnalysis(customization, contextProvider, promptGenerator, componentLibrary),
+                (customization, data) -> impactAnalysisStates(customization, contextProvider, promptGenerator, componentLibrary),
+                (customization, data) -> interceptGenerationEntrypoints(customization),
+                (customization, data) -> evaluateImpactAnalysisRouting(customization),
+                (customization, data) -> bpmnSanitizingPrePassRouting(customization, contextProvider, promptGenerator, componentLibrary),
+                BpmnMultiLevelGenerationModel::evaluateSubproblemImpact,
                 (customization, data) -> initializeBpmnPayload(customization, contextProvider, promptGenerator, componentLibrary),
                 (customization, data) -> initializeBpmnData(customization, data, componentLibrary, globalVariableLibrary, options),
                 (customization, data) -> preProcessingInsertSyntheticComponents(customization, data, options),
@@ -166,6 +195,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 (customization, data) -> validateDetailLevelModel(customization, data, globalVariableLibrary, bpmnModelValidator, options),
                 BpmnMultiLevelGenerationModel::postProcessingResolveSyntheticComponents,
                 (customization, data) -> postProcessingPrepareForRendering(customization, data, globalVariableLibrary),
+                (customization, data) -> postCombinePrepareForRendering(customization, globalVariableLibrary),
                 BpmnMultiLevelGenerationModel::validateBpmnModelCorrectness
         );
 
@@ -181,15 +211,26 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 .withOverriddenId(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation);
 
         return customization
-                .withReplacedState(initialValidation, MultiLevelGenerationModelStates.InitialValidateDetailLevel.toString())
-                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()))
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.SanitizingPrePass.toString()));
+                .withReplacedState(initialValidation, MultiLevelGenerationModelStates.InitialValidateDetailLevel.toString());
     }
 
-    private static ModelInterfaceStateMachineCustomization impactAnalysis(ModelInterfaceStateMachineCustomization customization,
-                                                                          ContextProvider contextProvider,
-                                                                          BpmnGenerationMultiLevelPromptGenerator promptGenerator,
-                                                                          BpmnComponentLibrary componentLibrary) {
+    private static ModelInterfaceStateMachineCustomization evaluateSubproblemImpact(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData) {
+        final var bpmnEvaluateSubproblemImpact = new EvaluateBpmnSubproblemImpact()
+                .withOverriddenId(BpmnAdditionalModelStates.EvaluateSubproblemImpact);
+
+        return customization
+                .withNewState(bpmnEvaluateSubproblemImpact)
+                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.ParallelReverseRenderSubproblemExecution.toString(), SubproblemDecompositionSignals.BypassParallelExecution.toString(), BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.ParallelReverseRenderSubproblemExecution.toString(), SubproblemDecompositionSignals.BypassParallelExecution.toString(), BpmnAdditionalModelStates.EvaluateSubproblemImpact.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateSubproblemImpact.toString(), StandardSignals.SUCCESS.toString(), BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateSubproblemImpact.toString(), StandardSignals.SKIPPED.toString(), MultiLevelGenerationModelStates.CombineSubproblems.toString()));
+    }
+
+    // Creates ExecuteImpactAnalysis and EvaluateImpactAnalysis states and wires their core connection.
+    private static ModelInterfaceStateMachineCustomization impactAnalysisStates(ModelInterfaceStateMachineCustomization customization,
+                                                                                ContextProvider contextProvider,
+                                                                                BpmnGenerationMultiLevelPromptGenerator promptGenerator,
+                                                                                BpmnComponentLibrary componentLibrary) {
         final var executeImpactAnalysis = new PrepareAndSubmitLlmGenericRequest<>(
                 contextProvider, promptGenerator, MultiLevelModelPromptType.GenerateImpactAnalysis,
                 componentLibrary, new BpmnGenerationMultiLevelSchemaImpactAnalysis())
@@ -203,19 +244,45 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
         return customization
                 .withNewState(executeImpactAnalysis)
                 .withNewState(evaluateImpactAnalysis)
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString()));
+    }
 
+    private static ModelInterfaceStateMachineCustomization interceptGenerationEntrypoints(ModelInterfaceStateMachineCustomization customization) {
+        return customization
+                // Initial generation: Start → IA
+                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.StartMultiLevelGeneration.toString(), MultiLevelModelStandardSignals.UsePreprocessingFlow.toString(), MultiLevelGenerationModelStates.SanitizingPrePass.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.StartMultiLevelGeneration.toString(), MultiLevelModelStandardSignals.UsePreprocessingFlow.toString(), BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString()))
+                // Copilot: ReverseRender → IA
+                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.ReverseRender.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.GenerateReverseRenderSubproblems.toString()))
+                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.ReverseRender.toString(), StandardSignals.SKIPPED, MultiLevelGenerationModelStates.GenerateReverseRenderSubproblems.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.ReverseRender.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.ReverseRender.toString(), StandardSignals.SKIPPED, BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString()));
+    }
+
+    // Routes EvaluateImpactAnalysis signals: early exit for non-generation else sanitize request
+    private static ModelInterfaceStateMachineCustomization evaluateImpactAnalysisRouting(ModelInterfaceStateMachineCustomization customization) {
+        return customization
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), BpmnGenerationSignals.NoGenerationRequired.toString(), MultiLevelGenerationModelStates.Complete.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), BpmnGenerationSignals.InitialGenerationRequired.toString(), MultiLevelGenerationModelStates.SanitizingPrePass.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.SanitizingPrePass.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), StandardSignals.SKIPPED, MultiLevelGenerationModelStates.SanitizingPrePass.toString()));
+    }
+
+    private static ModelInterfaceStateMachineCustomization bpmnSanitizingPrePassRouting(ModelInterfaceStateMachineCustomization customization,
+                                                                                        ContextProvider contextProvider,
+                                                                                        BpmnGenerationMultiLevelPromptGenerator promptGenerator,
+                                                                                        BpmnComponentLibrary componentLibrary) {
+        final var bpmnSanitizingPrePass = new BpmnSanitizingPrePass(contextProvider, promptGenerator, MultiLevelModelPromptType.SanitizingPrePass, componentLibrary)
+                .withResponseOutputKey(StandardModelData.Request)
+                .withOverriddenId(MultiLevelGenerationModelStates.SanitizingPrePass);
+
+        return customization
+                .withReplacedState(bpmnSanitizingPrePass, MultiLevelGenerationModelStates.SanitizingPrePass.toString())
                 .withRemovedRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SUCCESS, MultiLevelGenerationModelStates.PreProcessing.toString()))
                 .withRemovedRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SKIPPED, MultiLevelGenerationModelStates.PreProcessing.toString()))
-
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString()))
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SKIPPED, BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString()))
-
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.ExecuteImpactAnalysis.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString()))
-
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.InitializeBpmnPayload.toString()))
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), StandardSignals.SKIPPED, BpmnAdditionalModelStates.InitializeBpmnData.toString()))
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), BpmnGenerationSignals.InitialGenerationRequired.toString(), MultiLevelGenerationModelStates.PreProcessing.toString()))
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.EvaluateImpactAnalysis.toString(), BpmnGenerationSignals.NoGenerationRequired.toString(), MultiLevelGenerationModelStates.Complete.toString()));
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), BpmnGenerationSignals.InitialGenerationRequired.toString(), MultiLevelGenerationModelStates.PreProcessing.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SUCCESS, BpmnAdditionalModelStates.InitializeBpmnPayload.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.SanitizingPrePass.toString(), StandardSignals.SKIPPED, BpmnAdditionalModelStates.InitializeBpmnData.toString()));
     }
 
     private static ModelInterfaceStateMachineCustomization initializeBpmnPayload(ModelInterfaceStateMachineCustomization customization, ContextProvider contextProvider,
@@ -226,7 +293,9 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 .withOverriddenId(BpmnAdditionalModelStates.InitializeBpmnPayload);
 
         return customization
-                .withNewStateInsertedAfter(initializeProcessPayload, MultiLevelGenerationModelStates.GenerateSubproblems.toString())
+                .withNewStateInsertedAfter(initializeProcessPayload, MultiLevelGenerationModelStates.PreProcessing.toString())
+                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.PreProcessing.toString(), StandardSignals.SKIPPED, MultiLevelGenerationModelStates.GenerateSubproblems.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(MultiLevelGenerationModelStates.PreProcessing.toString(), StandardSignals.SKIPPED, BpmnAdditionalModelStates.InitializeBpmnPayload.toString()))
                 .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InitializeBpmnPayload.toString(), StandardSignals.SKIPPED, BpmnAdditionalModelStates.InitializeBpmnData.toString()));
     }
 
@@ -254,7 +323,8 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
 
         return customization
                 .withNewStateInsertedAfter(insertSyntheticComponents, BpmnAdditionalModelStates.InitializeBpmnData.toString())
-                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InsertSyntheticComponents.toString(), BpmnGenerationSignals.CopilotDataInitialized.toString(), MultiLevelGenerationModelStates.ExecuteDetailLevel.toString()));
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InsertSyntheticComponents.toString(), BpmnGenerationSignals.CopilotDataInitialized.toString(), MultiLevelGenerationModelStates.GenerateReverseRenderSubproblems.toString()))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.InsertSyntheticComponents.toString(), BpmnGenerationSignals.CopilotAddNodesRequired.toString(), BpmnAdditionalModelStates.InitialBpmnDetailLevelValidation.toString()));
     }
 
     private static ModelInterfaceStateMachineCustomization processHighLevelModelDataForDetailLevelGeneration(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData, BpmnGlobalVariableLibrary globalVariableLibrary) {
@@ -305,6 +375,22 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
 
         return customization
                 .withNewStateInsertedAfter(prepareForRendering, BpmnAdditionalModelStates.ResolveSyntheticComponents.toString());
+    }
+
+    private static ModelInterfaceStateMachineCustomization postCombinePrepareForRendering(ModelInterfaceStateMachineCustomization customization, BpmnGlobalVariableLibrary globalVariableLibrary) {
+        final var postCombinePrepareForRendering = new PrepareBpmnModelForRendering(globalVariableLibrary)
+                .withOverriddenId(BpmnAdditionalModelStates.PostCombinePrepareForRendering);
+
+        final String combineId = MultiLevelGenerationModelStates.CombineSubproblems.toString();
+        final String completedSignal = SubproblemDecompositionSignals.SubproblemDecompositionCompleted.toString();
+        final String generateModelId = MultiLevelGenerationModelStates.GenerateModel.toString();
+        final String postCombineId = BpmnAdditionalModelStates.PostCombinePrepareForRendering.toString();
+
+        return customization
+                .withNewState(postCombinePrepareForRendering)
+                .withRemovedRule(new ModelInterfaceTransitionRule.Reference(combineId, completedSignal, generateModelId))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(combineId, completedSignal, postCombineId))
+                .withNewRule(new ModelInterfaceTransitionRule.Reference(postCombineId, StandardSignals.SUCCESS.toString(), generateModelId));
     }
 
     private static ModelInterfaceStateMachineCustomization validateBpmnModelCorrectness(ModelInterfaceStateMachineCustomization customization, ModelCustomizationData modelData) {

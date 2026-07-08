@@ -13,9 +13,12 @@ public enum BpmnAdditionalModelStates implements StringSerializable {
     ResolveSyntheticComponents,
     ExecuteImpactAnalysis,
     EvaluateImpactAnalysis,
+    EvaluateSubproblemImpact,
     UIGeneration,
     PrepareForRendering,
-    ValidateBpmnModelCorrectness;
+    PostCombinePrepareForRendering,
+    ValidateBpmnModelCorrectness,
+    SubproblemComplete;
 
     @Override
     public String toString() {
@@ -35,9 +38,12 @@ public enum BpmnAdditionalModelStates implements StringSerializable {
             case ResolveSyntheticComponents -> "Resolving synthetic components in the BPMN model";
             case ExecuteImpactAnalysis -> "Executing impact analysis on the requested change";
             case EvaluateImpactAnalysis -> "Evaluating impact analysis to determine generation strategy";
+            case EvaluateSubproblemImpact -> "Evaluating whether the current subproblem contains impacted nodes";
             case UIGeneration -> "Generating user interface components for the BPMN model";
             case PrepareForRendering -> "Preparing BPMN model for rendering";
+            case PostCombinePrepareForRendering -> "Preparing combined BPMN model for rendering";
             case ValidateBpmnModelCorrectness -> "Validating BPMN model correctness";
+            case SubproblemComplete -> "Subproblem complete";
         };
     }
 }

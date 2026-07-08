@@ -28,11 +28,13 @@ public class ValidationUtils {
 
         // Count references to each node
         for (final var node : model.getNodes()) {
-            node.getConnectedTo().forEach(conn -> {
-                referrers.putIfAbsent(conn.getTargetNode(), 0);
+            if (node.getConnectedTo() != null) {
+                node.getConnectedTo().forEach(conn -> {
+                    referrers.putIfAbsent(conn.getTargetNode(), 0);
 
-                referrers.computeIfPresent(conn.getTargetNode(), (k, v) -> v + 1);
-            });
+                    referrers.computeIfPresent(conn.getTargetNode(), (k, v) -> v + 1);
+                });
+            }
         }
 
         return referrers.entrySet().stream()

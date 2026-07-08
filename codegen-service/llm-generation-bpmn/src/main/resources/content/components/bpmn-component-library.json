@@ -245,8 +245,8 @@
     },
     {
       "name": "scriptTask",
-      "description": "A task that is performed based on scripted logic within the process",
-      "usage": "Use script tasks when a task in the process flow requires custom logic or algorithmic processing. It is suitable when the logic can be localized within the process (i.e. does not require external data or systems, which is where a service task is more appropriate). It allows you to define Groovy script scripts to perform specific actions or calculations within the process.",
+      "description": "A task that executes internal Groovy script logic with no external API calls.",
+      "usage": "Use ONLY when all logic is fully internal — no external API endpoint is called and no HTTP request is made. For any step that calls an external service or API, use serviceTask or sendTask. Do NOT use if the step involves any outbound HTTP call.",
       "requiredInputs": [
         {
           "name": "script",
@@ -468,9 +468,39 @@
       "generatedOutputs": []
     },
     {
+      "name": "subprocessCallNode",
+      "description": "An inline subprocess call node that invokes a separately-defined subprocess by its identifier. This is the only correct mechanism for calling a subprocess from the main process flow (i.e. do not use a script or service task to call the subprocess node but use a subprocessCallNode element type).",
+      "usage": "Use when the process flow must invoke a subprocess defined as a separate model. EVERY inline (triggeredByEvent=false) subprocess referenced by the process (e.g. a 'call subprocess SPn' step in the request, or an existing SPn / subprocessCallNode reference) MUST be invoked by EXACTLY ONE subprocessCallNode connected inline in the main flow. The subProcessId MUST exactly match the subprocess identifier shown in the high-level model (e.g. 'SP1', 'SP2'). Connect it inline with both inbound and outbound connections. Do NOT use scriptTask, serviceTask, or any other task type as a placeholder for a subprocess call — only this element type is recognised as a subprocess call point. Do NOT rename or alter the subProcessId. Event subprocesses (triggeredByEvent=true, started by a message/timer/error/conditional event) are NOT invoked this way and must NOT have a subprocessCallNode.",
+      "requiredInputs": [
+        {
+          "name": "subProcessId",
+          "description": "The identifier of the subprocess to invoke. Must exactly match the subprocess identifier from the high-level model (e.g. 'SP1', 'SP2'). Do NOT use the subprocess display name here. Use only the short identifier.",
+          "alias": "subProcessId",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "defaultValue": "",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "subProcessName",
+          "description": "Human-readable name of the subprocess being called.",
+          "alias": "subProcessName",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
+          "defaultValue": "",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
       "name": "sendTask",
-      "description": "A task that sends a message or signal to another process participant",
-      "usage": "Use send tasks when a task in the process flow involves sending a message or signal to another process participant or external system. It initiates communication or triggers actions in other parts of the process or external systems.",
+      "description": "A task that posts or sends data to an external system via a configured API endpoint.",
+      "usage": "Use ONLY when an external API endpoint (serviceUrl or discoveryPath) is available and the step sends/posts data outbound. If no API endpoint is provided or known, use scriptTask instead. Do NOT use sendTask for steps that merely transform data or run logic without calling an external API as this is a scriptTask.",
       "requiredInputs": [
         {
           "name": "serviceUrl",
@@ -595,8 +625,8 @@
     },
     {
       "name": "receiveTask",
-      "description": "A task that waits to receive a message or signal from another process participant.",
-      "usage": "Use receive tasks when a task in the process flow waits to receive a message or signal from another process participant or external system. It typically represents a waiting state until the expected message or signal is received.",
+      "description": "A task that waits for an inbound machine-to-machine message or signal from an external system.",
+      "usage": "Use ONLY when the process must pause until an external SYSTEM (not a human) sends a specific message or signal. Do NOT use when waiting for a human or user to act — use userTask or a message intermediate catch event instead. Do NOT use when waiting based on elapsed time — use a timer intermediate catch event instead.",
       "requiredInputs": [
         {
           "name": "messageId",
@@ -1010,7 +1040,7 @@
         },
         {
           "name": "subProcessName",
-          "description": "Name of the subprocess appearing to the user. This should contain contextual information to allow instances of a process to be distinguished",
+          "description": "Human-readable name of the subprocess being called or defined. Name of the subprocess appearing to the user. This should contain contextual information to allow instances of a process to be distinguished",
           "alias": "workItemName",
           "type": "string",
           "mandatory": true,

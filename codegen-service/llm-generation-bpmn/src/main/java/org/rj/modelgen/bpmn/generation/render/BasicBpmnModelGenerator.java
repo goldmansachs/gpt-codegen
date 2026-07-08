@@ -31,6 +31,7 @@ import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.PROCESS_CO
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.isStartEventType;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.ProcessConfigConstants.WORKFLOW_ACTION_DETAILS;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_CALL_NODE;
 
 public class BasicBpmnModelGenerator {
     private static final Logger LOG = LoggerFactory.getLogger(BasicBpmnModelGenerator.class);
@@ -252,6 +253,8 @@ public class BasicBpmnModelGenerator {
         if (!intermediateModel.hasSubModels()) return;
 
         final Set<String> seenSubProcessIds = new HashSet<>();
+        final Map<String, String> renamedSubprocesses = new LinkedHashMap<>();
+
         for (var subModel : intermediateModel.getSubModels()) {
             final var config = subModel.getSubProcessConfig();
             if (config == null) continue;
@@ -275,23 +278,26 @@ public class BasicBpmnModelGenerator {
                 updateParentCallNodeSubProcessId(intermediateModel, subProcessName, uniqueId);
             }
 
-            deduplicateNodesInScope(subModel.getNodes(), globalIds);
+            renamedSubprocesses.putAll(deduplicateNodesInScope(subModel.getNodes(), globalIds));
+        }
+
+        if (!renamedSubprocesses.isEmpty()) {
+            updateNodeReferences(intermediateModel.getNodes(), renamedSubprocesses);
         }
     }
 
     private void updateParentCallNodeSubProcessId(BpmnIntermediateModel intermediateModel, String oldValue, String newValue) {
         if (oldValue == null || oldValue.equals(newValue)) return;
         intermediateModel.getNodes().stream()
-                .filter(n -> SUBPROCESS.equals(n.getElementType()))
+                .filter(ElementNode::isSubprocessCallNode)
                 .filter(n -> oldValue.equals(
                         n.findInput(BpmnConstants.SubProcessConfigConstants.SUBPROCESS_ID)
                                 .map(ElementNodeInput::getValue).orElse(null)))
-                .findFirst()
-                .flatMap(n -> n.findInput(BpmnConstants.SubProcessConfigConstants.SUBPROCESS_ID))
-                .ifPresent(input -> input.setValue(newValue));
+                .forEach(n -> n.findInput(BpmnConstants.SubProcessConfigConstants.SUBPROCESS_ID)
+                        .ifPresent(input -> input.setValue(newValue)));
     }
 
-    private void deduplicateNodesInScope(List<ElementNode> nodes, Set<String> globalIds) {
+    private Map<String, String> deduplicateNodesInScope(List<ElementNode> nodes, Set<String> globalIds) {
         final Map<String, String> idMapping = new LinkedHashMap<>();
         for (var node : nodes) {
             String nodeId = node.getId();
@@ -317,6 +323,7 @@ public class BasicBpmnModelGenerator {
         if (!idMapping.isEmpty()) {
             updateNodeReferences(nodes, idMapping);
         }
+        return idMapping;
     }
 
     private void updateNodeReferences(List<ElementNode> nodes, Map<String, String> idMapping) {

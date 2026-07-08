@@ -22,6 +22,7 @@ Each non-endEvent can make outbound connections to other nodes. These connection
   ** The component library specifies which connections are required for each node type. endEvent nodes should have no outbound connections.
   ** If a non-endEvent node has an outbound connection to an endEvent node, ensure that the endEvent node has a unique name and id.
 * All steps are part of the SAME process.  You should make sure that steps in your model are correctly linked together to form a single process.  There should be no orphaned steps or processes - every step must be linked.
+* Subprocess calls: for EVERY inline subprocess the request refers to (e.g. a "call subprocess SP1" step, or an existing "SP1" / subprocessCallNode reference), you MUST include a `subprocessCallNode` node whose `subProcessId` is that exact identifier (e.g. "SP1"), connected inline in the main flow with inbound and outbound connections. Never drop or omit a subprocess call and never substitute a serviceTask/scriptTask for it. Event subprocesses (triggered by a message/timer/error/conditional event, triggeredByEvent=true) are the exception: they are NOT called via a subprocessCallNode and have no inbound/outbound connections.
 * Nodes should indicate how each of its inputs will be satisfied. Component library defines allowed values for each input which can be one of the following:
   1. A constant value.  `source` should be the value, `sourceType` should be "CONSTANT"
   2. A Groovy expression.  `source` should be the expression, `sourceType` should be "EXPRESSION"

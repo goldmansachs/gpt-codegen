@@ -94,8 +94,7 @@ public class BpmnIntermediateModel extends IntermediateGraphModel<String, String
                 .collect(Collectors.toSet());
 
         final var invalidSubprocessCall = getNodes().stream()
-                .filter(node -> node.getElementType().equals(SUBPROCESS))
-                .filter(node -> node.getConnectedTo() != null && !node.getConnectedTo().isEmpty())
+                .filter(ElementNode::isSubprocessCallNode)
                 .filter(node -> {
                     String spId = node.findInput(SUBPROCESS_ID)
                             .map(ElementNodeInput::getValue)

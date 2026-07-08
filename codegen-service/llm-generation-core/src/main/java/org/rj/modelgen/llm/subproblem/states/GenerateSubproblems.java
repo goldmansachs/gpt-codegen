@@ -117,7 +117,6 @@ public abstract class GenerateSubproblems extends SubproblemDecompositionBaseSta
             }
             final var content = problem.substring(startIndex, endIndex - 1).strip();
             if (subprocessName == null) {
-                if (mainProcess != null) LOG.warn("Multiple main process blocks found; overwriting previous one");
                 mainProcess = content;
             } else {
                 subProcesses.add(new SubprocessRecord(subprocessName, content));

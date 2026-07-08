@@ -17,6 +17,7 @@ import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelGenerat
 import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelModelPromptType;
 import org.rj.modelgen.llm.models.generation.multilevel.signals.MultiLevelModelStandardSignals;
 import org.rj.modelgen.llm.models.generation.multilevel.states.*;
+import org.rj.modelgen.llm.models.generation.multilevel.states.ParallelSubproblemExecution;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderIntermediateModel;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
@@ -28,6 +29,7 @@ import org.rj.modelgen.llm.statemodel.states.common.impl.GenerateModelFromInterm
 import org.rj.modelgen.llm.subproblem.config.SubproblemDecompositionConfig;
 import org.rj.modelgen.llm.subproblem.data.SubproblemDecompositionSignals;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -59,11 +61,21 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
                                      ModelParser<TModel> modelParser) {
         this(modelClass, modelInterface, buildModelData(promptGenerator, contextProvider, componentLibrary, preprocessingConfig, highLevelPhaseConfig, reverseRenderFunction,
                 detailLevelPhaseConfig, modelGenerationFunction, renderedModelSerializer, subproblemDecompositionConfig, reverseRenderSubproblemDecompositionConfig, completionState, options, modelParser));
+        if (options != null && options.isSubModel()) {
+            this.isSubModel = true;
+            suppressStateEvents(MultiLevelGenerationModelStates.Complete.toString());
+        }
     }
+
+    private boolean isSubModel = false;
 
     private MultiLevelGenerationModel(Class<? extends MultiLevelGenerationModel<THighLevelModel, TDetailLevelModel, TModelAssets, TModel, TComponentLibrary, TResult>> modelClass,
                                       ModelInterface modelInterface, ModelData modelData) {
         super(modelClass, modelInterface, modelData.getStates(), modelData.getRules());
+    }
+
+    public boolean isSubModel() {
+        return isSubModel;
     }
 
 
@@ -169,9 +181,15 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
         final var stateComplete = completionState
                 .withOverriddenId(MultiLevelGenerationModelStates.Complete);
 
-        final var states = List.of(stateInit, stateSanitizingPrePass, statePreprocessing, stateGenerateSubproblems,
-                                   stateExecuteHighLevel, stateValidateHighLevel, stateReverseRenderModelToIR, stateGenerateSubproblemsForReverseRender,
-                                   stateInitialValidateDetailLevel, stateExecuteDetailLevel, stateValidateDetailLevel, stateCombineSubproblems, stateGenerateModel, stateComplete);
+        final var stateParallelSubproblemExecution = new ParallelSubproblemExecution(subproblemDecompositionConfig.getParallelExecutor())
+                .withOverriddenId(MultiLevelGenerationModelStates.ParallelSubproblemExecution);
+
+        final var stateParallelReverseRenderSubproblemExecution = new ParallelSubproblemExecution(reverseRenderSubproblemDecompositionConfig.getParallelExecutor())
+                .withOverriddenId(MultiLevelGenerationModelStates.ParallelReverseRenderSubproblemExecution);
+
+        final var states = List.of(stateInit, stateSanitizingPrePass, statePreprocessing, stateGenerateSubproblems, stateParallelSubproblemExecution,
+                stateExecuteHighLevel, stateValidateHighLevel, stateReverseRenderModelToIR, stateGenerateSubproblemsForReverseRender,
+                stateParallelReverseRenderSubproblemExecution, stateInitialValidateDetailLevel, stateExecuteDetailLevel, stateValidateDetailLevel, stateCombineSubproblems, stateGenerateModel, stateComplete);
 
         // Complete initialization, and apply any global model state that the states want to consume
         states.forEach(ModelInterfaceState::completeStateInitialization);
@@ -189,7 +207,9 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
                 new ModelInterfaceTransitionRule(statePreprocessing, StandardSignals.SUCCESS, stateGenerateSubproblems),
                 new ModelInterfaceTransitionRule(statePreprocessing, StandardSignals.SKIPPED, stateGenerateSubproblems),  // Optional stage
 
-                new ModelInterfaceTransitionRule(stateGenerateSubproblems, StandardSignals.SUCCESS, stateExecuteHighLevel),
+                new ModelInterfaceTransitionRule(stateGenerateSubproblems, StandardSignals.SUCCESS, stateParallelSubproblemExecution), // Run model in parallel after generating subproblems
+                new ModelInterfaceTransitionRule(stateParallelSubproblemExecution, SubproblemDecompositionSignals.BypassParallelExecution, stateExecuteHighLevel),
+                new ModelInterfaceTransitionRule(stateParallelSubproblemExecution, SubproblemDecompositionSignals.SubproblemDecompositionCompleted, stateCombineSubproblems),
 
                 new ModelInterfaceTransitionRule(stateExecuteHighLevel, StandardSignals.SUCCESS, stateValidateHighLevel),
 
@@ -198,7 +218,10 @@ public abstract class MultiLevelGenerationModel<THighLevelModel extends Intermed
                 new ModelInterfaceTransitionRule(stateReverseRenderModelToIR, StandardSignals.SUCCESS, stateGenerateSubproblemsForReverseRender),
                 new ModelInterfaceTransitionRule(stateReverseRenderModelToIR, StandardSignals.SKIPPED, stateGenerateSubproblemsForReverseRender), // Optional stage
 
-                new ModelInterfaceTransitionRule(stateGenerateSubproblemsForReverseRender, StandardSignals.SUCCESS, stateInitialValidateDetailLevel),
+                new ModelInterfaceTransitionRule(stateGenerateSubproblemsForReverseRender, StandardSignals.SUCCESS, stateParallelReverseRenderSubproblemExecution),
+
+                new ModelInterfaceTransitionRule(stateParallelReverseRenderSubproblemExecution, SubproblemDecompositionSignals.BypassParallelExecution, stateInitialValidateDetailLevel),
+                new ModelInterfaceTransitionRule(stateParallelReverseRenderSubproblemExecution, SubproblemDecompositionSignals.SubproblemDecompositionCompleted, stateCombineSubproblems),
 
                 new ModelInterfaceTransitionRule(stateInitialValidateDetailLevel, StandardSignals.SUCCESS, stateExecuteDetailLevel),
 

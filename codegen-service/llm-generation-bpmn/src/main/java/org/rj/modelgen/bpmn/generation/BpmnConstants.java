@@ -168,7 +168,6 @@ public class BpmnConstants {
     public static class GatewayConstants {
         public static final String DEFAULT = "default";
         public static final String CONDITIONS = "conditions";
-        public static final String ROUTES = "routes";
         public static final String TARGET_NODE_ID = "targetNodeId";
         public static final String CONDITION_EXPRESSION = "conditionExpression";
     }
@@ -176,10 +175,12 @@ public class BpmnConstants {
     public static class SubProcessConfigConstants {
         public static final List<String> ATTRIBUTES = List.of("subProcessId", "subProcessName", "subProcessDescription");
         public static final String SUBPROCESS = "subProcess";
+        public static final String SUBPROCESS_CALL_NODE = "subprocessCallNode";
         public static final String SUBPROCESS_ID = "subProcessId";
         public static final String SUBPROCESS_NAME = "subProcessName";
         public static final String SUBPROCESS_DESCRIPTION = "subProcessDescription";
         public static final String TRIGGERED_BY_EVENT = "triggeredByEvent";
+        public static final String EXPECTED_INLINE_SUBPROCESS_IDS = "expectedInlineSubprocessIds";
     }
 
     public static class EventConstants {

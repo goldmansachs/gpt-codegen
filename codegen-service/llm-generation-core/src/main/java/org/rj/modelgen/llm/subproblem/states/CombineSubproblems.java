@@ -28,11 +28,6 @@ public abstract class CombineSubproblems extends SubproblemDecompositionBaseStat
     }
 
     @Override
-    public String getDescription() {
-        return "Combine all subproblem solutions if complete, otherwise return to begin the next subproblem";
-    }
-
-    @Override
     public String getSuccessSignalId() {
         return SubproblemDecompositionSignals.SubproblemDecompositionCompleted.toString();
     }
@@ -46,8 +41,9 @@ public abstract class CombineSubproblems extends SubproblemDecompositionBaseStat
             return outboundSignal(SubproblemDecompositionSignals.SubproblemDecompositionCompleted, "Subproblem decomposition is not enabled").mono();
         }
 
-        // We have a decomposition into subproblems.  Process the subproblem we have just completed
-        if(getPayload().get(SubproblemDecompositionPayloadData.CurrentSubproblem) != null && getPayload().get(SubproblemDecompositionPayloadData.SubproblemCount) != null) {
+        if (getPayload().get(SubproblemDecompositionPayloadData.CurrentSubproblem) != null
+                && getPayload().get(SubproblemDecompositionPayloadData.SubproblemCount) != null
+                && getPayload().hasData(inputKey)) {
 
             final Integer currentSubproblemId = getPayload().getOrThrow(SubproblemDecompositionPayloadData.CurrentSubproblem, () -> new RuntimeException("No subproblem ID in payload"));
             final var currentSubproblemResult = getPayload().getOrThrow(inputKey, () -> new RuntimeException("No current result present while processing subproblem " + currentSubproblemId));
@@ -72,16 +68,15 @@ public abstract class CombineSubproblems extends SubproblemDecompositionBaseStat
                     return outboundSignal(SubproblemDecompositionSignals.ProcessNextSubproblem, "Process next subproblem").mono();
                 }
             }
-
-            // We have processed all subproblems - combine into a full solution
-            LOG.info("All {} subproblems have been processed; recombining into full problem solution", subproblemCount);
-            final var combineResult = triggerSubproblemCombination();
-            if (combineResult.isErr()) {
-                return error("Subproblem recombination failed: " + combineResult.getError());
-            }
-
-            LOG.info("Successfully recombined all {} subproblems into full problem solution", subproblemCount);
         }
+
+        LOG.info("All subproblems processed; recombining into full problem solution");
+        final var combineResult = triggerSubproblemCombination();
+        if (combineResult.isErr()) {
+            return error("Subproblem recombination failed: " + combineResult.getError());
+        }
+
+        LOG.info("Successfully recombined all subproblems into full problem solution");
         return outboundSignal(SubproblemDecompositionSignals.SubproblemDecompositionCompleted, "Subproblem recombination was successful").mono();
     }
 
@@ -90,11 +85,22 @@ public abstract class CombineSubproblems extends SubproblemDecompositionBaseStat
         // Collect all subproblem requests and solutions for recombination
         final int subproblemCount = getSubproblemCount();
         final List<SubproblemDetails> subproblems = IntStream.range(0, subproblemCount)
-                .mapToObj(i -> new SubproblemDetails(
-                        getPayload().getOrThrow(subproblemRequestContentKey(i), () -> new RuntimeException("No subproblem request for ID " + i + " during recombination")),
-                        getPayload().getOrThrow(subproblemResultContentKey(i), () -> new RuntimeException("No subproblem result for ID " + i + " during recombination"))
-                ))
+                .mapToObj(i -> {
+                    final String resultContent = getPayload().getOrElse(subproblemResultContentKey(i), (String) null);
+                    if (resultContent == null) {
+                        LOG.warn("Skipping subproblem {} during recombination: no result content found (subproblem likely failed during execution)", i);
+                        return null;
+                    }
+                    final String requestContent = getPayload().getOrThrow(subproblemRequestContentKey(i),
+                            () -> new RuntimeException("No subproblem request for ID " + i + " during recombination"));
+                    return new SubproblemDetails(i, requestContent, resultContent);
+                })
+                .filter(java.util.Objects::nonNull)
                 .toList();
+
+        if (subproblems.isEmpty()) {
+            return Result.Err("No successful subproblems available to recombine (all " + subproblemCount + " subproblems failed during execution)");
+        }
 
         // Delegate to the subclass for recombination logic.  Store the result or return failure
         final var result = combineSubproblems(subproblems);

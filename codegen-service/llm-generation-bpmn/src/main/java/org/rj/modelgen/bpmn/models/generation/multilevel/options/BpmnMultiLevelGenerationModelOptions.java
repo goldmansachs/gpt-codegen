@@ -53,4 +53,16 @@ public class BpmnMultiLevelGenerationModelOptions extends MultiLevelGenerationMo
         setAddStartingPayloadVariables(addStartingPayloadVariables);
         return this;
     }
+
+    @Override
+    public BpmnMultiLevelGenerationModelOptions withPerformSubproblemDecomposition(boolean performSubproblemDecomposition) {
+        super.withPerformSubproblemDecomposition(performSubproblemDecomposition);
+        return this;
+    }
+
+    @Override
+    public BpmnMultiLevelGenerationModelOptions withIsSubModel(boolean subModel) {
+        super.withIsSubModel(subModel);
+        return this;
+    }
 }

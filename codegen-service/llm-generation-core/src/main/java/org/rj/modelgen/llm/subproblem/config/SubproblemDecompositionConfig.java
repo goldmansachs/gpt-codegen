@@ -10,13 +10,13 @@ import java.util.function.Supplier;
 public class SubproblemDecompositionConfig {
     private Supplier<? extends GenerateSubproblems> subproblemGeneratorImplementation;
     private Supplier<? extends CombineSubproblems> subproblemCombinationImplementation;
+    private SubproblemParallelExecutor parallelExecutor;
 
     public SubproblemDecompositionConfig() {
         this.subproblemGeneratorImplementation = GenerateSubproblemsNaive::new;
         this.subproblemCombinationImplementation = CombineSubproblemsNaive::new;
     }
 
-    // Return a set of default config - subproblem decomposition is disabled by default
     public static SubproblemDecompositionConfig defaultConfig() {
         return new SubproblemDecompositionConfig();
     }
@@ -42,8 +42,25 @@ public class SubproblemDecompositionConfig {
         this.subproblemCombinationImplementation = subproblemCombinationImplementation;
     }
 
-    public SubproblemDecompositionConfig withSubproblemCombinationImplementation(Supplier<? extends CombineSubproblems>     subproblemCombinationImplementation) {
+    public SubproblemDecompositionConfig withSubproblemCombinationImplementation(Supplier<? extends CombineSubproblems> subproblemCombinationImplementation) {
         setSubproblemCombinationImplementation(subproblemCombinationImplementation);
         return this;
+    }
+
+    public SubproblemParallelExecutor getParallelExecutor() {
+        return parallelExecutor;
+    }
+
+    public void setParallelExecutor(SubproblemParallelExecutor parallelExecutor) {
+        this.parallelExecutor = parallelExecutor;
+    }
+
+    public SubproblemDecompositionConfig withParallelExecutor(SubproblemParallelExecutor parallelExecutor) {
+        setParallelExecutor(parallelExecutor);
+        return this;
+    }
+
+    public boolean hasParallelExecutor() {
+        return parallelExecutor != null;
     }
 }

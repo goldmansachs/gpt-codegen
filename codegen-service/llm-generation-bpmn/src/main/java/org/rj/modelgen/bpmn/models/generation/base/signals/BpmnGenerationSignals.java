@@ -13,5 +13,6 @@ public enum BpmnGenerationSignals {
     GenerateBpmnXmlFromLlmResponse,
     ValidateBpmnXml,
     CompleteGeneration,
-    CopilotDataInitialized
+    CopilotDataInitialized,
+    CopilotAddNodesRequired
 }

@@ -26,6 +26,7 @@ import static org.rj.modelgen.bpmn.intrep.model.ElementNodeInput.createInputFrom
 import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.extractAttributeValue;
 import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.getLookupName;
 import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.applyIsProvidedToAllInputs;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_CALL_NODE;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(
@@ -82,6 +83,11 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
 
     public void setElementType(String elementType) {
         this.elementType = elementType;
+    }
+
+    @JsonIgnore
+    public boolean isSubprocessCallNode() {
+        return SUBPROCESS_CALL_NODE.equals(elementType);
     }
 
     public String getDescription() {

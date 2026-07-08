@@ -78,7 +78,7 @@ public class PrepareBpmnMLDetailLevelModelGenerationRequest<TComponentLibrary ex
 
         // Parse the full model
         final var parser = new IntermediateModelParser<>(BpmnIntermediateModel.class);
-        final var model = parser.parse(serializedReverseRender).orElse(null);
+        final var model = parser.parse(serializedReverseRender).orElseDefault(null);
         if (model == null) {
             LOG.warn("Failed to parse existing model, skipping copilot scoping.");
             return;

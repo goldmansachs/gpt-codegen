@@ -61,8 +61,8 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
         }
 
         final var parser = new IntermediateModelParser<>(BpmnIntermediateModel.class);
-        final var originalModel = parser.parse(originalModelContent).orElse(null);
-        final var generatedModel = parser.parse(generatedModelContent).orElse(null);
+        final var originalModel = parser.parse(originalModelContent).orElseDefault(null);
+        final var generatedModel = parser.parse(generatedModelContent).orElseDefault(null);
 
         if (originalModel == null || generatedModel == null) {
             LOG.warn("Failed to parse original or generated model, skipping merge.");

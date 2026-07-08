@@ -151,7 +151,7 @@ public class BpmnDiagramLayoutOptimizer {
 
     private static boolean shapesOverlap(Bounds a, Bounds b) {
         return a.getX() < b.getX() + b.getWidth()  && a.getX() + a.getWidth()  > b.getX()
-            && a.getY() < b.getY() + b.getHeight() && a.getY() + a.getHeight() > b.getY();
+                && a.getY() < b.getY() + b.getHeight() && a.getY() + a.getHeight() > b.getY();
     }
 
     private void alignAndRoute(BpmnModelInstance model,
@@ -186,9 +186,9 @@ public class BpmnDiagramLayoutOptimizer {
 
         for (EdgeRoute r : routes) {
             tryAlignY(r.src, r.srcBounds, r.tgt, r.tgtBounds,
-                      boundsById, alignedCircular, alignedDiamond);
+                    boundsById, alignedCircular, alignedDiamond);
             tryAlignY(r.tgt, r.tgtBounds, r.src, r.srcBounds,
-                      boundsById, alignedCircular, alignedDiamond);
+                    boundsById, alignedCircular, alignedDiamond);
 
             rebuildEdge(model, r.edge, r.srcBounds, r.tgtBounds, r.exitSide, r.entrySide);
         }
@@ -203,12 +203,11 @@ public class BpmnDiagramLayoutOptimizer {
 
         boolean shouldAlign =
                 (isCircular(node) && !isCircular(neighbor) && alignedCircular.add(node.getId()))
-             || (isDiamond(node) && !isDiamond(neighbor) && !isCircular(neighbor) && alignedDiamond.add(node.getId()));
+                        || (isDiamond(node) && !isDiamond(neighbor) && !isCircular(neighbor) && alignedDiamond.add(node.getId()));
         if (!shouldAlign) return;
 
         double candidateY = centerY(neighborBounds) - nodeBounds.getHeight() / 2.0;
-        if (!wouldOverlap(node.getId(), nodeBounds.getX(), candidateY,
-                          nodeBounds.getWidth(), nodeBounds.getHeight(), allBounds)) {
+        if (!wouldOverlap(node.getId(), nodeBounds.getX(), candidateY, nodeBounds.getWidth(), nodeBounds.getHeight(), allBounds)) {
             nodeBounds.setY(candidateY);
         }
     }
@@ -303,8 +302,7 @@ public class BpmnDiagramLayoutOptimizer {
         for (var entry : boundsById.entrySet()) {
             if (entry.getKey().equals(excludeId)) continue;
             Bounds o = entry.getValue();
-            if (x < o.getX() + o.getWidth()  && x + w > o.getX()
-             && y < o.getY() + o.getHeight() && y + h > o.getY()) {
+            if (x < o.getX() + o.getWidth()  && x + w > o.getX() && y < o.getY() + o.getHeight() && y + h > o.getY()) {
                 return true;
             }
         }

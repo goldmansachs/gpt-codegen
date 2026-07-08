@@ -95,17 +95,23 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                 operations.add(() -> removeInvalidNullNodes(subModel));
                 operations.add(() -> eliminateDuplicateConnections(subModel));
                 operations.add(() -> resolveInputs(subModel));
-                operations.add(() -> {
-                    final Set<String> subBoundaryTargets = subModel.getNodes().stream()
-                            .filter(n -> n.getEvents() != null)
-                            .flatMap(n -> n.getEvents().stream())
-                            .filter(e -> e.getConnectedTo() != null)
-                            .flatMap(e -> e.getConnectedTo().stream())
-                            .map(ElementConnection::getTargetNode)
-                            .collect(Collectors.toSet());
-                    subBoundaryTargets.addAll(boundaryEventTargets);
-                    identifyOrphanedSubgraphs(subModel, node -> !NODES_TO_IGNORE.contains(node.getElementType()) && !subBoundaryTargets.contains(node.getId()));
-                });
+                // skip orphan detection for event subprocesses.
+                final boolean isEventSubprocess = config != null && config.isTriggeredByEvent();
+                if (!isEventSubprocess) {
+                    operations.add(() -> {
+                        final Set<String> subBoundaryTargets = subModel.getNodes().stream()
+                                .filter(n -> n.getEvents() != null)
+                                .flatMap(n -> n.getEvents().stream())
+                                .filter(e -> e.getConnectedTo() != null)
+                                .flatMap(e -> e.getConnectedTo().stream())
+                                .map(ElementConnection::getTargetNode)
+                                .collect(Collectors.toSet());
+                        subBoundaryTargets.addAll(boundaryEventTargets);
+                        identifyOrphanedSubgraphs(subModel, node -> !NODES_TO_IGNORE.contains(node.getElementType()) && !subBoundaryTargets.contains(node.getId()));
+                    });
+                } else {
+                    LOG.debug("Skipping orphan detection for event subprocess '{}'", subModelName);
+                }
             }
         }
 
@@ -119,6 +125,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
             final var connections = node.getConnectedTo();
             // Make sure there are no duplicate connections within a group
             final Set<String> duplicates = new HashSet<>();
+            if(connections == null) return;
             final var distinctConnections = connections.stream()
                     .filter(conn -> duplicates.add(conn.getTargetNode()))
                     .toList();
@@ -160,7 +167,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                 inputValue = inputDefinition.get().getDefaultValue();
             }
 
-            if (inputSource.equals(SCRIPT.toString())) {
+            if (SCRIPT.toString().equals(inputSource)) {
                 inputValue = resolveVariableWrites(inputValue);
                 inputValue = resolveVariableReads(inputValue, getComponentLibrary(), false);
                 inputValue = resolveGlobalVariableReads(inputValue, globalVariableLibrary, false);
@@ -169,7 +176,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                 inputValue = postProcessScriptInput(input, inputValue);
             }
 
-            if (inputSource.equals(EXPRESSION.toString())) {
+            if (EXPRESSION.toString().equals(inputSource)) {
                 // Gateway condition expressions use JUEL syntax (e.g., ${x > 5}), so variable references must not be interpolated; all other expressions require interpolation
                 boolean isConditionExpr = CONDITION_EXPRESSION.equals(input.getName());
                 inputValue = resolveVariableReads(inputValue, getComponentLibrary(), !isConditionExpr);
@@ -289,7 +296,7 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
 
             ComponentInputResolutionStrategy resolutionStrategy = inputDefinition.get().getResolutionStrategy();
             if(resolutionStrategy == null) return;
-
+            
             String defaultValue = inputDefinition.get().getDefaultValue();
             String alias = Optional.ofNullable(inputDefinition.get().getAlias()).orElse(input.getName());
 

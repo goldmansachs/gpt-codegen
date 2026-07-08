@@ -337,8 +337,8 @@ RULES FOR THE DETAILED MODEL GENERATION
    d. errorEndEvent throws an error. Pair with errorBoundaryEvent on the enclosing subprocess or errorStartEvent in an event subprocess to handle it.
    e. Intermediate events (messageIntermediateCatchEvent, messageIntermediateThrowEvent, timerIntermediateCatchEvent) are inline flow nodes with normal inbound/outbound connections.
    f. Connections:
-      - An inline subprocess (`triggeredByEvent=false`) MUST be called from EXACTLY ONE node in the main process.
-      - Event subprocesses (`triggeredByEvent=true`) are not connected inline and may exist without inbound/outbound connections.
+      - Every inline subprocess (`triggeredByEvent=false`) referenced by this process MUST be invoked by EXACTLY ONE `subprocessCallNode` in the main process (elementType `subprocessCallNode`, `subProcessId` = the subprocess id e.g. "SP1"), connected inline with inbound and outbound connections. Never omit, drop, or replace a subprocess call with a serviceTask/scriptTask. If an existing model already contains a subprocessCallNode for a subprocess, preserve it.
+      - Event subprocesses (`triggeredByEvent=true`) are not connected inline and exist without inbound/outbound connections (no call node).
 
 10. Subprocesses
      a. When generating a subprocess flow, include a `subProcess` config node in the `nodes` array (similar to how `processConfig` is used for the main process). This node must:
@@ -351,8 +351,8 @@ RULES FOR THE DETAILED MODEL GENERATION
         - At least one `endEvent` or  end event
         - All internal flow nodes fully connected from start to end.
      c. Node names must be descriptive of what the node does. Do NOT use generic prefixes like `sp1_`, `SP2_`, or index-based names.
-     d. If the main process needs to call or embed a subprocess inline in the flow, you MUST create a dedicated `subProcess` node with `elementType` set to `subProcess` and connect it inline (with inbound and outbound `connectedTo` entries). The `subProcessId` input of this inline call node MUST match the subprocess identifier from the high-level model (e.g. "SP1", "SP2"). Do NOT rename or change the `subProcessId`. Do NOT use any other task type as a placeholder for a subprocess call as only the `subProcess` elementType is recognised as an inline subprocess call point from the main process.
-     e. Nested subprocesses are NOT supported. A subprocess must NOT contain another subprocess inside it. Do NOT include `subProcess` call nodes or `subModels` within a subprocess flow.
+     d. If the main process needs to call or embed a subprocess inline in the flow, you MUST create a dedicated call node with `elementType` set to `subprocessCallNode` and connect it inline (with inbound and outbound `connectedTo` entries). The `subProcessId` input of this inline call node MUST match the subprocess identifier from the high-level model (e.g. "SP1", "SP2"). Do NOT rename or change the `subProcessId`. Do NOT use any other task type as a placeholder for a subprocess call as only the `subprocessCallNode` elementType is recognised as an inline subprocess call point from the main process.
+     e. Nested subprocesses are NOT supported. A subprocess must NOT contain another subprocess inside it. Do NOT include `subprocessCallNode` call nodes or `subModels` within a subprocess flow.
 
 11. Multi-instance (repeatable) nodes
      a. Any task or subprocess node can be marked as multi-instance by providing a `iterationConfig` object. This causes the node to iterate over a collection, creating one execution instance per element.
