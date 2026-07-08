@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 
 public class PrepareBpmnMLDetailLevelModelGenerationRequest<TComponentLibrary extends ComponentLibrary<?>>
@@ -91,16 +90,35 @@ public class PrepareBpmnMLDetailLevelModelGenerationRequest<TComponentLibrary ex
             return;
         }
 
-        // Filter to only affected nodes + processConfig
-        List<ElementNode> affectedNodes = model.getNodes().stream()
+        // Filter to only affected nodes + processConfig + subprocess
+        List<ElementNode> mainAffected = model.getNodes().stream()
                 .filter(node -> affectedIds.contains(node.getId()))
-                .collect(Collectors.toList());
-
-        LOG.info("Copilot scoping: {} total nodes, {} affected nodes for generation.",
-                model.getNodes().size(), affectedNodes.size());
+                .toList();
 
         BpmnIntermediateModel trimmedModel = new BpmnIntermediateModel();
-        trimmedModel.setNodes(affectedNodes);
+        trimmedModel.setNodes(new ArrayList<>(mainAffected));
+
+        if (model.hasSubModels()) {
+            List<BpmnIntermediateModel> trimmedSubs = new ArrayList<>();
+            for (BpmnIntermediateModel sub : model.getSubModels()) {
+                List<ElementNode> subAffected = sub.getNodes().stream()
+                        .filter(node -> affectedIds.contains(node.getId()))
+                        .toList();
+                if (!subAffected.isEmpty()) {
+                    BpmnIntermediateModel trimmedSub = new BpmnIntermediateModel();
+                    trimmedSub.setSubProcessConfig(sub.getSubProcessConfig());
+                    trimmedSub.setNodes(new ArrayList<>(subAffected));
+                    trimmedSubs.add(trimmedSub);
+                }
+            }
+            if (!trimmedSubs.isEmpty()) {
+                trimmedModel.setSubModels(trimmedSubs);
+            }
+        }
+
+        LOG.info("Copilot scoping: {} main affected node(s), {} subprocess(es) with affected nodes.",
+                mainAffected.size(), trimmedModel.getSubModels().size());
+
         getPayload().put(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel, trimmedModel.serialize());
 
         // Build and store masking instructions

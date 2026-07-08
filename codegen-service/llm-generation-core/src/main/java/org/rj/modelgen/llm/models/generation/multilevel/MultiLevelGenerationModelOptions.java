@@ -7,7 +7,7 @@ import org.rj.modelgen.llm.schema.ModelSchema;
 public class MultiLevelGenerationModelOptions extends GenerationModelOptionsImpl<MultiLevelGenerationModelOptions> {
     private ModelSchema highLevelSchemaOverride;
     private ModelSchema detailLevelSchemaOverride;
-    private boolean performSubproblemDecomposition = false;
+    private boolean performSubproblemDecomposition = true;
     ReasoningMode reasoningMode = ReasoningMode.REASONING;
 
     protected MultiLevelGenerationModelOptions() { }

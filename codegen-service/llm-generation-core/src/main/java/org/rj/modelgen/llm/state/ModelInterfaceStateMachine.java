@@ -53,6 +53,11 @@ public class ModelInterfaceStateMachine {
         this.auditLog = new ModelInterfaceStateMachineAuditLog();
     }
 
+
+    public void resetAllInvokeCounts() {
+        this.states.values().forEach(ModelInterfaceState::resetInvokeCount);
+    }
+
     public <TPayload extends ModelInterfaceInputPayload, E extends Enum<E>>
     Mono<ModelInterfaceExecutionResult> execute(String initialState, E inputSignal, TPayload payload) {
         if (inputSignal == null) throw new LlmGenerationConfigException("Cannot start execution; no valid input signal");
@@ -74,7 +79,6 @@ public class ModelInterfaceStateMachine {
         return execution.map(this::buildResult);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     protected Mono<ModelInterfaceStateWithInputSignal>
     executeStep(ModelInterfaceStateWithInputSignal input) {
         LOG.info("Model interface executing state '{}' with input signal '{}'",

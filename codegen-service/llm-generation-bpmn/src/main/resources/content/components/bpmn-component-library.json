@@ -68,6 +68,7 @@
           "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "INFERRED"
         }
+
       ],
       "generatedOutputs": [
         {
@@ -216,7 +217,20 @@
           "mandatory": false,
           "keyValue": true,
           "allowedInputSourceTypes": ["SCRIPT"],
-          "resolutionStrategy": "INFERRED"
+          "resolutionStrategy": "INFERRED",
+          "properties": [
+            {
+              "name": "callSubprocess",
+              "description": "Boolean to determine if subprocess should be invoked",
+              "alias": "callSubprocess",
+              "type": "boolean",
+              "mandatory": false,
+              "keyValue": false,
+              "defaultValue": false,
+              "allowedInputSourceTypes": ["CONSTANT"],
+              "resolutionStrategy": "INFERRED"
+            }
+          ]
         }
       ],
       "generatedOutputs": [
@@ -614,10 +628,183 @@
       "generatedOutputs": []
     },
     {
+      "name": "messageStartEvent",
+      "description": "A start event for a subprocess that is triggered when a specified message is received. Used to start event-driven subprocesses.",
+      "usage": "Use as the start event inside a subprocess when it is triggered by an event thrown by another task from the main process or an external system. The subprocess will be activated when the specified message is received. Can be interrupting (cancels the main process) or non-interrupting (runs in parallel with the main process).",
+      "requiredInputs": [
+        {
+          "name": "messageRef",
+          "description": "The name or identifier of the message this start event listens for",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "isInterrupting",
+          "description": "If true, the event subprocess interrupts the main process. If false, it runs in parallel without interrupting the main process.",
+          "type": "boolean",
+          "mandatory": true,
+          "keyValue": true,
+          "defaultValue": "true",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "timerStartEvent",
+      "description": "A start event for a subprocess that is triggered after a specified duration or at a specific date/time. Used to start event-driven subprocesses on a schedule or delay.",
+      "usage": "Use as the start event inside a subprocess when it is triggered by an event thrown by another task from the main process. The subprocess will be activated when the timer fires. Can be interrupting or non-interrupting.",
+      "requiredInputs": [
+        {
+          "name": "timeDuration",
+          "description": "ISO 8601 duration expression for when the event should trigger (e.g. PT1H). Specify either timeDuration or timeDate, not both.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "timeDate",
+          "description": "ISO 8601 date/time expression for a specific point in time when the event should trigger. Specify either timeDuration or timeDate, not both.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "isInterrupting",
+          "description": "If true, the event subprocess interrupts the main process. If false, it runs in parallel without interrupting the main process.",
+          "type": "boolean",
+          "mandatory": true,
+          "keyValue": true,
+          "defaultValue": "true",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "errorStartEvent",
+      "description": "A start event for a subprocess that is triggered when a specific error is thrown within the parent process. Always interrupting. Used to start error-handling event subprocesses.",
+      "usage": "Use as the start event inside a subprocess when it is triggered by an event thrown by another task from the main process. The subprocess will be activated when the specified error is thrown. This is always going to interrupt and cancel the main process flow.",
+      "requiredInputs": [
+        {
+          "name": "errorRef",
+          "description": "The error code or identifier this start event catches. If empty, catches all errors.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
+          "defaultValue": "",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": [
+        {
+          "name": "errorCode",
+          "description": "The error code of the caught error",
+          "type": "string",
+          "keyValue": true,
+          "resolveValue": "errorCode"
+        },
+        {
+          "name": "errorMessage",
+          "description": "The error message of the caught error",
+          "type": "string",
+          "keyValue": true,
+          "resolveValue": "errorMessage"
+        }
+      ]
+    },
+    {
+      "name": "conditionalStartEvent",
+      "description": "A start event for a subprocess that is triggered when a condition evaluates to true. Used to start event-driven subprocesses based on data conditions.",
+      "usage": "Use as the start event inside a subprocess when it is triggered by an event thrown by another task from the main process. The subprocess will be activated when the condition becomes true. Can be interrupting or non-interrupting.",
+      "requiredInputs": [
+        {
+          "name": "conditionExpression",
+          "description": "A boolean expression that is evaluated to determine whether this subprocess should be started",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["EXPRESSION", "SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "isInterrupting",
+          "description": "If true, the event subprocess interrupts the main process. If false, it runs in parallel without interrupting the main process.",
+          "type": "boolean",
+          "mandatory": true,
+          "keyValue": true,
+          "defaultValue": "true",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
       "name": "endEvent",
       "description": "Denotes the completion of a process flow.",
       "usage": "Place at the end of the process flow to indicate where it ends. Can have outcomes like message, error, or termination. At least one required per process",
       "requiredInputs": [],
+      "generatedOutputs": []
+    },
+    {
+      "name": "terminateEndEvent",
+      "description": "An end event that terminates the entire process immediately, including all active branches and tasks. Unlike a normal endEvent which only ends the current path, terminateEndEvent stops everything.",
+      "usage": "An end event that terminates the entire process immediately, including all active branches and tasks. Unlike a normal endEvent which only ends the current path, terminateEndEvent stops everything.",
+      "requiredInputs": [],
+      "generatedOutputs": []
+    },
+    {
+      "name": "errorEndEvent",
+      "description": "An end event that throws an error. Typically used inside subprocesses to signal a failure to the main process.  The error can be caught by an errorBoundaryEvent on the enclosing subprocess, or by an errorStartEvent in an event subprocess. If uncaught, the main process ends with an error state.",
+      "usage": "An end event that throws an error. Typically used inside subprocesses to signal a failure to the main process.  The error can be caught by an errorBoundaryEvent on the enclosing subprocess, or by an errorStartEvent in an event subprocess. If uncaught, the main process ends with an error state.",
+      "requiredInputs": [
+        {
+          "name": "errorRef",
+          "description": "The error code or identifier of the error to throw",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "errorMessage",
+          "description": "A human-readable description of the error",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "messageEndEvent",
+      "description": "An end event that sends a message when the process flow reaches it. Used to notify external systems or other processes that this process path has completed.",
+      "usage": "Use when the process needs to send a message to an external participant or another process upon completion of a flow path. The message is published when the end event is reached.",
+      "requiredInputs": [
+        {
+          "name": "messageRef",
+          "description": "The name or identifier of the message to send when this end event is reached",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "USER_REQUIRED"
+        }
+      ],
       "generatedOutputs": []
     },
     {
@@ -801,6 +988,235 @@
           "mandatory": true,
           "keyValue": true,
           "defaultValue": "100",
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "subProcess",
+      "description": "Use this node to represent a subprocess. A subprocess represents a collection of tasks that exist solely for handling a specific case beyond the main process. It is an action or series of actions that can be called at any point and as many times from the main process or as part of the main process. A subprocess can be triggered from a task in the main process, an external system that calls the subprocess through a message event, or it can be part of the main flow to isolate a series of actions (so that it can be made iterable for example)",
+      "usage": "Use this node to represent a subprocess. A subprocess represents a collection of tasks that exist solely for handling a specific case beyond the main process. It is an action or series of actions that can be called at any point and as many times from the main process or as part of the main process. A subprocess can be triggered from a task in the main process, an external system that calls the subprocess through a message event, or it can be part of the main flow to isolate a series of actions (so that it can be made iterable for example)",
+      "requiredInputs": [
+        {
+          "name": "subProcessId",
+          "description": "Unique identifier for the subprocess instance",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "subProcessName",
+          "description": "Name of the subprocess appearing to the user. This should contain contextual information to allow instances of a process to be distinguished",
+          "alias": "workItemName",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "subProcessDescription",
+          "description": "Name of the subprocess appearing to the user. This should contain contextual information to allow instances of a process to be distinguished",
+          "alias": "workItemDescription",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "triggeredByEvent",
+          "description": "If triggeredByEvent is true, the subprocess can be triggered by an event thrown by another node or an external event. If false, the subprocess is connected to the main process.",
+          "type": "boolean",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "timerBoundaryEvent",
+      "description": "A boundary event attached to a task or subprocess that triggers after a specified duration or at a specific date/time. When it is an interrupting event (cancelActivity=true in the events[] definition), the attached task/subprocess is cancelled. When non-interrupting, the attached task/subprocess continues and a parallel flow is started.",
+      "usage": "Embed in the 'events' array of a task or subprocess node. Use interrupting mode to cancel the task after a timeout (e.g. cancel a user task after 7 days). Use non-interrupting mode to trigger a parallel action without cancelling the task (e.g. send a reminder email after 3 days). Do NOT add as a standalone node — always embed in the parent task's events[].",
+      "requiredInputs": [
+        {
+          "name": "cancelActivity",
+          "description": "Whether this boundary event is interrupting (true) or non-interrupting (false). When interrupting, the attached task/subprocess is cancelled when the event triggers. Defaults to true.",
+          "type": "boolean",
+          "mandatory": false,
+          "keyValue": true,
+          "defaultValue": "true",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "timeDuration",
+          "description": "ISO 8601 duration expression for when the event should trigger (e.g. PT1H). Specify either timeDuration or timeDate, NOT both.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "timeDate",
+          "description": "ISO 8601 date/time expression for a specific point in time when the event should trigger (e.g. 2025-12-31T23:59:59Z). Specify either timeDuration or timeDate, NOT both.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "messageBoundaryEvent",
+      "description": "A boundary event attached to a task or subprocess that triggers when a specified message is received. When it is an interrupting event (cancelActivity=true in the events[] definition), the attached task/subprocess is cancelled. When non-interrupting, the attached task/subprocess continues and a parallel flow is started.",
+      "usage": "Embed in the 'events' array of a task or subprocess node. Use interrupting mode when an external message means the task is no longer needed (e.g. customer cancels a request). Use non-interrupting mode to handle additional information without stopping the current task. Do NOT add as a standalone node.",
+      "requiredInputs": [
+        {
+          "name": "cancelActivity",
+          "description": "Whether this boundary event is interrupting (true) or non-interrupting (false). When interrupting, the attached task/subprocess is cancelled when the event triggers. Defaults to true.",
+          "type": "boolean",
+          "mandatory": true,
+          "keyValue": true,
+          "defaultValue": "true",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "messageRef",
+          "description": "The name or identifier of the message this event listens for",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "errorBoundaryEvent",
+      "description": "A boundary event attached to a task or subprocess that triggers when a specific error is thrown. Error boundary events are always interrupting — they cancel the attached task/subprocess.",
+      "usage": "Embed in the 'events' array of a task or subprocess node. Always set cancelActivity=true (error boundary events are always interrupting). Use to catch errors thrown by the attached task or subprocess. Do NOT add as a standalone node.",
+      "requiredInputs": [
+        {
+          "name": "errorRef",
+          "description": "The error code or identifier of the error this event catches. If empty, catches all errors.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
+          "defaultValue": "",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": [
+        {
+          "name": "errorCode",
+          "description": "The error code of the caught error",
+          "type": "string",
+          "keyValue": true,
+          "resolveValue": "errorCode"
+        },
+        {
+          "name": "errorMessage",
+          "description": "The error message of the caught error",
+          "type": "string",
+          "keyValue": true,
+          "resolveValue": "errorMessage"
+        }
+      ]
+    },
+    {
+      "name": "conditionalBoundaryEvent",
+      "description": "A boundary event attached to a task or subprocess that triggers when a specified condition evaluates to true. When interrupting, the attached task/subprocess is cancelled. When non-interrupting, it continues and a parallel flow is started.",
+      "usage": "Embed in the 'events' array of a task or subprocess node. Use when a data condition should trigger an alternative or parallel flow while a task is active. Do NOT add as a standalone node.",
+      "requiredInputs": [
+        {
+          "name": "cancelActivity",
+          "description": "Whether this boundary event is interrupting (true) or non-interrupting (false). When interrupting, the attached task/subprocess is cancelled when the event triggers. Defaults to true.",
+          "type": "boolean",
+          "mandatory": false,
+          "keyValue": true,
+          "defaultValue": "true",
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "conditionExpression",
+          "description": "A boolean expression that is evaluated to determine whether this event should trigger",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["EXPRESSION", "SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "messageIntermediateCatchEvent",
+      "description": "An intermediate catch event placed in the process flow that pauses execution and waits for a specified message to be received before continuing.",
+      "usage": "Use in the main process flow when the process should wait for an external message before continuing",
+      "requiredInputs": [
+        {
+          "name": "messageRef",
+          "description": "The name or identifier of the message this event listens for",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "USER_REQUIRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "messageIntermediateThrowEvent",
+      "description": "An intermediate throw event placed in the process flow that sends a message and then continues. Used to signal other processes.",
+      "usage": "Use in the main process flow when the process needs to send a message to another process or external system and then continue execution.",
+      "requiredInputs": [
+        {
+          "name": "messageRef",
+          "description": "The name or identifier of the message to send",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "USER_REQUIRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "timerIntermediateCatchEvent",
+      "description": "An intermediate catch event placed in the process flow that pauses execution for a specified duration or until a specific date/time before continuing.",
+      "usage": "Use in the main process flow when the process should wait for a period of time before continuing",
+      "requiredInputs": [
+        {
+          "name": "timeDuration",
+          "description": "ISO 8601 duration expression for how long to wait (e.g. PT1H). Specify either timeDuration or timeDate, not both.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "timeDate",
+          "description": "ISO 8601 date/time expression for a specific point in time to wait until. Specify either timeDuration or timeDate, not both.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": true,
           "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "INFERRED"
         }

@@ -52,6 +52,13 @@ public abstract class PrepareModelForRendering extends ExecuteLogic {
     void identifyOrphanedSubgraphs(TModel model, Predicate<TNode> nodeFilter) {
         final int SUBGRAPH_SIZE_THRESHOLD = 3; // Threshold for pruning small subgraphs
 
+        // If the model has no filterable nodes (e.g. only subModels with no top-level nodes), skip orphan detection
+        final var filteredNodes = model.getNodes().stream().filter(nodeFilter).toList();
+        if (filteredNodes.isEmpty()) {
+            LOG.info("Model has no top-level nodes to check for orphans; skipping orphan subgraph detection");
+            return;
+        }
+
         List<String> roots = ValidationUtils.identifyNumberOfRoots(model, nodeFilter);
 
         // A correctly-formed model should have only one root (with |referrers| == 0)

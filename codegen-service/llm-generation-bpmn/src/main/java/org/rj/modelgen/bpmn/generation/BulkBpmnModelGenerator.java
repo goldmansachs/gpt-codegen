@@ -2,6 +2,7 @@ package org.rj.modelgen.bpmn.generation;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.rj.modelgen.bpmn.exception.BpmnGenerationException;
+import org.rj.modelgen.bpmn.generation.render.BasicBpmnModelGenerator;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

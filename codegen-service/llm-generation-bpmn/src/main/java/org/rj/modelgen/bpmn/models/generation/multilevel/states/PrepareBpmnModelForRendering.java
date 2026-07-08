@@ -6,6 +6,7 @@ import org.rj.modelgen.bpmn.component.common.BpmnComponentVariableType;
 import org.rj.modelgen.bpmn.generation.BpmnConstants;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
+import org.rj.modelgen.bpmn.intrep.model.ElementConnection;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
 import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 
 import static org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.GatewayConstants.CONDITION_EXPRESSION;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.PROCESS_CONFIG;
 import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.generateRandomId;
 import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.*;
@@ -35,7 +37,7 @@ import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.
 public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrepareBpmnModelForRendering.class);
-    private static final List<String> NODES_TO_IGNORE = List.of(PROCESS_CONFIG);
+    private static final List<String> NODES_TO_IGNORE = List.of(PROCESS_CONFIG, SUBPROCESS);
 
     private final BpmnGlobalVariableLibrary globalVariableLibrary;
 
@@ -63,16 +65,49 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
         final var componentLibrary = getComponentLibrary();
         if (componentLibrary == null) return Mono.just(Result.Err("Cannot prepare model for rendering; no component library available"));
 
+        // Collect IDs of nodes targeted by boundary events — these are not orphans
+        final Set<String> boundaryEventTargets = model.getNodes().stream()
+                .filter(n -> n.getEvents() != null)
+                .flatMap(n -> n.getEvents().stream())
+                .filter(e -> e.getConnectedTo() != null)
+                .flatMap(e -> e.getConnectedTo().stream())
+                .map(org.rj.modelgen.bpmn.intrep.model.ElementConnection::getTargetNode)
+                .collect(java.util.stream.Collectors.toSet());
+
         // Operations to be applied in order
-        final List<Runnable> operations = List.of(
+        final List<Runnable> operations = new ArrayList<>(List.of(
                 () -> removeInvalidNullNodes(model),
                 () -> eliminateDuplicateConnections(model),
-                () -> identifyOrphanedSubgraphs(model, node -> !NODES_TO_IGNORE.contains(node.getElementType())),
+                () -> identifyOrphanedSubgraphs(model, node -> !NODES_TO_IGNORE.contains(node.getElementType())
+                        && !boundaryEventTargets.contains(node.getId())),
                 () -> resolveInputs(model),
                 () -> assignStableIdsToArrayInputs(model),
                 () -> addCustomOperations(model),
                 () -> updateModelAssets(model, modelAssets)
-        );
+        ));
+
+        if (model.hasSubModels()) {
+            for (var subModel : model.getSubModels()) {
+                final var config = subModel.getSubProcessConfig();
+                final String subModelName = config != null ? config.getSubProcessName() : "unknown";
+                LOG.info("Preparing sub-model '{}' for rendering", subModelName);
+
+                operations.add(() -> removeInvalidNullNodes(subModel));
+                operations.add(() -> eliminateDuplicateConnections(subModel));
+                operations.add(() -> resolveInputs(subModel));
+                operations.add(() -> {
+                    final Set<String> subBoundaryTargets = subModel.getNodes().stream()
+                            .filter(n -> n.getEvents() != null)
+                            .flatMap(n -> n.getEvents().stream())
+                            .filter(e -> e.getConnectedTo() != null)
+                            .flatMap(e -> e.getConnectedTo().stream())
+                            .map(ElementConnection::getTargetNode)
+                            .collect(Collectors.toSet());
+                    subBoundaryTargets.addAll(boundaryEventTargets);
+                    identifyOrphanedSubgraphs(subModel, node -> !NODES_TO_IGNORE.contains(node.getElementType()) && !subBoundaryTargets.contains(node.getId()));
+                });
+            }
+        }
 
         return execute(model, modelAssets, operations);
     }

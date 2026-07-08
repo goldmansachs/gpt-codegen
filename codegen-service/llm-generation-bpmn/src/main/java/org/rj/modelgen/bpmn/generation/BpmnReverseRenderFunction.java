@@ -31,11 +31,9 @@ public class BpmnReverseRenderFunction implements ReverseRenderFunction<BpmnMode
             final var reverseRenderer = new BpmnReverseRenderer(model, bpmnModelAssets, resolvedLibrary, globalVariableLibrary);
             reverseRenderer.setNamespace(namespace);
             final BpmnIntermediateModel rendered = reverseRenderer.generateBpmnIntermediateModel();
-
             return Result.Ok(rendered);
-        }
-        catch (Throwable t) {
-            return Result.Err("Could not reverse render intermediate model from input BPMN model: " + t.getMessage());
+        } catch (Exception e) {
+            return Result.Err("Could not reverse render: " + e.getMessage());
         }
     }
 

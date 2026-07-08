@@ -18,6 +18,7 @@ public interface BpmnPromptPlaceholders extends StandardPromptPlaceholders {
     // Set of validation fixes to apply to detail-level generation on retry of model generation
     PromptPlaceholder DETAIL_MODEL_VALIDATION_ISSUES = new PromptPlaceholder("DETAIL_MODEL_VALIDATION_ISSUES");
 
+    // Payload variables required to run a bpmn
     PromptPlaceholder STARTING_PAYLOAD_VARIABLES = new PromptPlaceholder("STARTING_PAYLOAD_VARIABLES");
 }
 

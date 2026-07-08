@@ -182,6 +182,7 @@ public abstract class ModelInterfaceState implements CommonStateInterface {
      */
     @JsonIgnore
     public Mono<ModelInterfaceSignal> invoke(ModelInterfaceSignal inputSignal) {
+        this.payload = inputSignal.getPayload();
         this.invokeCount += 1;
         if (hasInvokeLimit() && invokeCount > invokeLimit) {
             return outboundSignal(new ModelInterfaceStandardSignals.FAIL_MAX_INVOCATIONS(id, invokeCount))
@@ -189,7 +190,6 @@ public abstract class ModelInterfaceState implements CommonStateInterface {
                     .mono();
         }
 
-        this.payload = inputSignal.getPayload();
         this.lastError = null;  // Reset for each execution
 
         try {

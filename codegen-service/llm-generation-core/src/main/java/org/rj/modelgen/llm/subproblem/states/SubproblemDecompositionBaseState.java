@@ -40,6 +40,10 @@ public abstract class SubproblemDecompositionBaseState extends BasicNode {
         return String.format("%s-%d", SubproblemDecompositionPayloadData.SubproblemResultContent, subproblemId);
     }
 
+    protected String subproblemAssetsKey(int subproblemId) {
+        return String.format("%s-%d", SubproblemDecompositionPayloadData.SubproblemAssetsContent, subproblemId);
+    }
+
     protected int getCurrentSubproblemId() {
         return getPayload().<Integer, SubproblemDecompositionPayloadData>
                 getOrThrow(SubproblemDecompositionPayloadData.CurrentSubproblem, () -> new RuntimeException("No subproblem ID in payload"));

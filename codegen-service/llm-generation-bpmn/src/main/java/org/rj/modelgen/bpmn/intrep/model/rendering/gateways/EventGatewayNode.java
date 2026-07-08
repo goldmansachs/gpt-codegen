@@ -1,33 +1,33 @@
-package org.rj.modelgen.bpmn.intrep.model.rendering;
+package org.rj.modelgen.bpmn.intrep.model.rendering.gateways;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.builder.AbstractFlowNodeBuilder;
-import org.camunda.bpm.model.bpmn.builder.ParallelGatewayBuilder;
+import org.camunda.bpm.model.bpmn.builder.EventBasedGatewayBuilder;
+import org.camunda.bpm.model.bpmn.instance.EventBasedGateway;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
-import org.camunda.bpm.model.bpmn.instance.ParallelGateway;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 
 import java.util.List;
 
-import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.GATEWAY_PARALLEL;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.GATEWAY_EVENT;
 
-public class ParallelGatewayNode extends ElementNode {
+public class EventGatewayNode extends ElementNode {
 
-    public ParallelGatewayNode() {
+    public EventGatewayNode() {
         super();
     }
 
-    public ParallelGatewayNode(String id, String name) {
-        super(id, name, GATEWAY_PARALLEL);
+    public EventGatewayNode(String id, String name) {
+        super(id, name, GATEWAY_EVENT);
     }
 
     @JsonIgnore
     @Override
     public <B extends AbstractFlowNodeBuilder<B, E>, E extends FlowNode> BpmnModelInstance render(AbstractFlowNodeBuilder<B, E> builder, BpmnComponent elementDefinition, String namespace) {
-        ParallelGatewayBuilder gatewayBuilder = builder.parallelGateway(id).name(name);
-        ParallelGateway gateway = gatewayBuilder.getElement();
+        EventBasedGatewayBuilder gatewayBuilder = builder.eventBasedGateway().id(id).name(name);
+        EventBasedGateway gateway = gatewayBuilder.getElement();
         configureTaskMetadata(gateway, namespace);;
         return gatewayBuilder.done();
     }

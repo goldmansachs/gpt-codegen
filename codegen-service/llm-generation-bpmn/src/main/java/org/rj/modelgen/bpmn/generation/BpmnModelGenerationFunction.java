@@ -1,6 +1,7 @@
 package org.rj.modelgen.bpmn.generation;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
+import org.rj.modelgen.bpmn.generation.render.BasicBpmnModelGenerator;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.models.generation.multilevel.BpmnMultiLevelGenerationModel;
 import org.rj.modelgen.llm.generation.ModelGenerationFunction;

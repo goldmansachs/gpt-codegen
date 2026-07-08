@@ -1,6 +1,6 @@
 package org.rj.modelgen.bpmn.models.generation.base.states;
 
-import org.rj.modelgen.bpmn.generation.BasicBpmnModelGenerator;
+import org.rj.modelgen.bpmn.generation.render.BasicBpmnModelGenerator;
 import org.rj.modelgen.bpmn.intrep.model.BpmnIntermediateModel;
 import org.rj.modelgen.bpmn.models.generation.base.signals.BpmnGenerationSignals;
 import org.rj.modelgen.llm.intrep.IntermediateModelParser;

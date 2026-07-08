@@ -42,6 +42,7 @@ import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelGenerat
 
 import org.rj.modelgen.llm.models.generation.multilevel.prompt.MultiLevelModelPromptType;
 import org.rj.modelgen.llm.models.generation.multilevel.states.ReverseRenderFunction;
+import org.rj.modelgen.llm.response.ModelResponse;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceStateMachineCustomization;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
@@ -317,7 +318,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
 
     public static BpmnMultiLevelGenerationModelOptions defaultOptions() {
         return (BpmnMultiLevelGenerationModelOptions) BpmnMultiLevelGenerationModelOptions.defaultOptions()
-                .withPerformSubproblemDecomposition(false)
+                .withPerformSubproblemDecomposition(true)
 
                 // Optional model response overrides which can be enabled for testing without LLM integration
                 // .withOverriddenLlmResponse(MultiLevelGenerationModelStates.SanitizingPrePass, Util.loadStringResource("generation-examples/multiLevel/example1/1b-sanitizing-prepass-response.txt"), ModelResponse.Status.SUCCESS)

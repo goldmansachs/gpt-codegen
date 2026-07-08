@@ -53,10 +53,19 @@ public abstract class CombineSubproblems extends SubproblemDecompositionBaseStat
             final var currentSubproblemResult = getPayload().getOrThrow(inputKey, () -> new RuntimeException("No current result present while processing subproblem " + currentSubproblemId));
             getPayload().put(subproblemResultContentKey(currentSubproblemId), currentSubproblemResult);
 
+            // save model assets for this subproblem so they can be combined later
+            final var currentAssets = getPayload().getData().get(StandardModelData.ModelAssets.toString());
+            if (currentAssets != null) {
+                final String assetsKey = String.format("%s-%d", SubproblemDecompositionPayloadData.SubproblemAssetsContent, currentSubproblemId);
+                getPayload().getData().put(assetsKey, currentAssets);
+            }
+
             // Do we have any more subproblems to solve?
             final Integer subproblemCount = getPayload().getOrThrow(SubproblemDecompositionPayloadData.SubproblemCount, () -> new RuntimeException("No subproblem count in payload"));
             if (currentSubproblemId < (subproblemCount - 1)) {
-                resetInvokeCount();
+                if (getModel() != null) {
+                    getModel().resetAllInvokeCounts();
+                }
                 if (getPayload().getData().get(StandardModelData.CanvasModel.toString()) != null) {
                     return outboundSignal(SubproblemDecompositionSignals.ProcessNextIntermediateModelSubproblem, "Process next subproblem").mono();
                 } else {
@@ -134,5 +143,4 @@ public abstract class CombineSubproblems extends SubproblemDecompositionBaseStat
     public String getOutputKey() {
         return outputKey;
     }
-
 }

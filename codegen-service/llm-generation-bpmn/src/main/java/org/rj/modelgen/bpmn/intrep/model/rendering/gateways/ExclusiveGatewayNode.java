@@ -1,18 +1,17 @@
-package org.rj.modelgen.bpmn.intrep.model.rendering;
+package org.rj.modelgen.bpmn.intrep.model.rendering.gateways;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.builder.AbstractFlowNodeBuilder;
-import org.camunda.bpm.model.bpmn.builder.InclusiveGatewayBuilder;
+import org.camunda.bpm.model.bpmn.builder.ExclusiveGatewayBuilder;
+import org.camunda.bpm.model.bpmn.instance.ExclusiveGateway;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
-import org.camunda.bpm.model.bpmn.instance.InclusiveGateway;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.ElementConnection;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
-import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,28 +19,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.GATEWAY_EXCLUSIVE;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.GatewayConstants.*;
-import static org.rj.modelgen.bpmn.generation.BpmnConstants.GatewayConstants.CONDITION_EXPRESSION;
-import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.GATEWAY_INCLUSIVE;
 
-public class InclusiveGatewayNode extends ElementNode implements ConditionalGateway {
+public class ExclusiveGatewayNode extends ElementNode implements ConditionalGateway {
+    private static final Logger LOG = LoggerFactory.getLogger(ExclusiveGatewayNode.class);
 
-    private static final Logger LOG = LoggerFactory.getLogger(InclusiveGatewayNode.class);
-
-    public InclusiveGatewayNode() {
+    public ExclusiveGatewayNode() {
         super();
     }
 
-    public InclusiveGatewayNode(String id, String name) {
-        super(id, name, GATEWAY_INCLUSIVE);
+    public ExclusiveGatewayNode(String id, String name) {
+        super(id, name, GATEWAY_EXCLUSIVE);
     }
 
     @JsonIgnore
     @Override
     public <B extends AbstractFlowNodeBuilder<B, E>, E extends FlowNode> BpmnModelInstance render(AbstractFlowNodeBuilder<B, E> builder, BpmnComponent elementDefinition, String namespace) {
-        InclusiveGatewayBuilder gatewayBuilder = builder.inclusiveGateway(id).name(name);
-        InclusiveGateway gateway = gatewayBuilder.getElement();
-        configureTaskMetadata(gateway, namespace);;
+        ExclusiveGatewayBuilder gatewayBuilder = builder.exclusiveGateway(id).name(name);
+        ExclusiveGateway gateway = gatewayBuilder.getElement();
+        configureTaskMetadata(gateway, namespace);
         return gatewayBuilder.done();
     }
 
@@ -56,8 +53,10 @@ public class InclusiveGatewayNode extends ElementNode implements ConditionalGate
         String defaultTargetNodeId = getDefaultTargetNodeId();
         Map<String, String> conditions = getConditions();
 
-        // Set default sequence flow on the gateway node
-        if (defaultTargetNodeId != null && !defaultTargetNodeId.isBlank() && connection.getTargetNode().equals(defaultTargetNodeId)) {
+        // Set default sequence flow on the gateway node only if all conditions do not have an expression
+        boolean allConditionsHaveExpressions = conditions.size() > 1 && conditions.values().stream().allMatch(expr -> expr != null && !expr.isBlank());
+
+        if (!allConditionsHaveExpressions && defaultTargetNodeId != null && !defaultTargetNodeId.isBlank() && connection.getTargetNode().equals(defaultTargetNodeId)) {
             builder.getElement().setAttributeValue(DEFAULT, connectionId);
         }
 
@@ -70,7 +69,6 @@ public class InclusiveGatewayNode extends ElementNode implements ConditionalGate
     public String getUniqueElementIdName() {
         return TARGET_NODE_ID;
     }
-
 
     @JsonIgnore
     public String getDefaultTargetNodeId() {

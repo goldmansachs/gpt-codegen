@@ -15,7 +15,7 @@ import org.rj.modelgen.bpmn.component.common.BpmnComponentVariableType;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType;
 import org.rj.modelgen.bpmn.intrep.model.*;
-import org.rj.modelgen.bpmn.intrep.model.rendering.ConditionalGateway;
+import org.rj.modelgen.bpmn.intrep.model.rendering.gateways.*;
 import org.rj.modelgen.llm.validation.beans.IntermediateModelValidationError;
 
 import java.util.*;
@@ -23,8 +23,12 @@ import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.EventConstants.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.Patterns.*;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_ID;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.TRIGGERED_BY_EVENT;
 import static org.rj.modelgen.bpmn.component.common.BpmnComponentInputSourceType.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.Validation.FULL_PROCESS;
 import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.*;
@@ -33,7 +37,7 @@ import static org.rj.modelgen.llm.util.ValidationUtils.identifyNumberOfRoots;
 public class ValidateBpmnModel {
 
     private static final String COMMA_DELIMITER = ",";
-    private static final List<String> NODES_TO_IGNORE = List.of(PROCESS_CONFIG);
+    private static final List<String> NODES_TO_IGNORE = List.of(PROCESS_CONFIG, SUBPROCESS);
 
     private BpmnIntermediateModel model;
     private BpmnGlobalVariableLibrary globalVariableLibrary;
@@ -49,11 +53,16 @@ public class ValidateBpmnModel {
     public List<IntermediateModelValidationError> validate(BpmnIntermediateModel model, Set<PayloadVariable> startingPayload) {
         this.model = model;
         invalidMessages = new ArrayList<>();
+
+        validateProcessStructure(model);
+        validateSubModelStructure(model);
+
         for (ElementNode node : model.getNodes()) {
             validateNodeNames(node);
             validateRequiredInputs(node);
             validateNodeConnections(node);
             validateNodeConnectionsRules(node);
+            validateBoundaryEvents(node);
         }
         identifyOrphanedNodes();
 
@@ -208,8 +217,8 @@ public class ValidateBpmnModel {
             List<ElementNodeInput> inputs = node.getInputs() == null
                     ? new ArrayList<>()
                     : node.getInputs().stream()
-                        .filter(nodeInput -> nodeInput.getName().equals(inputDefinition.getName()))
-                        .toList();
+                      .filter(nodeInput -> nodeInput.getName().equals(inputDefinition.getName()))
+                      .toList();
 
             validateNodeInputValuesMatchDefinition(node, inputs, inputDefinition, inputDefinition.getName());
         }
@@ -227,9 +236,73 @@ public class ValidateBpmnModel {
         }
     }
 
+    private void validateBoundaryEvents(ElementNode node) {
+        var events = node.getEvents();
+        if (events == null || events.isEmpty()) return;
+
+        var nodeIds = model.getNodes().stream().map(ElementNode::getId).collect(java.util.stream.Collectors.toSet());
+
+        for (var event : events) {
+            if (event.getEventType() == null || event.getEventType().isBlank()) {
+                invalidMessages.add(new IntermediateModelValidationError(String.format("Boundary event '%s' on node '%s' is missing eventType.", event.getId(), node.getId()), node.getId()));
+            } else if (!BOUNDARY_EVENT_TYPES.contains(event.getEventType())) {
+                invalidMessages.add(new IntermediateModelValidationError(String.format("Boundary event '%s' on node '%s' has invalid eventType '%s'.", event.getId(), node.getId(), event.getEventType()), node.getId()));
+            }
+
+            if (TIMER_BOUNDARY_EVENT.equals(event.getEventType())) {
+                boolean hasValidTimerConfig = event.findInput(TIMER_DURATION).isPresent() || event.findInput(TIMER_DATE).isPresent() || event.findInput(TIMER_CYCLE).isPresent();
+                if (!hasValidTimerConfig) {
+                    invalidMessages.add(new IntermediateModelValidationError(String.format("Timer boundary event '%s' on node '%s' is missing timer configuration. At least one of '%s', '%s', or '%s' inputs is required.", event.getId(), node.getId(), TIMER_DURATION, TIMER_DATE, TIMER_CYCLE), node.getId()));
+                }
+            }
+
+            if (MESSAGE_BOUNDARY_EVENT.equals(event.getEventType())) {
+                if (event.findInput(MESSAGE_REF).isEmpty()) {
+                    invalidMessages.add(new IntermediateModelValidationError(String.format("Message boundary event '%s' on node '%s' is missing required '%s' input. A message boundary event must specify the message it listens for.", event.getId(), node.getId(), MESSAGE_REF), node.getId()));
+                }
+            }
+
+            if (CONDITIONAL_BOUNDARY_EVENT.equals(event.getEventType())) {
+                if (event.findInput(CONDITION_EXPRESSION).isEmpty()) {
+                    invalidMessages.add(new IntermediateModelValidationError(String.format("Conditional boundary event '%s' on node '%s' is missing required '%s' input. A conditional boundary event must specify the condition expression to evaluate.", event.getId(), node.getId(), CONDITION_EXPRESSION), node.getId()));
+                }
+            }
+
+            if (event.getConnectedTo() == null || event.getConnectedTo().isEmpty()) {
+                invalidMessages.add(new IntermediateModelValidationError(String.format("Boundary event '%s' on node '%s' has no connectedTo targets.", event.getId(), node.getId()), node.getId()));
+            } else {
+                for (var conn : event.getConnectedTo()) {
+                    if (!nodeIds.contains(conn.getTargetNode())) {
+                        invalidMessages.add(new IntermediateModelValidationError(String.format("Boundary event '%s' on node '%s' references target '%s' which does not exist in the model.", event.getId(), node.getId(), conn.getTargetNode()), node.getId()));
+                    }
+                }
+            }
+        }
+    }
+
+
+    private Set<String> collectBoundaryEventTargets() {
+        return model.getNodes().stream()
+                .filter(n -> n.getEvents() != null)
+                .flatMap(n -> n.getEvents().stream())
+                .filter(e -> e.getConnectedTo() != null)
+                .flatMap(e -> e.getConnectedTo().stream())
+                .map(ElementConnection::getTargetNode)
+                .collect(Collectors.toSet());
+    }
+
     private void identifyOrphanedNodes() {
         // Identify number of roots but ignore processConfig node
         List<String> roots = identifyNumberOfRoots(model, node -> !NODES_TO_IGNORE.contains(node.getElementType()));
+
+        // Nodes that are targets of boundary events are not true roots — they have implicit incoming connections
+        Set<String> boundaryTargets = collectBoundaryEventTargets();
+        roots = roots.stream().filter(r -> !boundaryTargets.contains(r)).toList();
+
+        boolean hasFlowNodes = model.getNodes().stream().anyMatch(node -> !NODES_TO_IGNORE.contains(node.getElementType()));
+        if (!hasFlowNodes) {
+            return;
+        }
 
         if (roots.isEmpty()) {
             invalidMessages.add(new IntermediateModelValidationError("Model has no roots - it is cyclic and therefore invalid. The process must be a single continuous process with one root.", FULL_PROCESS));
@@ -241,6 +314,144 @@ public class ValidateBpmnModel {
         }
     }
 
+    private void validateProcessStructure(BpmnIntermediateModel model) {
+        boolean hasProcessConfig = model.getNodes().stream()
+                .anyMatch(node -> PROCESS_CONFIG.equals(node.getElementType()));
+        if (!hasProcessConfig) {
+            invalidMessages.add(new IntermediateModelValidationError("The main process is missing a 'processConfig' node. Every process must include a processConfig node that defines the process identity (processId, processName, etc.).", FULL_PROCESS));
+        }
+
+        // Main process must have a start event node
+        boolean hasStartEvent = model.getNodes().stream()
+                .anyMatch(node -> isStartEventType(node.getElementType()));
+        if (!hasStartEvent) {
+            invalidMessages.add(new IntermediateModelValidationError("The main process is missing a start event node. Every process must include exactly one start event (e.g. startEvent, messageStartEvent, timerStartEvent) as the entry point of the flow.", FULL_PROCESS));
+        }
+
+        // Main process must have an end event node
+        boolean hasEndEvent = model.getNodes().stream()
+                .anyMatch(node -> isEndEventType(node.getElementType()));
+        if (!hasEndEvent) {
+            invalidMessages.add(new IntermediateModelValidationError("The main process is missing an end event node. Every process must include at least one end event (e.g. endEvent, terminateEndEvent, errorEndEvent, messageEndEvent) as the termination point of the flow.", FULL_PROCESS));
+        }
+
+        validateSubProcessIdFormat(model);
+    }
+
+    private void validateSubModelStructure(BpmnIntermediateModel model) {
+        if (!model.hasSubModels()) return;
+
+        for (BpmnIntermediateModel subModel : model.getSubModels()) {
+            SubProcessConfig config = subModel.getSubProcessConfig();
+            String subModelLabel = resolveSubModelLabel(config);
+            boolean isEventSubProcess = config != null && config.isTriggeredByEvent();
+
+            boolean hasStartEvent = subModel.getNodes().stream().anyMatch(node -> isStartEventType(node.getElementType()));
+
+            if (!hasStartEvent) {
+                String subprocessType = isEventSubProcess ? "Event subprocess" : "Inline subprocess";
+                invalidMessages.add(new IntermediateModelValidationError(String.format("%s '%s' is missing a start event node. Every subprocess must include a start event as the entry point of its internal flow.", subprocessType, subModelLabel), FULL_PROCESS));
+            }
+
+            // Event subprocesses must use an event-triggered start (messageStartEvent, timerStartEvent, etc.), not a plain startEvent
+            if (isEventSubProcess && hasStartEvent) {
+                validateEventSubProcessStartType(subModel, subModelLabel);
+            }
+
+            // Every subprocess must have at least one end event
+            boolean hasEndEvent = subModel.getNodes().stream() .anyMatch(node -> isEndEventType(node.getElementType()));
+            if (!hasEndEvent) {
+                String subprocessType = isEventSubProcess ? "Event subprocess" : "Inline subprocess";
+                invalidMessages.add(new IntermediateModelValidationError(String.format("%s '%s' is missing an end event node. Every subprocess must include at least one end event (e.g. endEvent, terminateEndEvent, errorEndEvent, messageEndEvent) as the termination point of its flow.", subprocessType, subModelLabel), FULL_PROCESS));
+            }
+
+            // Inline subprocesses must have a subProcessId in SP<number> format for stable matching
+            if (!isEventSubProcess && config != null) {
+                String spId = config.getSubProcessId();
+                if (spId != null && !spId.isBlank() && !isValidSubProcessIdFormat(spId)) {
+                    invalidMessages.add(new IntermediateModelValidationError(String.format("Inline subprocess '%s' has subProcessId '%s' which does not match the required format SP<number> (e.g. SP1, SP2). The subProcessId must follow this convention for stable matching between the main process and its subprocesses.", subModelLabel, spId), FULL_PROCESS));
+                }
+            }
+
+            // Validate individual nodes within the subprocess (connections, names)
+            validateSubModelNodes(subModel, subModelLabel);
+        }
+    }
+
+    private void validateSubModelNodes(BpmnIntermediateModel subModel, String subModelLabel) {
+        Set<String> subNodeIds = subModel.getNodes().stream()
+                .map(ElementNode::getId)
+                .collect(Collectors.toSet());
+
+        for (ElementNode node : subModel.getNodes()) {
+            validateNodeNames(node);
+
+            // Validate connections reference nodes that exist within the subprocess
+            if (node.getConnectedTo() != null) {
+                for (ElementConnection conn : node.getConnectedTo()) {
+                    if (conn.getTargetNode() == null || conn.getTargetNode().isBlank()) {
+                        invalidMessages.add(new IntermediateModelValidationError(
+                                String.format("Node '%s' in subprocess '%s' has a connection with no target node defined",
+                                        node.getId(), subModelLabel), node.getId()));
+                    } else if (!subNodeIds.contains(conn.getTargetNode())) {
+                        invalidMessages.add(new IntermediateModelValidationError(
+                                String.format("Node '%s' in subprocess '%s' references target '%s' which does not exist within the subprocess",
+                                        node.getId(), subModelLabel, conn.getTargetNode()), node.getId()));
+                    }
+                }
+            }
+        }
+    }
+
+    private static String resolveSubModelLabel(SubProcessConfig config) {
+        if (config == null) return "unknown";
+        if (config.getSubProcessName() != null) return config.getSubProcessName();
+        if (config.getSubProcessId() != null) return config.getSubProcessId();
+        return "unknown";
+    }
+
+    private void validateEventSubProcessStartType(BpmnIntermediateModel subModel, String subModelLabel) {
+        boolean hasPlainStartOnly = subModel.getNodes().stream()
+                .filter(node -> isStartEventType(node.getElementType()))
+                .allMatch(node -> START_EVENT.equals(node.getElementType()));
+        if (hasPlainStartOnly) {
+            invalidMessages.add(new IntermediateModelValidationError(String.format("Event subprocess '%s' uses a plain 'startEvent' but event subprocesses require an event-triggered start event (e.g. messageStartEvent, timerStartEvent, errorStartEvent, conditionalStartEvent).", subModelLabel), FULL_PROCESS));
+        }
+    }
+
+    private void validateSubProcessIdFormat(BpmnIntermediateModel model) {
+        for (ElementNode node : model.getNodes()) {
+            if (!SUBPROCESS.equals(node.getElementType())) continue;
+
+            boolean isCallNode = node.getConnectedTo() != null && !node.getConnectedTo().isEmpty();
+
+            // Skip event subprocess config nodes
+            if (!isCallNode) {
+                boolean isEventSubProcess = node.findInput(TRIGGERED_BY_EVENT)
+                        .map(input -> "true".equalsIgnoreCase(input.getValue()))
+                        .orElse(false);
+                if (isEventSubProcess) continue;
+            }
+
+            String spId = node.findInput(SUBPROCESS_ID).map(ElementNodeInput::getValue).orElse(null);
+
+            String nodeType = isCallNode ? "Inline subProcess call node" : "SubProcess config node";
+            if (spId == null || spId.isBlank()) {
+                invalidMessages.add(new IntermediateModelValidationError(String.format("%s '%s' is missing a 'subProcessId' input. The subProcessId must match the format SP<number> (e.g. SP1, SP2) to enable stable matching between the main process and its subprocesses.", nodeType, node.getId()), node.getId()));
+            } else if (!isValidSubProcessIdFormat(spId)) {
+                invalidMessages.add(new IntermediateModelValidationError(String.format("%s '%s' has subProcessId '%s' which does not match the required format SP<number> (e.g. SP1, SP2).", nodeType, node.getId(), spId), node.getId()));
+            }
+        }
+    }
+
+    private static boolean isValidSubProcessIdFormat(String id) {
+        if (id == null || id.length() < 3) return false;
+        String upper = id.toUpperCase();
+        if (!upper.startsWith("SP")) return false;
+        String numPart = upper.substring(2);
+        return !numPart.isEmpty() && numPart.chars().allMatch(Character::isDigit);
+    }
+
     private void validateNodeConnectionsRules(ElementNode node) {
         if (StringUtils.isBlank(node.getElementType())) return;
 
@@ -248,26 +459,44 @@ public class ValidateBpmnModel {
                 .filter(n -> n.getConnectedTo() != null)
                 .filter(n -> n.getConnectedTo().stream().anyMatch(c -> c.getTargetNode().equals(node.getId())))
                 .toList();
+
+        // Also count boundary event connections as incoming
+        boolean hasBoundaryEventIncoming = model.getNodes().stream()
+                .filter(n -> n.getEvents() != null)
+                .flatMap(n -> n.getEvents().stream())
+                .filter(e -> e.getConnectedTo() != null)
+                .anyMatch(e -> e.getConnectedTo().stream().anyMatch(c -> c.getTargetNode().equals(node.getId())));
+
+        int totalIncoming = incomingConnections.size() + (hasBoundaryEventIncoming ? 1 : 0);
         final Collection<ElementConnection> connectedTo = node.getConnectedTo() != null ? node.getConnectedTo() : List.of();
 
-        if (node.getElementType().equals(START_EVENT)) {
+        if (node.getElementType().equals(START_EVENT)
+                || node.getElementType().equals(MESSAGE_START_EVENT)
+                || node.getElementType().equals(TIMER_START_EVENT)
+                || node.getElementType().equals(ERROR_START_EVENT)
+                || node.getElementType().equals(CONDITIONAL_START_EVENT)) {
             if (!incomingConnections.isEmpty()) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("Start event node '%s' has incoming connections. A start event can only have outgoing connections.", node.getId()), node.getId()));
             }
             if (connectedTo.isEmpty()) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("Start event node '%s' has no outgoing connections. A start event must have at least one outgoing connection.", node.getId()), node.getId()));
             }
-        } else if (node.getElementType().equals(END_EVENT)) {
+        } else if (node.getElementType().equals(END_EVENT)
+                || node.getElementType().equals(TERMINATE_END_EVENT)
+                || node.getElementType().equals(ERROR_END_EVENT)) {
             if (!connectedTo.isEmpty()) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("End event node '%s' has outgoing connections. An end event can only have incoming connections.", node.getId()), node.getId()));
             }
-            if (incomingConnections.isEmpty()) {
+            if (totalIncoming == 0) {
                 invalidMessages.add(new IntermediateModelValidationError(String.format("End event node '%s' has no incoming connections. An end event must have at least one incoming connection.", node.getId()), node.getId()));
             }
+        } else if (BOUNDARY_EVENT_TYPES.contains(node.getElementType())) {
+            // Standalone boundary event nodes should not exist — they should be in events[] of the parent
+            invalidMessages.add(new IntermediateModelValidationError(String.format("Boundary event '%s' found as a standalone node. Boundary events must be embedded in the parent task's events[] array, not as standalone nodes.", node.getId()), node.getId()));
         } else if (node.getElementType().endsWith(GATEWAY_SUFFIX)) {
             // Gateway can either be a split (one incoming, multiple outgoing) or a merge (multiple incoming, one outgoing), but not both at the same time
-            if (incomingConnections.size() > 1 && connectedTo.size() > 1) {
-                invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' has multiple incoming connections (%d) and multiple outgoing connections (%d). A gateway node can either be a split (one incoming, multiple outgoing) or a merge (multiple incoming, one outgoing), but not both at the same time. Create a separate gateway node for split and merge functionality.", node.getId(), incomingConnections.size(), connectedTo.size()), node.getId()));
+            if (totalIncoming > 1 && connectedTo.size()  > 1) {
+                invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' has multiple incoming connections (%d) and multiple outgoing connections (%d). A gateway node can either be a split (one incoming, multiple outgoing) or a merge (multiple incoming, one outgoing), but not both at the same time. Create a separate gateway node for split and merge functionality.", node.getId(), totalIncoming, node.getConnectedTo().size()), node.getId()));
             }
             if (node instanceof ConditionalGateway conditionalGateway) {
                 String defaultTargetNodeName = conditionalGateway.getDefaultTargetNodeId();
@@ -276,9 +505,9 @@ public class ValidateBpmnModel {
 
                 // Validate that default node and conditions are mapped to existing nodes. Merge gateways with one outgoing connection do not need to have default node or conditions defined
                 if (connectedTo.size() > 1) {
-                    if(StringUtils.isBlank(defaultTargetNodeName)) {
+                    if (StringUtils.isBlank(defaultTargetNodeName)) {
                         invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' is missing a 'default' input specifying the default target node.", node.getId()), node.getId()));
-                    } else if(connectedTo.stream().noneMatch(c -> c.getTargetNode().equals(defaultTargetNodeName))) {
+                    } else if (connectedTo.stream().noneMatch(c -> c.getTargetNode().equals(defaultTargetNodeName))) {
                         invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' has a default target node '%s' which is not among its outgoing connections. The 'default' input must specify target node from one of the outgoing connections.", node.getId(), defaultTargetNodeName), node.getId()));
                     }
                 }
@@ -295,17 +524,19 @@ public class ValidateBpmnModel {
                     invalidMessages.add(new IntermediateModelValidationError(String.format("Gateway node '%s' has multiple condition expressions but %d of them are empty. Only one condition expression can be empty and it should match the default path.", node.getId(), emptyConditionExpressions.size()), node.getId()));
                 }
             }
-        } else if (node.getElementType().equals(PROCESS_CONFIG)) {
+        } else if (node.getElementType().equals(PROCESS_CONFIG) || (node.getElementType().equals(SUBPROCESS))) {
+            // processConfig and subProcess definition nodes must be orphan nodes with no connections.
+            // Inline subProcess call nodes (those with connections) are NOT definition nodes and are exempt.
             if (!incomingConnections.isEmpty()) {
-                invalidMessages.add(new IntermediateModelValidationError(String.format("Process configuration node '%s' has incoming connections. A process configuration must be an orphan node.", node.getId()), node.getId()));
+                invalidMessages.add(new IntermediateModelValidationError(String.format("Configuration node '%s' has incoming connections. A configuration node must be an orphan node.", node.getId()), node.getId()));
             }
             if (!connectedTo.isEmpty()) {
-                invalidMessages.add(new IntermediateModelValidationError(String.format("Process configuration node '%s' has outgoing connections. A process configuration must be an orphan node.", node.getId()), node.getId()));
+                invalidMessages.add(new IntermediateModelValidationError(String.format("Configuration node '%s' has outgoing connections. A configuration node must be an orphan node.", node.getId()), node.getId()));
             }
         }
         else {
-            if (incomingConnections.size() != 1 && connectedTo.size() != 1) {
-                invalidMessages.add(new IntermediateModelValidationError(String.format("Node '%s' of type '%s' has %d incoming connections and %d outgoing connections. This type of node must have exactly one incoming and one outgoing connection.", node.getId(), node.getElementType(), incomingConnections.size(), connectedTo.size()), node.getId()));
+            if (totalIncoming != 1 && connectedTo.size() != 1) {
+                invalidMessages.add(new IntermediateModelValidationError(String.format("Node '%s' of type '%s' has %d incoming connections and %d outgoing connections. This type of node must have exactly one incoming and one outgoing connection.", node.getId(), node.getElementType(), totalIncoming, node.getConnectedTo().size()), node.getId()));
             }
         }
     }

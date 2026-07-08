@@ -5,9 +5,50 @@ You are designing a business process model following the BPMN 2.0 standard.  You
 
 We therefore want to clean up this prompt before we begin generating a process model.  Please identify any of the above issues in the given prompt and correct them, then return the full corrected prompt.
 
-IMPORTANT: DO NOT return any other content or commentary.  Only return the updated prompt.
+If a set of steps represent a 'subprocess' (that is, a series of actions that can be called at any point from the main process or from an external system for as many times, such as a set of actions to terminate a flow when a service task fails for example, or a series of actions that can be grouped and followed in isolation from the main process, both synchronously and asynchronously), we should break it into a separate subprocess.  If you identify a subprocess in the process, you should
+* Output them as a separate set of steps, with step number in the format "SP<subprocess-number>.<step-number>". For example, "SP1.1", "SP1.2" for steps 1 and 2 in subprocess 1
+* The subprocess steps can include any actions or logic available above.  However they should always begin with a Start Event and end with one or more End Events
+* In the original process, REPLACE the steps that were extracted into the subprocess with a single "call subprocess SP<subprocess-number>" step (where <subprocess-number> is the number of the subprocess you created). Do NOT keep the original extracted steps in the main process — they now live exclusively inside the subprocess. This call to the subprocess should be added under the node invoking this action, as a property of the node type
+* Subsequent steps in the main process should then continue as normal, taking action depending on whether the subprocess ended in SUCCESS or FAILURE
+* IMPORTANT: Each piece of logic must exist in exactly one place — either in the main process OR in a subprocess, never both. When you extract steps into a subprocess, remove them from the main process and replace them with the subprocess call
+* A subprocess can be triggered from a task in the main process, an external system that calls the subprocess through a message event, or it can be part of the main flow to isolate a series of actions (so that it can be made iterable for example). The main process therefore may have a call to the subprocess from another task node and the subprocess may be connected to a previous task type. Alternatively, there may be no reference to the subprocess from the main process if it is executed by an external system too (e.g. an event triggered subprocess which has a message event, timer event, error event, or another event based task type to trigger the subprocess flow).
+* Each inline subprocess call in the main flow must map to exactly one node in the main process
 
-The prompt you should correct (where necessary) is as follows:
+You should always surround the steps you generate with `(BEGIN)` and `(END)`.  If you generate any subprocesses, surround them with `(BEGIN <subprocess-name>)` and `(END <subprocess-name>)`
+
+e.g.
+```
+(BEGIN)
+1. ... [startEvent]
+2. ... [userTask]
+3. ... [serviceTask]
+4. ... [exclusiveGateway]
+4.1 ... [scriptTask]
+4.1.1 ... [endEvent]
+4.2 ... [serviceTask]
+4.2.2 ... [scriptTask]
+4.2.3 ... [endEvent]
+(END)
+
+(BEGIN SP1)
+SP1.1 ... [startEvent]
+SP1.2 ... [sendTask]
+SP1.3 ... [endEvent]
+(END SP1)
+```
+where ... is the instructions pertaining to the node task, extracted from the prompt. DO NOT remove any information supplied by the prompt
+
+This is the list of node tasks that you can match to:
+```
+${COMPONENT_LIBRARY}
+```
+
+IMPORTANT:
+* DO NOT return any other content or commentary.  Only return the updated prompt.
+* DO NOT include any reasoning, thinking, or re-examination in your response
+* Return ONLY one final set of (BEGIN)/(END) blocks.
+* Your response must contain exactly ONE `(BEGIN)...(END)` block for the main process and `(BEGIN <name>)...(END <name>)` block per subprocess where appropriate. Do NOT output multiple versions or drafts.
+The prompt you should correct (where necessary) and split into process and subprocess steps (where necessary) is as follows:
 ```
 ${PROMPT}
 ```

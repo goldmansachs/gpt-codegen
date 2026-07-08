@@ -156,9 +156,10 @@ public class ValidateBpmnLlmDetailLevelIntermediateModelResponse extends ModelIn
                 "Validation errors found in nodes: " + errorNodeIds);
         getPayload().put(MultiLevelModelStandardPayloadData.ImpactAnalysis, impact);
 
-        List<ElementNode> errorNodes = model.getNodes().stream()
+        List<ElementNode> errorNodes = model.getAllNodesRecursive()
                 .filter(node -> errorNodeIds.contains(node.getId()))
                 .collect(Collectors.toList());
+
         BpmnIntermediateModel scopedModel = new BpmnIntermediateModel();
         scopedModel.setNodes(errorNodes);
         getPayload().put(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel, scopedModel.serialize());

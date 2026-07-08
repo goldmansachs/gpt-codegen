@@ -44,6 +44,36 @@ public class BpmnConstants {
         public static final String SEQUENCE_FLOW = "sequenceFlow";
 
         public static final String PROCESS_CONFIG = "processConfig";
+
+        public static final String BOUNDARY_EVENT = "boundaryEvent";
+        public static final String TIMER_BOUNDARY_EVENT = "timerBoundaryEvent";
+        public static final String MESSAGE_BOUNDARY_EVENT = "messageBoundaryEvent";
+        public static final String ERROR_BOUNDARY_EVENT = "errorBoundaryEvent";
+        public static final String CONDITIONAL_BOUNDARY_EVENT = "conditionalBoundaryEvent";
+        public static final String TERMINATE_END_EVENT = "terminateEndEvent";
+        public static final String ERROR_END_EVENT = "errorEndEvent";
+        public static final String MESSAGE_END_EVENT = "messageEndEvent";
+        public static final String MESSAGE_START_EVENT = "messageStartEvent";
+        public static final String TIMER_START_EVENT = "timerStartEvent";
+        public static final String ERROR_START_EVENT = "errorStartEvent";
+        public static final String CONDITIONAL_START_EVENT = "conditionalStartEvent";
+        public static final String MESSAGE_INTERMEDIATE_CATCH_EVENT = "messageIntermediateCatchEvent";
+        public static final String MESSAGE_INTERMEDIATE_THROW_EVENT = "messageIntermediateThrowEvent";
+        public static final String TIMER_INTERMEDIATE_CATCH_EVENT = "timerIntermediateCatchEvent";
+
+        public static final List<String> BOUNDARY_EVENT_TYPES = List.of(TIMER_BOUNDARY_EVENT, MESSAGE_BOUNDARY_EVENT, ERROR_BOUNDARY_EVENT, CONDITIONAL_BOUNDARY_EVENT);
+
+        public static final List<String> START_EVENT_TYPES = List.of(START_EVENT, MESSAGE_START_EVENT, TIMER_START_EVENT, ERROR_START_EVENT, CONDITIONAL_START_EVENT);
+
+        public static final List<String> END_EVENT_TYPES = List.of(END_EVENT, TERMINATE_END_EVENT, MESSAGE_END_EVENT, ERROR_END_EVENT);
+
+        public static boolean isStartEventType(String elementType) {
+            return START_EVENT_TYPES.contains(elementType);
+        }
+
+        public static boolean isEndEventType(String elementType) {
+            return END_EVENT_TYPES.contains(elementType);
+        }
     }
 
     public static class Patterns {
@@ -132,6 +162,7 @@ public class BpmnConstants {
         public static final String PROCESS_NAME = "processName";
         public static final String PROCESS_NAME_ATTR = "workItemTypeDisplayName";
         public static final String ATTR_NOT_CONFIGURED = "not_configured";
+        public static final String WORKFLOW_ACTION_DETAILS = "workflowActionDetails";
     }
 
     public static class GatewayConstants {
@@ -140,6 +171,35 @@ public class BpmnConstants {
         public static final String ROUTES = "routes";
         public static final String TARGET_NODE_ID = "targetNodeId";
         public static final String CONDITION_EXPRESSION = "conditionExpression";
+    }
+
+    public static class SubProcessConfigConstants {
+        public static final List<String> ATTRIBUTES = List.of("subProcessId", "subProcessName", "subProcessDescription");
+        public static final String SUBPROCESS = "subProcess";
+        public static final String SUBPROCESS_ID = "subProcessId";
+        public static final String SUBPROCESS_NAME = "subProcessName";
+        public static final String SUBPROCESS_DESCRIPTION = "subProcessDescription";
+        public static final String TRIGGERED_BY_EVENT = "triggeredByEvent";
+    }
+
+    public static class EventConstants {
+        public static final String IS_INTERRUPTING = "isInterrupting";
+        public static final String MESSAGE_REF = "messageRef";
+        public static final String ERROR_REF = "errorRef";
+        public static final String ERROR_CODE = "errorCode";
+        public static final String ERROR_MESSAGE = "errorMessage";
+        public static final String ERROR_PREFIX = "Error_";
+        public static final String TIMER_DURATION = "timeDuration";
+        public static final String TIMER_DATE = "timeDate";
+        public static final String TIMER_CYCLE = "timerCycle";
+        public static final String CONDITION_EXPRESSION = "conditionExpression";
+    }
+
+    public static class MultiInstanceConstants {
+        public static final String MULTI_INSTANCE_COLLECTION = "collection";
+        public static final String MULTI_INSTANCE_ELEMENT_VARIABLE = "elementVariable";
+        public static final String MULTI_INSTANCE_DISPLAY_LABEL = "displayLabel";
+        public static final String MULTI_INSTANCE_COMPLETION_CONDITION = "completionCondition";
     }
 
     public static class Validation {

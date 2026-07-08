@@ -4,7 +4,6 @@ import org.rj.modelgen.bpmn.models.generation.base.context.BpmnPromptPlaceholder
 import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
 import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.subproblem.states.GenerateSubproblems;
-import org.rj.modelgen.llm.util.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,11 +18,6 @@ public class BpmnGenerateSubproblems extends GenerateSubproblems {
     }
 
     @Override
-    protected Result<List<String>, String> decomposeIntoSubproblems(String problem) {
-        return Result.Ok(List.of(problem));
-    }
-
-    @Override
     protected void onStartingNewSubproblem(int subproblemId, int subproblemCount) {
         // Clear any intermediate payload data generated during the last subproblem.  This could
         // otherwise interfere with generation of the next subproblem result
@@ -33,7 +27,8 @@ public class BpmnGenerateSubproblems extends GenerateSubproblems {
                 StandardModelData.ValidationMessages.toString(),
                 MultiLevelModelStandardPayloadData.HighLevelModel.toString(),
                 MultiLevelModelStandardPayloadData.DetailLevelModel.toString(),
-                BpmnPromptPlaceholders.GLOBAL_VARIABLES_USED_IN_HL_MODEL.getValue()
+                BpmnPromptPlaceholders.GLOBAL_VARIABLES_USED_IN_HL_MODEL.getValue(),
+                BpmnPromptPlaceholders.DETAIL_MODEL_VALIDATION_ISSUES.getValue()
         ));
     }
 }

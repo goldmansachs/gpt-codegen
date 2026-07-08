@@ -70,25 +70,105 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
             return;
         }
 
-        // Build lookup of generated (affected) nodes by ID
-        Map<String, ElementNode> generatedNodesById = generatedModel.getNodes().stream()
+        // Build lookup from ALL generated nodes (main process + subModels)
+        Map<String, ElementNode> generatedNodesById = generatedModel.getAllNodesRecursive()
                 .collect(Collectors.toMap(ElementNode::getId, Function.identity(), (a, b) -> b));
 
-        String generatedCommentary = generatedModel.getCommentary();
-        generatedModel.setCommentary(null); // Strip original commentary to save tokens
-        getPayload().put(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel, generatedModel.serialize());
-        generatedModel.setCommentary(generatedCommentary);
+        // Index generated subModel nodes by subProcessId so new nodes can be routed to the correct subprocess
+        Map<String, List<ElementNode>> generatedSubModelNodes = new HashMap<>();
+        if (generatedModel.hasSubModels()) {
+            for (BpmnIntermediateModel genSub : generatedModel.getSubModels()) {
+                String subId = genSub.getSubProcessConfig() != null
+                        ? genSub.getSubProcessConfig().getSubProcessId() : null;
+                if (subId != null) {
+                    generatedSubModelNodes.put(subId, new ArrayList<>(genSub.getNodes()));
+                }
+            }
+        }
 
-        List<ElementNode> mergedNodes = mergeNodeLists(originalModel.getNodes(), generatedNodesById, impactAnalysis);
+        String originalCommentary = generatedModel.getCommentary();
+        generatedModel.setCommentary(null);
+        getPayload().put(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel, generatedModel.serialize());
+        generatedModel.setCommentary(originalCommentary);
+
+        Set<String> removeIds = new HashSet<>(impactAnalysis.getRemoveNodeIds());
+        for (String affectedId : impactAnalysis.getAffectedNodeIds()) {
+            if (!generatedNodesById.containsKey(affectedId)) {
+                removeIds.add(affectedId);
+                LOG.info("Affected node '{}' not returned by LLM during scoped retry — treating as implicitly removed/replaced", affectedId);
+            }
+        }
+
+        // Merge main process nodes
+        List<ElementNode> mergedNodes = mergeNodeLists(originalModel.getNodes(), generatedNodesById, removeIds, generatedSubModelNodes);
         int restoredCount = (int) mergedNodes.stream()
                 .filter(node -> !generatedNodesById.containsKey(node.getId()))
                 .count();
-
         generatedModel.setNodes(mergedNodes);
+
+        // Merge subModels
+        Set<String> processedIds = mergedNodes.stream().map(ElementNode::getId).collect(Collectors.toCollection(HashSet::new));
+        List<BpmnIntermediateModel> mergedSubModels = new ArrayList<>();
+        Set<String> processedSubIds = new HashSet<>();
+
+        if (originalModel.hasSubModels()) {
+            for (BpmnIntermediateModel subModel : originalModel.getSubModels()) {
+                String subId = subModel.getSubProcessConfig() != null
+                        ? subModel.getSubProcessConfig().getSubProcessId() : null;
+                if (subId != null) processedSubIds.add(subId);
+
+                BpmnIntermediateModel mergedSub = new BpmnIntermediateModel();
+                mergedSub.setSubProcessConfig(subModel.getSubProcessConfig());
+                mergedSub.setCommentary(subModel.getCommentary());
+
+                List<ElementNode> mergedSubNodes = new ArrayList<>();
+                for (ElementNode subNode : subModel.getNodes()) {
+                    String id = subNode.getId();
+                    if (removeIds.contains(id)) continue;
+                    mergedSubNodes.add(generatedNodesById.getOrDefault(id, subNode));
+                    processedIds.add(id);
+                }
+
+                if (subId != null && generatedSubModelNodes.containsKey(subId)) {
+                    for (ElementNode genNode : generatedSubModelNodes.get(subId)) {
+                        if (!processedIds.contains(genNode.getId()) && !removeIds.contains(genNode.getId())) {
+                            mergedSubNodes.add(genNode);
+                            processedIds.add(genNode.getId());
+                            LOG.info("Added new node '{}' ({}) to subprocess '{}'", genNode.getName(), genNode.getId(), subId);
+                        }
+                    }
+                }
+
+                if (!removeIds.isEmpty()) {
+                    sanitizeConnections(mergedSubNodes, removeIds);
+                }
+
+                mergedSub.setNodes(mergedSubNodes);
+                mergedSubModels.add(mergedSub);
+            }
+        }
+
+        if (generatedModel.hasSubModels()) {
+            for (BpmnIntermediateModel genSub : generatedModel.getSubModels()) {
+                String subId = genSub.getSubProcessConfig() != null
+                        ? genSub.getSubProcessConfig().getSubProcessId() : null;
+                if (subId != null && !processedSubIds.contains(subId)) {
+                    mergedSubModels.add(genSub);
+                    LOG.info("Added new subprocess '{}' from LLM generation", subId);
+                }
+            }
+        }
+
+        if (!mergedSubModels.isEmpty()) {
+            generatedModel.setSubModels(mergedSubModels);
+        }
+
         if (originalModel.getCommentary() != null && !originalModel.getCommentary().isBlank()) {
             generatedModel.setCommentary(originalModel.getCommentary());
         }
-        LOG.info("Merge complete: {} unaffected nodes restored, {} affected from generation. Final: {} nodes.", restoredCount, generatedNodesById.size(), mergedNodes.size());
+
+        LOG.info("Merge complete: {} unaffected nodes restored, {} affected from generation, {} removed. Final: {} nodes.",
+                restoredCount, generatedNodesById.size(), removeIds.size(), mergedNodes.size());
 
         // Store merged model and clear scoping data for a fresh cycle
         final String mergedModelContent = generatedModel.serialize();
@@ -97,20 +177,7 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
         clearScopingData();
     }
 
-    private List<ElementNode> mergeNodeLists(List<ElementNode> originalNodes, Map<String, ElementNode> generatedNodesById, ImpactAnalysisResult impactAnalysis) {
-
-        Set<String> removeIds = new HashSet<>(impactAnalysis.getRemoveNodeIds());
-
-        // Any affected node NOT returned by the LLM was implicitly replaced (e.g. split/renamed).
-        // Treat it as removed so the stale original node doesn't remain in the merged model.
-        for (String affectedId : impactAnalysis.getAffectedNodeIds()) {
-            if (!generatedNodesById.containsKey(affectedId)) {
-                removeIds.add(affectedId);
-                LOG.info("Affected node '{}' not returned by LLM during scoped retry — treating as implicitly removed/replaced", affectedId);
-            }
-        }
-
-        // Merge: use generated version for affected nodes, original for unaffected, skip removed
+    private List<ElementNode> mergeNodeLists(List<ElementNode> originalNodes, Map<String, ElementNode> generatedNodesById, Set<String> removeIds, Map<String, List<ElementNode>> generatedSubModelNodes) {
         List<ElementNode> mergedNodes = new ArrayList<>();
         Set<String> processedIds = new HashSet<>();
 
@@ -121,14 +188,16 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
             processedIds.add(id);
         }
 
-        // Add any new nodes from the generated model
-        for (Map.Entry<String, ElementNode> entry : generatedNodesById.entrySet()) {
-            if (!processedIds.contains(entry.getKey())) {
-                mergedNodes.add(entry.getValue());
+        for (ElementNode generatedNode : generatedNodesById.values()) {
+            if (!processedIds.contains(generatedNode.getId())
+                    && !removeIds.contains(generatedNode.getId())
+                    && !isInAnyGeneratedSubModel(generatedNode.getId(), generatedSubModelNodes)) {
+                mergedNodes.add(generatedNode);
+                processedIds.add(generatedNode.getId());
+                LOG.info("Added new main-process node '{}' ({})", generatedNode.getName(), generatedNode.getId());
             }
         }
 
-        // Sanitize dangling connections to removed nodes
         if (!removeIds.isEmpty()) {
             int danglingRemoved = sanitizeConnections(mergedNodes, removeIds);
             if (danglingRemoved > 0) {
@@ -137,6 +206,11 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
         }
 
         return mergedNodes;
+    }
+
+    private boolean isInAnyGeneratedSubModel(String nodeId, Map<String, List<ElementNode>> generatedSubModelNodes) {
+        return generatedSubModelNodes.values().stream()
+                .anyMatch(nodes -> nodes.stream().anyMatch(n -> n.getId().equals(nodeId)));
     }
 
     private int sanitizeConnections(List<ElementNode> nodes, Set<String> removedIds) {
@@ -158,4 +232,3 @@ public class MergeScopedBpmnDetailLevelModel extends ModelInterfaceState impleme
         getPayload().remove(MultiLevelModelStandardPayloadData.ScopedDetailLevelModel);
     }
 }
-

@@ -1,4 +1,4 @@
-package org.rj.modelgen.bpmn.intrep.model.rendering;
+package org.rj.modelgen.bpmn.intrep.model.rendering.endevents;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
@@ -7,13 +7,7 @@ import org.camunda.bpm.model.bpmn.builder.EndEventBuilder;
 import org.camunda.bpm.model.bpmn.instance.EndEvent;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
-import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
-import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
 import org.rj.modelgen.bpmn.intrep.model.ElementNode;
-import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
-import org.rj.modelgen.bpmn.intrep.model.assets.BpmnModelAssets;
-
-import java.util.List;
 
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.END_EVENT;
 
@@ -36,3 +30,4 @@ public class EndEventNode extends ElementNode {
         return taskBuilder.done();
     }
 }
+

@@ -14,7 +14,8 @@ ${SCHEMA_CONTENT}
 
 Other requirements:
 * You can only use elements specified in the component library above
-* There must be one processConfig node and it should have no inbound or outbound connections. This is the only node allowed to be an orphan.
+* There must be EITHER one processConfig node or one subprocess node. It should have no inbound or outbound connections. ProcessConfig / subprocess nodes are the only nodes allowed to be an orphan. If the schema above is a subprocess (SP) (e.g. contains the steps 'SP1.1' for example) then DO NOT include a processConfig node, and instead use the element node type 'subProcess'. Otherwise, use a processConfig node.
+* Node IDs and names must be descriptive of what the node does. Do NOT use generic index-based names like `sp1_task1` or `SP2_step3`.
 * A node can only have ONE inbound and ONE outbound connection, UNLESS it is an 'exclusiveGateway' node.  As a result, you should use exclusiveGateway nodes to handling branching. They should be placed after a result is calculated which you want to branch on. If you need to merge branches, use another 'exclusiveGateway' node with no conditions.
 * Your process should begin with a Start Event and end with one or more End Events
 Each non-endEvent can make outbound connections to other nodes. These connections should reference the 'name' of the node they are connecting to.
@@ -36,7 +37,14 @@ Each non-endEvent can make outbound connections to other nodes. These connection
      - For arrays of objects: each array element MUST be an object input (has `properties`).
      - For arrays of primitives: each array element MUST be a leaf input (has `source` and `sourceType`).
 * Do not use `source`/`sourceType` and `properties` on the same input — they are mutually exclusive
-* ProcessConfig node must have inputs satisfied only with constant values, expressions or scripts and cannot read variables from other nodes.
+
+Start and End Event RULES:
+* If event start events (messageStartEvent, timerStartEvent, errorStartEvent, conditionalStartEvent) are used inside subprocesses they must set triggeredByEvent as true. They can also be used in the main process, but only if the process itself is triggeredByEvent=true.
+  - They replace the normal startEvent inside an event-driven subprocess or main process.
+* terminateEndEvent terminates the entire process instance. Use instead of endEvent when all active branches must stop.
+* errorEndEvent throws an error that can be caught by an errorStartEvent in an event subprocess. Use inside subprocesses to propagate errors.
+* Intermediate events (messageIntermediateCatchEvent, messageIntermediateThrowEvent, timerIntermediateCatchEvent) sit in the main process flow like regular nodes with inbound and outbound connections.
+* Do NOT include boundary events or iteration config in this high-level model. Do NOT add an "events" array or "iterationConfig" property to any node. Boundary events and iteration configs will be added during the detail-level generation stage.
 
 <#if GLOBAL_VARIABLE_LIBRARY?has_content>
 These are the global variables which can be used within EXPRESSION or SCRIPT inputs: `getGlobalVariable('variableName', [arg1, arg2])`

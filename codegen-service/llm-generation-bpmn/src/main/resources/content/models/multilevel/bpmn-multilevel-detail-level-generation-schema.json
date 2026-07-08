@@ -48,12 +48,26 @@
             "description": "The IDs of nodes which this node connects to. Outbound connections only. Only a single outbound connection is allowed unless this is an exclusiveGateway node"
           }
         },
+        "events": {
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/boundaryEvent"
+          },
+          "description": "Boundary events attached to this task or subprocess. Only applicable to task and subprocess nodes."
+        },
         "inputs": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/elementInput"
           },
           "description": "Array of required inputs, as specified for this component type in the 'component library'. Empty array if no inputs are required. Each entry may be a primitive type or an object."
+        },
+        "iterationConfig": {
+          "oneOf": [
+            { "$ref": "#/$defs/iterationConfig" },
+            { "type": "null" }
+          ],
+          "description": "If this node should repeat for each item in a collection (multi-instance), provide the iteration configuration here. Omit or set to null for non-repeating nodes. Applicable to any task or subprocess node."
         }
       },
       "required": [
@@ -127,6 +141,66 @@
       "required": [
         "targetNode"
       ]
+    },
+    "boundaryEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/elementId",
+          "description": "A unique identifier for this boundary event"
+        },
+        "name": {
+          "type": "string",
+          "description": "A descriptive name for this boundary event"
+        },
+        "eventType": {
+          "type": "string",
+          "description": "The type of boundary event. MUST match a boundary event component in the component library"
+        },
+        "cancelActivity": {
+          "type": "boolean",
+          "description": "If true (interrupting), the parent task/subprocess is cancelled when the event fires. If false (non-interrupting), a parallel flow starts while the parent continues."
+        },
+        "inputs": {
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/elementInput"
+          },
+          "description": "Inputs for this boundary event as defined in the component library"
+        },
+        "connectedTo": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nodeConnection"
+          },
+          "description": "The target nodes for the flow triggered by this boundary event"
+        }
+      },
+      "required": ["id", "name", "eventType", "cancelActivity", "connectedTo"]
+    },
+    "iterationConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list": {
+          "type": "string",
+          "description": "Expression referencing the collection to iterate over"
+        },
+        "itemInList": {
+          "type": "string",
+          "description": "Variable name assigned to the current element in each iteration"
+        },
+        "itemLabel": {
+          "type": "string",
+          "description": "Display label expression for each instance"
+        },
+        "completionCondition": {
+          "type": ["string", "null"],
+          "description": "Optional expression evaluated after each instance completes; if true the remaining instances are cancelled. Omit if all instances must complete."
+        }
+      },
+      "required": ["list", "itemInList", "itemLabel"]
     }
   }
 }

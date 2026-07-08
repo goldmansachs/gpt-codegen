@@ -1,4 +1,4 @@
-package org.rj.modelgen.bpmn.intrep.model.rendering;
+package org.rj.modelgen.bpmn.intrep.model.rendering.gateways;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.camunda.bpm.model.bpmn.builder.AbstractFlowNodeBuilder;

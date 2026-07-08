@@ -4,7 +4,8 @@ public enum SubproblemDecompositionPayloadData {
     SubproblemCount,
     CurrentSubproblem,
     SubproblemRequestContent,
-    SubproblemResultContent;
+    SubproblemResultContent,
+    SubproblemAssetsContent;
 
     @Override
     public String toString() {

@@ -1,9 +1,12 @@
 package org.rj.modelgen.bpmn.component.synthetic;
 
+import org.rj.modelgen.bpmn.component.synthetic.types.BpmnSyntheticTerminateWorkflowNode;
+import org.rj.modelgen.bpmn.component.synthetic.types.BpmnSyntheticUnknownElementNode;
 import org.rj.modelgen.llm.util.StringSerializable;
 
 public enum BpmnSyntheticElementType implements StringSerializable {
-    UnknownElement(BpmnSyntheticElementNode.class);
+    UnknownElement(BpmnSyntheticUnknownElementNode.class),
+    TerminateWorkflow(BpmnSyntheticTerminateWorkflowNode.class);
 
     private final Class<? extends BpmnSyntheticElementNode> elementClass;
 

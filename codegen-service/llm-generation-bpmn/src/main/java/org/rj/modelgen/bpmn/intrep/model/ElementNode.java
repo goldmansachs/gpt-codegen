@@ -4,9 +4,8 @@ import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.builder.AbstractFlowNodeBuilder;
-import org.camunda.bpm.model.bpmn.instance.BaseElement;
-import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
-import org.camunda.bpm.model.bpmn.instance.FlowNode;
+import org.camunda.bpm.model.bpmn.builder.StartEventBuilder;
+import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.xml.instance.DomElement;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
@@ -16,9 +15,12 @@ import org.rj.modelgen.bpmn.intrep.model.rendering.*;
 import org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils;
 import org.rj.modelgen.llm.intrep.graph.GraphNode;
 import java.util.*;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import static org.camunda.bpm.model.bpmn.impl.BpmnModelConstants.ACTIVITI_NS;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.CommonTaskConstants.*;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.MultiInstanceConstants.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.PROCESS_CONFIG;
 import static org.rj.modelgen.bpmn.intrep.model.ElementNodeInput.createInputFromAttribute;
 import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.extractAttributeValue;
@@ -33,15 +35,17 @@ import static org.rj.modelgen.bpmn.models.generation.validation.BpmnScriptUtils.
         visible = true)
 @JsonTypeIdResolver(ElementNodeTypeIdResolver.class)
 public class ElementNode implements GraphNode<String, String, ElementConnection> {
-    private static final Logger LOG = Logger.getLogger(ElementNode.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(ElementNode.class.getName());
 
     protected String id;
     protected String name;
     protected String elementType;
     protected String description;
     protected List<ElementConnection> connectedTo;
+    protected List<BoundaryEventAttachment> events;
     protected Map<String, Object> properties;
     protected List<ElementNodeInput> inputs;
+    protected IterationConfig iterationConfig;
 
     public ElementNode() {
     }
@@ -99,6 +103,15 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    public List<BoundaryEventAttachment> getEvents() {
+        return events;
+    }
+
+    public void setEvents(List<BoundaryEventAttachment> events) {
+        this.events = events;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Map<String, Object> getProperties() {
         return properties;
     }
@@ -116,6 +129,20 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public void setInputs(List<ElementNodeInput> inputs) {
         this.inputs = inputs;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public IterationConfig getIterationConfig() {
+        return iterationConfig;
+    }
+
+    public void setIterationConfig(IterationConfig iterationConfig) {
+        this.iterationConfig = iterationConfig;
+    }
+
+    @JsonIgnore
+    public boolean isRepeatable() {
+        return iterationConfig != null && iterationConfig.isConfigured();
     }
 
     /* Convenience methods */
@@ -151,6 +178,11 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
     }
 
     @JsonIgnore
+    public void configureEventSubProcessStart(StartEventBuilder builder, BpmnModelInstance modelInstance) {
+        // Override in start event node classes
+    }
+
+
     public void reverseRenderModel(FlowNode flowNode, BpmnModelAssets modelAssets, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
         extractNodeMetadata(flowNode, namespace);
 
@@ -191,6 +223,9 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
             List<ElementNodeInput> extracted = reverseRenderValues(dom, flowNode, namespace, iv);
             nodeInputs.addAll(extracted);
         }
+
+        // Extract multi-instance loop characteristics as part of the reverse render
+        extractMultiInstanceConfig(flowNode, namespace);
 
         return nodeInputs;
     }
@@ -313,13 +348,52 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
         baseElement.setAttributeValueNs(namespace, ATTR_NODE_NAME, this.name);
         baseElement.setAttributeValueNs(namespace, ATTR_NODE_DESCRIPTION, this.description);
     }
+    
+    // used in reverse rendering for boundary nodes
+    @JsonIgnore
+    protected static void addInputInReverseRender(List<ElementNodeInput> inputs, String name, String value) {
+        if (value == null || value.isBlank()) return;
+        if (inputs.stream().anyMatch(i -> name.equals(i.getName()))) return;
+        inputs.add(createInputFromAttribute(name, value, true));
+    }
 
     @JsonIgnore
     protected void extractNodeMetadata(BaseElement baseElement, String namespace) {
-        this.elementType = baseElement.getElementType().getTypeName();
+        if (this.elementType == null) {
+            this.elementType = baseElement.getElementType().getTypeName();
+        }
         this.id = Optional.ofNullable(extractAttributeValue(baseElement.getDomElement(), namespace, ATTR_NODE_ID)).orElse(baseElement.getId());
         this.name = Optional.ofNullable(extractAttributeValue(baseElement.getDomElement(), namespace, ATTR_NODE_NAME)).orElse(baseElement.getId());
         this.description = Optional.ofNullable(extractAttributeValue(baseElement.getDomElement(), namespace, ATTR_NODE_DESCRIPTION)).orElse(this.elementType);
+    }
+
+    @JsonIgnore
+    protected void extractMultiInstanceConfig(FlowNode flowNode, String namespace) {
+        if (!(flowNode instanceof Activity activity)) return;
+
+        LoopCharacteristics loop = activity.getLoopCharacteristics();
+        if (!(loop instanceof MultiInstanceLoopCharacteristics miLoop)) return;
+
+        DomElement miDom = miLoop.getDomElement();
+
+        IterationConfig config = new IterationConfig();
+        config.setList(extractAttributeValue(miDom, ACTIVITI_NS, MULTI_INSTANCE_COLLECTION));
+        config.setItemInList(extractAttributeValue(miDom, ACTIVITI_NS, MULTI_INSTANCE_ELEMENT_VARIABLE));
+
+        String displayLabel = extractAttributeValue(miDom, namespace, MULTI_INSTANCE_DISPLAY_LABEL);
+        config.setItemLabel(displayLabel);
+
+        CompletionCondition cc = miLoop.getCompletionCondition();
+        if (cc != null) {
+            String ccText = cc.getTextContent();
+            if (ccText != null && !ccText.isBlank()) {
+                config.setCompletionCondition(ccText);
+            }
+        }
+
+        if (config.isConfigured()) {
+            this.iterationConfig = config;
+        }
     }
 
     @Override
@@ -333,26 +407,28 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
                 Objects.equals(description, that.description) &&
                 Objects.equals(connectedTo, that.connectedTo) &&
                 Objects.equals(properties, that.properties) &&
-                Objects.equals(inputs, that.inputs);
+                Objects.equals(inputs, that.inputs) &&
+                Objects.equals(iterationConfig, that.iterationConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, elementType, description, connectedTo, properties, inputs);
+        return Objects.hash(id, name, elementType, description, connectedTo, properties, inputs, iterationConfig);
     }
 
     @JsonIgnore
     public static ElementNode fromFlowNode(FlowNode flowNode, BpmnModelAssets modelAssets, String namespace, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
-        String elementType = flowNode.getElementType().getTypeName();
+        String elementType = ElementNodeTypeRegistry.resolveType(flowNode);
         Class<? extends ElementNode> nodeClass = ElementNodeTypeRegistry.getNodeClass(elementType);
 
         ElementNode elementNode;
         try {
             elementNode = nodeClass.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            LOG.warning(String.format("No ElementNode class registered for BPMN element type '{%s}' (id='%s')", elementType, flowNode.getId()));
+            LOG.warn(String.format("No ElementNode class registered for BPMN element type '{%s}' (id='%s')", elementType, flowNode.getId()));
             elementNode = new ElementNode();
         }
+        elementNode.elementType = elementType;
         elementNode.reverseRenderModel(flowNode, modelAssets, namespace, componentLibrary, globalVariableLibrary);
         return elementNode;
     }
