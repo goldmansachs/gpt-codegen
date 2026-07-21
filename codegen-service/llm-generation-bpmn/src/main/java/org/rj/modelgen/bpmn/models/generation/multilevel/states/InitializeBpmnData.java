@@ -2,9 +2,11 @@ package org.rj.modelgen.bpmn.models.generation.multilevel.states;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariable;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
+import org.rj.modelgen.bpmn.generation.render.BpmnOriginalCanvas;
 import org.rj.modelgen.bpmn.models.generation.multilevel.options.BpmnMultiLevelGenerationModelOptions;
 import org.rj.modelgen.bpmn.models.generation.validation.PayloadVariable;
 import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
@@ -53,6 +55,11 @@ public class InitializeBpmnData extends ExecuteLogic {
 
         if (options.shouldAddStartingPayloadVariables()) {
             initializeStartingPayload();
+        }
+
+        final BpmnModelInstance canvasModel = getPayload().getOrElse(MultiLevelModelStandardPayloadData.Model, (BpmnModelInstance) null);
+        if (canvasModel != null) {
+            getPayload().put(MultiLevelModelStandardPayloadData.OriginalCanvasLayout, BpmnOriginalCanvas.capture(canvasModel));
         }
 
         return Mono.just(Result.Ok());

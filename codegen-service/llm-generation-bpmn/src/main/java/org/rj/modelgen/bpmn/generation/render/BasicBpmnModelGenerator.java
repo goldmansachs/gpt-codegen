@@ -31,7 +31,6 @@ import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.PROCESS_CO
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.isStartEventType;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.ProcessConfigConstants.WORKFLOW_ACTION_DETAILS;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS;
-import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS_CALL_NODE;
 
 public class BasicBpmnModelGenerator {
     private static final Logger LOG = LoggerFactory.getLogger(BasicBpmnModelGenerator.class);
@@ -56,10 +55,14 @@ public class BasicBpmnModelGenerator {
     }
 
     public Result<BpmnModelInstance, String> generateModel(BpmnIntermediateModel intermediateModel) {
-        return generateModel(intermediateModel, BpmnComponentLibrary.defaultLibrary());
+        return generateModel(intermediateModel, BpmnComponentLibrary.defaultLibrary(), null);
     }
 
     public Result<BpmnModelInstance, String> generateModel(BpmnIntermediateModel intermediateModel, BpmnComponentLibrary componentLibrary) {
+        return generateModel(intermediateModel, componentLibrary, null);
+    }
+
+    public Result<BpmnModelInstance, String> generateModel(BpmnIntermediateModel intermediateModel, BpmnComponentLibrary componentLibrary, BpmnOriginalCanvas canvas) {
         if (intermediateModel == null) return Result.Err("Cannot generate model without valid intermediate model");
 
         deduplicateIds(intermediateModel);
@@ -110,8 +113,8 @@ public class BasicBpmnModelGenerator {
         // Render workflow actions as extension elements on the Process element
         renderWorkflowActions(modelInstance, getNamespaceUri(), intermediateModel.getNodes());
 
-        // Apply spacing, subprocess layout, and connector routing
-        new BpmnDiagramLayoutOptimizer().applySpacingMultiplier(modelInstance, DIAGRAM_MULTIPLIER);
+        // Preserve layout (copilot) or create layout (initial generation / no canvas)
+        new BpmnDiagramRestorer().applyIncrementalLayout(modelInstance, canvas, DIAGRAM_MULTIPLIER);
 
         return Result.Ok(modelInstance);
     }
@@ -127,12 +130,12 @@ public class BasicBpmnModelGenerator {
     }
 
 
-    public void traverseAndConnect(String startNodeId, Map<String, ElementNode> nodesById,
-                                    BpmnComponentLibrary componentLibrary, BpmnModelInstance modelInstance,
-                                    String sequencePrefix) {
+    public void traverseAndConnect(String startNodeId, Map<String, ElementNode> nodesById, BpmnComponentLibrary componentLibrary, BpmnModelInstance modelInstance, String sequencePrefix) {
         final var queue = new LinkedList<String>();
         queue.add(startNodeId);
-        int sequenceId = 0;
+        int[] sequenceId = {0};
+
+        final Set<String> usedSequenceIds = collectPreservedSequenceIds(nodesById.values());
 
         while (!queue.isEmpty()) {
             final var nodeId = queue.removeFirst();
@@ -153,7 +156,8 @@ public class BasicBpmnModelGenerator {
                 final var elementDefinition = componentLibrary.getComponentByName(targetElement.getElementType());
                 if (elementDefinition.isEmpty()) continue;
 
-                final var connectionId = sequencePrefix + (sequenceId++);
+                final String preservedId = target.getSequenceFlowId();
+                final var connectionId = (preservedId != null && !preservedId.isBlank()) ? preservedId : nextUniqueSequenceId(sequencePrefix, sequenceId, usedSequenceIds);
                 final var outboundConnection = addOutboundConnection(flowNode.builder(), node, target, connectionId);
 
                 final ModelElementInstance existingTarget = modelInstance.getModelElementById(target.getTargetNode());
@@ -165,6 +169,25 @@ public class BasicBpmnModelGenerator {
                 }
             }
         }
+    }
+
+    static Set<String> collectPreservedSequenceIds(Collection<ElementNode> nodes) {
+        final Set<String> ids = new HashSet<>();
+        for (var node : nodes) {
+            for (var conn : Optional.ofNullable(node.getConnectedTo()).orElseGet(List::of)) {
+                String id = conn.getSequenceFlowId();
+                if (id != null && !id.isBlank()) ids.add(id);
+            }
+        }
+        return ids;
+    }
+
+    static String nextUniqueSequenceId(String prefix, int[] counter, Set<String> usedIds) {
+        String seqId;
+        do {
+            seqId = prefix + (counter[0]++);
+        } while (!usedIds.add(seqId));
+        return seqId;
     }
 
     protected void registerNamespace(String namespacePrefix, String namespaceUri, Definitions definitions) {
@@ -385,5 +408,4 @@ public class BasicBpmnModelGenerator {
                 .filter(node -> isStartEventType(node.getElementType()))
                 .findFirst();
     }
-
 }

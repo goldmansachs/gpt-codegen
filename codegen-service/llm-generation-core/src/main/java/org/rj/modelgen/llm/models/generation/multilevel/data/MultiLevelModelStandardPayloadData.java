@@ -17,7 +17,8 @@ public enum MultiLevelModelStandardPayloadData {
     OriginalDetailLevelModel,
     InitialValidations,
     ModelFactory,
-    UIComponents;
+    UIComponents,
+    OriginalCanvasLayout;
 
     @Override
     public String toString() {

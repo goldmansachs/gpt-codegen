@@ -12,9 +12,12 @@ import org.rj.modelgen.bpmn.intrep.model.common.BpmnDefinitionElementResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class BpmnBoundaryEventRenderer {
     private static final Logger LOG = LoggerFactory.getLogger(BpmnBoundaryEventRenderer.class);
@@ -26,8 +29,18 @@ public class BpmnBoundaryEventRenderer {
     }
 
     void render(List<ElementNode> nodes, Map<String, ElementNode> nodesById, BpmnComponentLibrary componentLibrary, BpmnModelInstance modelInstance, String scope) {
-        int seqId = 0;
+        int[] seqId = {0};
         final String prefix = "seq-be-" + (scope == null || scope.isEmpty() ? "" : scope + "-");
+
+        final Set<String> usedSequenceIds = new HashSet<>();
+        for (var node : nodes) {
+            for (var event : Optional.ofNullable(node.getEvents()).orElseGet(List::of)) {
+                for (var conn : Optional.ofNullable(event.getConnectedTo()).orElseGet(List::of)) {
+                    String id = conn.getSequenceFlowId();
+                    if (id != null && !id.isBlank()) usedSequenceIds.add(id);
+                }
+            }
+        }
 
         for (var node : nodes) {
             if (node.getEvents() == null || node.getEvents().isEmpty()) continue;
@@ -62,7 +75,8 @@ public class BpmnBoundaryEventRenderer {
                         continue;
                     }
 
-                    String connId = prefix + (seqId++);
+                    final String preservedId = connection.getSequenceFlowId();
+                    String connId = (preservedId != null && !preservedId.isBlank()) ? preservedId : BasicBpmnModelGenerator.nextUniqueSequenceId(prefix, seqId, usedSequenceIds);
                     ModelElementInstance existingTarget = modelInstance.getModelElementById(targetId);
 
                     if (existingTarget == null) {
@@ -83,7 +97,8 @@ public class BpmnBoundaryEventRenderer {
 
                 // Traverse downstream from newly-created boundary event targets
                 for (String seedId : seedNodes) {
-                    generator.traverseAndConnect(seedId, nodesById, componentLibrary, modelInstance, prefix + (seqId++) + "-");
+                    String seedPrefix = BasicBpmnModelGenerator.nextUniqueSequenceId(prefix, seqId, usedSequenceIds) + "-";
+                    generator.traverseAndConnect(seedId, nodesById, componentLibrary, modelInstance, seedPrefix);
                 }
             }
         }

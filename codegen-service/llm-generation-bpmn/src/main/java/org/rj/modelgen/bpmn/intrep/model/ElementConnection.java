@@ -9,12 +9,19 @@ import java.util.Objects;
 public class ElementConnection implements GraphConnection<String> {
     private String targetNode;
     private String description;
+    private String sequenceFlowId;
 
     public ElementConnection() { }
 
     public ElementConnection(String targetNode, String description) {
         this.targetNode = targetNode;
         this.description = description;
+    }
+
+    public ElementConnection(String targetNode, String description, String sequenceFlowId) {
+        this.targetNode = targetNode;
+        this.description = description;
+        this.sequenceFlowId = sequenceFlowId;
     }
 
     @Override
@@ -33,6 +40,14 @@ public class ElementConnection implements GraphConnection<String> {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getSequenceFlowId() {
+        return sequenceFlowId;
+    }
+
+    public void setSequenceFlowId(String sequenceFlowId) {
+        this.sequenceFlowId = sequenceFlowId;
     }
 
     @Override

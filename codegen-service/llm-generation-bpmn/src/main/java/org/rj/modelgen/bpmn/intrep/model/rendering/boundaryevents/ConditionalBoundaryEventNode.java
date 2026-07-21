@@ -3,9 +3,10 @@ package org.rj.modelgen.bpmn.intrep.model.rendering.boundaryevents;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.BoundaryEvent;
-import org.camunda.bpm.model.bpmn.instance.ConditionExpression;
+import org.camunda.bpm.model.bpmn.instance.Condition;
 import org.camunda.bpm.model.bpmn.instance.ConditionalEventDefinition;
 import org.camunda.bpm.model.bpmn.instance.EventDefinition;
+import org.camunda.bpm.model.xml.instance.DomElement;
 import org.rj.modelgen.bpmn.intrep.model.BoundaryEventAttachment;
 import org.rj.modelgen.bpmn.intrep.model.ElementNodeInput;
 
@@ -33,9 +34,9 @@ public class ConditionalBoundaryEventNode extends AbstractBoundaryEventNode {
 
         if (inputs != null) {
             findInput(CONDITION_EXPRESSION).ifPresent(input -> {
-                var condition = modelInstance.newInstance(ConditionExpression.class);
+                var condition = modelInstance.newInstance(Condition.class);
                 condition.setTextContent(input.getValue());
-                conditionalEventDefinition.addChildElement(condition);
+                conditionalEventDefinition.setCondition(condition);
             });
         }
 
@@ -47,17 +48,31 @@ public class ConditionalBoundaryEventNode extends AbstractBoundaryEventNode {
                                                        BpmnModelInstance modelInstance) {
         var conditionalDef = modelInstance.newInstance(ConditionalEventDefinition.class);
         event.findInput(CONDITION_EXPRESSION).ifPresent(input -> {
-            var condition = modelInstance.newInstance(ConditionExpression.class);
+            var condition = modelInstance.newInstance(Condition.class);
             condition.setTextContent(input.getValue());
-            conditionalDef.addChildElement(condition);
+            conditionalDef.setCondition(condition);
         });
         boundaryEvent.addChildElement(conditionalDef);
     }
 
     public static void extractEventInputs(BoundaryEvent boundaryEvent, List<ElementNodeInput> inputs) {
         for (EventDefinition ed : boundaryEvent.getEventDefinitions()) {
-            if (ed instanceof ConditionalEventDefinition condDef && condDef.getCondition() != null) {
-                inputs.add(ElementNodeInput.createInputFromAttribute(CONDITION_EXPRESSION, condDef.getCondition().getTextContent(), true));
+            if (ed instanceof ConditionalEventDefinition condDef) {
+                String conditionText = null;
+
+                if (condDef.getCondition() != null) {
+                    conditionText = condDef.getCondition().getTextContent();
+                } else {
+                    conditionText = condDef.getDomElement().getChildElements().stream()
+                            .filter(child -> CONDITION_EXPRESSION.equals(child.getLocalName()))
+                            .map(DomElement::getTextContent)
+                            .findFirst()
+                            .orElse(null);
+                }
+
+                if (conditionText != null) {
+                    inputs.add(ElementNodeInput.createInputFromAttribute(CONDITION_EXPRESSION, conditionText, true));
+                }
             }
         }
     }

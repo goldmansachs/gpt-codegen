@@ -375,8 +375,8 @@
     },
     {
       "name": "businessRuleTask",
-      "description": "A task that executes a business rule or decision logic",
-      "usage": "Use business rule tasks when a task in the process flow involves executing business rules or decision logic. It allows you to define and execute business rules or decision tables to determine the flow of the process based on certain conditions or criteria.",
+      "description": "A task that executes a business rule or decision logic linked to a decision application/decision id",
+      "usage": "Use business rule tasks when a task in the process flow involves executing business rules or decision logic. It allows you to define and execute business rules or decision tables to determine the flow of the process based on certain conditions or criteria. Only use this when a decision application id or decision id is provided.",
       "requiredInputs": [
         {
           "name": "executionEngine",

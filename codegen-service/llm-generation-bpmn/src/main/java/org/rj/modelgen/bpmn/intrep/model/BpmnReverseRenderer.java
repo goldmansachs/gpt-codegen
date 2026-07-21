@@ -117,7 +117,7 @@ public class BpmnReverseRenderer {
 
         if (subProcess.getOutgoing() != null && !subProcess.getOutgoing().isEmpty()) {
             callNode.setConnectedTo(subProcess.getOutgoing().stream()
-                    .map(sf -> new ElementConnection(sf.getTarget().getId(), sf.getName()))
+                    .map(sf -> new ElementConnection(sf.getTarget().getId(), sf.getName(), sf.getId()))
                     .collect(Collectors.toList()));
         }
 
@@ -276,7 +276,7 @@ public class BpmnReverseRenderer {
         // Build connectedTo from outgoing sequence flows
         if (boundaryEvent.getOutgoing() != null && !boundaryEvent.getOutgoing().isEmpty()) {
             List<ElementConnection> connections = boundaryEvent.getOutgoing().stream()
-                    .map(sf -> new ElementConnection(sf.getTarget().getId(), sf.getName()))
+                    .map(sf -> new ElementConnection(sf.getTarget().getId(), sf.getName(), sf.getId()))
                     .toList();
             attachment.setConnectedTo(connections);
         }

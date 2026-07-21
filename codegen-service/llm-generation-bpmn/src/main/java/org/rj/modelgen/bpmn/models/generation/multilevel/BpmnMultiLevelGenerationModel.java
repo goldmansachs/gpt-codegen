@@ -138,7 +138,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
 
         return (BpmnMultiLevelGenerationModel) new BpmnMultiLevelGenerationModel(BpmnMultiLevelGenerationModel.class, modelInterface, promptGenerator, contextProvider, componentLibrary, preprocessingConfig,
                 highLevelConfig, reverseRenderFunction, detailLevelConfig, modelGenerationFunction, renderedModelSerializer, subproblemDecompositionConfig, reverseRenderSubproblemDecompositionConfig, completionState, options, bpmnModelParser)
-                .withModelCustomization(data -> addBpmnModelCustomization(data, options, promptGenerator, contextProvider, componentLibrary, globalVariableLibrary, bpmnModelValidator));
+                .withModelCustomization(data -> addBpmnModelCustomization(data, options, promptGenerator, contextProvider, componentLibrary, globalVariableLibrary, bpmnModelValidator, modelGenerationFunction, renderedModelSerializer));
     }
 
     protected BpmnMultiLevelGenerationModel(Class<? extends BpmnMultiLevelGenerationModel> modelClass,
@@ -179,7 +179,8 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
     }
 
     private static ModelInterfaceStateMachineCustomization addBpmnModelCustomization(ModelCustomizationData modelData, BpmnMultiLevelGenerationModelOptions options, BpmnGenerationMultiLevelPromptGenerator promptGenerator, ContextProvider contextProvider,
-                                                                                     BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator) {
+                                                                                     BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary, ValidateBpmnModel bpmnModelValidator,
+                                                                                     BpmnModelGenerationFunction modelGenerationFunction, Function<BpmnModelInstance, String> renderedModelSerializer) {
         final List<BiFunction<ModelInterfaceStateMachineCustomization, ModelCustomizationData, ModelInterfaceStateMachineCustomization>> customizations = List.of(
                 (customization, data) -> initialValidateBpmnDetailLevel(customization, data, globalVariableLibrary, bpmnModelValidator),
                 (customization, data) -> impactAnalysisStates(customization, contextProvider, promptGenerator, componentLibrary),
@@ -196,6 +197,7 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
                 BpmnMultiLevelGenerationModel::postProcessingResolveSyntheticComponents,
                 (customization, data) -> postProcessingPrepareForRendering(customization, data, globalVariableLibrary),
                 (customization, data) -> postCombinePrepareForRendering(customization, globalVariableLibrary),
+                (customization, data) -> bpmnGenerateModel(customization, modelGenerationFunction, renderedModelSerializer),
                 BpmnMultiLevelGenerationModel::validateBpmnModelCorrectness
         );
 
@@ -400,6 +402,14 @@ public class BpmnMultiLevelGenerationModel extends MultiLevelGenerationModel<Bpm
         return customization
                 .withNewStateInsertedAfter(validateBpmnModelCorrectness, MultiLevelGenerationModelStates.GenerateModel.toString())
                 .withNewRule(new ModelInterfaceTransitionRule.Reference(BpmnAdditionalModelStates.ValidateBpmnModelCorrectness.toString(), BpmnGenerationSignals.CompleteGeneration.toString(), MultiLevelGenerationModelStates.Complete.toString()));
+    }
+
+    private static ModelInterfaceStateMachineCustomization bpmnGenerateModel(ModelInterfaceStateMachineCustomization customization, BpmnModelGenerationFunction modelGenerationFunction, Function<BpmnModelInstance, String> renderedModelSerializer) {
+        final var bpmnGenerateModel = new BpmnGenerateModelFromIntermediateModel(MultiLevelModelStandardPayloadData.DetailLevelModel.toString(), StandardModelData.GeneratedModel.toString(), modelGenerationFunction, renderedModelSerializer)
+                .withOverriddenId(MultiLevelGenerationModelStates.GenerateModel);
+
+        return customization
+                .withReplacedState(bpmnGenerateModel, MultiLevelGenerationModelStates.GenerateModel.toString());
     }
 
     public static BpmnMultiLevelGenerationModelOptions defaultOptions() {

@@ -77,9 +77,9 @@ public class BpmnSyntheticTerminateWorkflowNode implements BpmnSyntheticElementN
 
         // Match by message start event with the terminate message ref
         return subModel.getNodes().stream()
-                .filter(node -> MESSAGE_START_EVENT.equals(node.getElementType()) || START_EVENT.equals(node.getElementType()))
+                .filter(node -> MESSAGE_START_EVENT.equals(node.getElementType()))
                 .anyMatch(node -> node.findInput(MESSAGE_REF)
-                        .map(input -> DEFAULT_MESSAGE_ID.equals(input.getValue()))
+                        .map(input -> input.getValue() != null && input.getValue().contains(DEFAULT_MESSAGE_ID))
                         .orElse(false));
     }
 

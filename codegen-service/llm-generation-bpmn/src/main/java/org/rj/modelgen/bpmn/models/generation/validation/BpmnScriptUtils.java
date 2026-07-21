@@ -233,17 +233,17 @@ public class BpmnScriptUtils {
                     String field = mr.group(1);
                     String value = mr.group(2).trim();
                     String type = inferType(value);
-                    return String.format("setVariable('%s', %s, '%s')", field, value, type);
+                    return Matcher.quoteReplacement(String.format("setVariable('%s', %s, '%s')", field, value, type));
                 });
     }
 
     private static String reverseResolveVariableReads(String inputValue) {
         String result = VAR_INTERPOLATED_PAYLOAD_READ_PATTERN
                 .matcher(inputValue)
-                .replaceAll(mr -> String.format("getVariable('%s')", mr.group(1)));
+                .replaceAll(mr -> Matcher.quoteReplacement(String.format("getVariable('%s')", mr.group(1))));
         return VAR_PAYLOAD_READ_PATTERN
                 .matcher(result)
-                .replaceAll(mr -> String.format("getVariable('%s')", mr.group(1)));
+                .replaceAll(mr -> Matcher.quoteReplacement(String.format("getVariable('%s')", mr.group(1))));
     }
 
     private static String reverseResolveGlobalVariables(String inputValue, BpmnGlobalVariableLibrary globalVariableLibrary) {

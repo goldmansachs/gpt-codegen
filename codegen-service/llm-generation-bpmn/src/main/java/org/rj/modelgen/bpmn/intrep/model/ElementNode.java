@@ -194,7 +194,7 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
 
         if (flowNode.getOutgoing() != null) {
             this.connectedTo = flowNode.getOutgoing().stream()
-                    .map(outgoing -> new ElementConnection(outgoing.getTarget().getId(), extractValue(outgoing.getDomElement(), namespace, "name")))
+                    .map(outgoing -> new ElementConnection(outgoing.getTarget().getId(), extractValue(outgoing.getDomElement(), namespace, "name"), outgoing.getId()))
                     .toList();
         }
 

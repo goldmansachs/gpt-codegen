@@ -23,6 +23,16 @@ public class BpmnSubprocessLayoutOptimizer {
         resolveExternalOverlaps(model, boundsById);
     }
 
+    public void refit(BpmnModelInstance model, String containerId, Map<String, Bounds> boundsById) {
+        for (SubProcess sp : model.getModelElementsByType(SubProcess.class)) {
+            if (sp.getId().equals(containerId)) {
+                fitAndCenter(model, sp, boundsById);
+                resolveExternalOverlaps(model, boundsById);
+                return;
+            }
+        }
+    }
+
     private void fitAndCenter(BpmnModelInstance model, SubProcess sp,
                               Map<String, Bounds> boundsById) {
         Bounds spBounds = boundsById.get(sp.getId());
