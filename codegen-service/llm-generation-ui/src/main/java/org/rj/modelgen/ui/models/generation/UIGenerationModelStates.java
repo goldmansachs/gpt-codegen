@@ -18,6 +18,8 @@ import org.rj.modelgen.llm.util.StringSerializable;
  */
 public enum UIGenerationModelStates implements StringSerializable {
     StartUIGeneration,
+    ExecuteImpactAnalysis,
+    EvaluateImpactAnalysis,
     FormaliseIntent,
     Complete;
 
@@ -29,9 +31,10 @@ public enum UIGenerationModelStates implements StringSerializable {
     public String description() {
         return switch (this) {
             case StartUIGeneration -> "Starting UI generation pipeline";
+            case ExecuteImpactAnalysis -> "Analyzing request to determine which parts of the UI need to change";
+            case EvaluateImpactAnalysis -> "Evaluating impact analysis to determine whether generation should proceed";
             case FormaliseIntent -> "Formalizing user intent";
             case Complete -> "UI generation pipeline complete";
         };
     }
 }
-

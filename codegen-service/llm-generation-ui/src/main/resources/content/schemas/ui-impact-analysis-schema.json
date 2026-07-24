@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UI impact analysis result",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "affectedComponentIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of existing components that need modification. Empty if no changes are required or no existing model is present."
+    },
+    "addComponents": {
+      "type": "boolean",
+      "description": "True if any new components need to be created, or - for initial generation - if a new UI should be generated from scratch."
+    },
+    "removeComponentIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of components that should be removed entirely or replaced/split. Must be disjoint from affectedComponentIds."
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Brief technical explanation of why components are affected, OR a user-friendly conversational reply when no generation is required."
+    }
+  },
+  "required": ["affectedComponentIds", "addComponents", "removeComponentIds", "reasoning"]
+}
+

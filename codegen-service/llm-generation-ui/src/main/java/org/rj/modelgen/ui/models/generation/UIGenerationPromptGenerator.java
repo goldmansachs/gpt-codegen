@@ -16,6 +16,6 @@ public class UIGenerationPromptGenerator extends TemplatedPromptGenerator<UIGene
     public UIGenerationPromptGenerator() {
         super();
         addPrompt(UIGenerationModelPromptType.FormaliseIntent, Util.loadStringResource("content/prompts/formalise-intent-prompt"));
+        addPrompt(UIGenerationModelPromptType.ImpactAnalysis, Util.loadStringResource("content/prompts/ui-impact-analysis-prompt"));
     }
 }
-

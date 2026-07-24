@@ -11,6 +11,7 @@ import org.rj.modelgen.llm.util.StringSerializable;
  */
 public enum UIGenerationModelPromptType implements StringSerializable {
     SanitizeInput,
+    ImpactAnalysis,
     FormaliseIntent;
 
     @Override
@@ -18,4 +19,3 @@ public enum UIGenerationModelPromptType implements StringSerializable {
         return Character.toLowerCase(name().charAt(0)) + name().substring(1);
     }
 }
-

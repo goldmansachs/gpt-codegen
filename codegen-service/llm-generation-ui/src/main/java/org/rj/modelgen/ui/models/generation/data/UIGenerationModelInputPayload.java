@@ -11,6 +11,8 @@ public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
     public static final String SANITIZED_REQUEST = "sanitizedRequest";
     public static final String FORMALISED_INTENT = "formalisedIntent";
     public static final String UI_OUTPUT = "uiOutput";
+    public static final String IMPACT_ANALYSIS = "impactAnalysis";
+    public static final String PROMPT_HISTORY = "promptHistory";
 
     public UIGenerationModelInputPayload(String sessionId, String request) {
         super(sessionId, request, null);
@@ -38,5 +40,21 @@ public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
 
     public void setUIOutput(String uiOutput) {
         put(UI_OUTPUT, uiOutput);
+    }
+
+    public String getImpactAnalysis() {
+        return get(IMPACT_ANALYSIS);
+    }
+
+    public void setImpactAnalysis(String impactAnalysis) {
+        put(IMPACT_ANALYSIS, impactAnalysis);
+    }
+
+    public String getPromptHistory() {
+        return get(PROMPT_HISTORY);
+    }
+
+    public void setPromptHistory(String promptHistory) {
+        put(PROMPT_HISTORY, promptHistory);
     }
 }

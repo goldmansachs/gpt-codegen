@@ -12,7 +12,10 @@ import org.rj.modelgen.llm.util.StringSerializable;
  */
 public enum UIGenerationSignals implements StringSerializable {
     OutputValidated,
-    OutputValidationFailed;
+    OutputValidationFailed,
+    NoChangesRequired,
+    InitialGenerationRequired,
+    CopilotChangesRequired;
 
     @Override
     public String toString() {

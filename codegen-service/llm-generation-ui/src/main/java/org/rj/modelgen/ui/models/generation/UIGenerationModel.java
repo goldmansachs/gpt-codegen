@@ -12,6 +12,9 @@ import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.llm.statemodel.states.common.PrepareAndSubmitLlmGenericRequest;
 import org.rj.modelgen.ui.models.generation.data.UIGenerationModelInputPayload;
+import org.rj.modelgen.ui.models.generation.schema.UIGenerationImpactAnalysisSchema;
+import org.rj.modelgen.ui.models.generation.signals.UIGenerationSignals;
+import org.rj.modelgen.ui.models.generation.states.EvaluateUIImpactAnalysis;
 import org.rj.modelgen.ui.models.generation.states.StartUIGeneration;
 import org.rj.modelgen.ui.models.generation.states.UIGenerationComplete;
 import reactor.core.publisher.Mono;
@@ -61,7 +64,24 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
         final var stateStart = new StartUIGeneration()
                 .withOverriddenId(UIGenerationModelStates.StartUIGeneration);
 
-        // 2. Formalise Intent: transforms the request into a structured description of UI elements.
+        // 2a. Execute Impact Analysis: LLM call which determines whether generation is
+        //     required and, in copilot mode, which parts of the existing UI are impacted.
+        //     Runs before FormaliseIntent so we can halt early on a "no change" outcome.
+        final var stateExecuteImpactAnalysis = new PrepareAndSubmitLlmGenericRequest<>(
+                contextProvider, modelPromptGenerator, UIGenerationModelPromptType.ImpactAnalysis,
+                componentLibrary,
+                new DefaultComponentLibrarySelector<TComponentLibrary>(),
+                componentLibrarySummarySerializer,
+                new UIGenerationImpactAnalysisSchema())
+                .withResponseOutputKey(UIGenerationModelInputPayload.IMPACT_ANALYSIS)
+                .withOverriddenId(UIGenerationModelStates.ExecuteImpactAnalysis);
+
+        // 2b. Evaluate Impact Analysis: routes to Complete (no changes),
+        //     FormaliseIntent (initial generation) or straight to the target flow (copilot with changes).
+        final var stateEvaluateImpactAnalysis = new EvaluateUIImpactAnalysis()
+                .withOverriddenId(UIGenerationModelStates.EvaluateImpactAnalysis);
+
+        // 3. Formalise Intent: transforms the request into a structured description of UI elements.
         final var stateFormaliseIntent = new PrepareAndSubmitLlmGenericRequest<>(
                 contextProvider, modelPromptGenerator, UIGenerationModelPromptType.FormaliseIntent, componentLibrary,
                 new DefaultComponentLibrarySelector<TComponentLibrary>(),
@@ -75,7 +95,7 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
 
         // --- Combine generic states with target-specific states ---
         final var allStates = new ArrayList<ModelInterfaceState>();
-        allStates.addAll(List.of(stateStart, stateFormaliseIntent));
+        allStates.addAll(List.of(stateStart, stateExecuteImpactAnalysis, stateEvaluateImpactAnalysis, stateFormaliseIntent));
         allStates.addAll(targetConfig.getTargetStates());
         allStates.add(stateComplete);
 
@@ -89,7 +109,15 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
         // --- Generic transition rules ---
         final var allRules = new ArrayList<ModelInterfaceTransitionRule>();
         allRules.addAll(List.of(
-                new ModelInterfaceTransitionRule(stateStart, StandardSignals.SUCCESS, stateFormaliseIntent),
+                // Start -> ExecuteImpactAnalysis
+                new ModelInterfaceTransitionRule(stateStart, StandardSignals.SUCCESS, stateExecuteImpactAnalysis),
+                // ExecuteImpactAnalysis -> EvaluateImpactAnalysis
+                new ModelInterfaceTransitionRule(stateExecuteImpactAnalysis, StandardSignals.SUCCESS, stateEvaluateImpactAnalysis),
+                // EvaluateImpactAnalysis routing
+                new ModelInterfaceTransitionRule(stateEvaluateImpactAnalysis, UIGenerationSignals.NoChangesRequired, stateComplete),
+                new ModelInterfaceTransitionRule(stateEvaluateImpactAnalysis, UIGenerationSignals.InitialGenerationRequired, stateFormaliseIntent),
+                new ModelInterfaceTransitionRule(stateEvaluateImpactAnalysis, UIGenerationSignals.CopilotChangesRequired, firstTargetState),
+                // FormaliseIntent -> target
                 new ModelInterfaceTransitionRule(stateFormaliseIntent, StandardSignals.SUCCESS, firstTargetState)
         ));
 
