@@ -44,6 +44,7 @@ public class ElementNodeTypeRegistry {
         // Catch Event Types
         register(MESSAGE_INTERMEDIATE_CATCH_EVENT, MessageIntermediateCatchEventNode.class, hasEventDefinition(IntermediateCatchEvent.class, MessageEventDefinition.class));
         register(TIMER_INTERMEDIATE_CATCH_EVENT, TimerIntermediateCatchEventNode.class, hasEventDefinition(IntermediateCatchEvent.class, TimerEventDefinition.class));
+        register(CONDITIONAL_INTERMEDIATE_CATCH_EVENT, ConditionalIntermediateCatchEventNode.class, hasEventDefinition(IntermediateCatchEvent.class, ConditionalEventDefinition.class));
 
         // Throw Event Types
         register(MESSAGE_INTERMEDIATE_THROW_EVENT, MessageIntermediateThrowEventNode.class, hasEventDefinition(IntermediateThrowEvent.class, MessageEventDefinition.class));

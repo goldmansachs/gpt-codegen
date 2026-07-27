@@ -335,7 +335,7 @@ RULES FOR THE DETAILED MODEL GENERATION
    b. Event start events (messageStartEvent, timerStartEvent, errorStartEvent, conditionalStartEvent) are used inside subprocesses with triggeredByEvent=true. They replace the normal startEvent.
    c. terminateEndEvent stops the entire process instance immediately, including all parallel branches.
    d. errorEndEvent throws an error. Pair with errorBoundaryEvent on the enclosing subprocess or errorStartEvent in an event subprocess to handle it.
-   e. Intermediate events (messageIntermediateCatchEvent, messageIntermediateThrowEvent, timerIntermediateCatchEvent) are inline flow nodes with normal inbound/outbound connections.
+   e. Intermediate events (messageIntermediateCatchEvent, messageIntermediateThrowEvent, timerIntermediateCatchEvent, conditionalIntermediateCatchEvent) are inline flow nodes with normal inbound/outbound connections.
    f. Connections:
       - Every inline subprocess (`triggeredByEvent=false`) referenced by this process MUST be invoked by EXACTLY ONE `subprocessCallNode` in the main process (elementType `subprocessCallNode`, `subProcessId` = the subprocess id e.g. "SP1"), connected inline with inbound and outbound connections. Never omit, drop, or replace a subprocess call with a serviceTask/scriptTask. If an existing model already contains a subprocessCallNode for a subprocess, preserve it.
       - Event subprocesses (`triggeredByEvent=true`) are not connected inline and exist without inbound/outbound connections (no call node).

@@ -44,7 +44,7 @@ Start and End Event RULES:
   - They replace the normal startEvent inside an event-driven subprocess or main process.
 * terminateEndEvent terminates the entire process instance. Use instead of endEvent when all active branches must stop.
 * errorEndEvent throws an error that can be caught by an errorStartEvent in an event subprocess. Use inside subprocesses to propagate errors.
-* Intermediate events (messageIntermediateCatchEvent, messageIntermediateThrowEvent, timerIntermediateCatchEvent) sit in the main process flow like regular nodes with inbound and outbound connections.
+* Intermediate events (messageIntermediateCatchEvent, messageIntermediateThrowEvent, timerIntermediateCatchEvent, conditionalIntermediateCatchEvent) sit in the main process flow like regular nodes with inbound and outbound connections.
 * Do NOT include boundary events or iteration config in this high-level model. Do NOT add an "events" array or "iterationConfig" property to any node. Boundary events and iteration configs will be added during the detail-level generation stage.
 
 <#if GLOBAL_VARIABLE_LIBRARY?has_content>
