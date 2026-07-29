@@ -80,9 +80,7 @@ public class PrepareAndSubmitLlmGenerationRequest extends ModelInterfaceState im
 
                     // Prompt generation failed for some other reason
                     else {
-                        return outboundSignal(prepareResult.getId(),
-                                Optional.ofNullable(prepareResult.getDescription()).orElse("Prepare phase did not succeed"))
-                                .mono();
+                        return prepareResult.mono();
                     }
                 });
     }
