@@ -178,6 +178,7 @@ public class ModelInterfaceStateMachine {
 
     private void addState(ModelInterfaceState state) {
         if (state == null) return;
+        state.completeStateInitialization();
 
         states.put(state.getId(), state);
         state.registerWithModel(this);

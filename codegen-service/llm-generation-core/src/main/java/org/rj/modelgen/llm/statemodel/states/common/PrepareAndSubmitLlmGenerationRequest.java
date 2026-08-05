@@ -100,6 +100,11 @@ public class PrepareAndSubmitLlmGenerationRequest extends ModelInterfaceState im
         // Override child state IDs, unless they have been explicitly overridden already
         if (!prepareRequestPhase.hasOverriddenId()) prepareRequestPhase.overrideDefaultId(getPrepareStateId());
         if (!submitRequestPhase.hasOverriddenId()) submitRequestPhase.overrideDefaultId(getSubmitStateId());
+
+        if (description != null) {
+            prepareRequestPhase.setDescription(description);
+            submitRequestPhase.setDescription(description);
+        }
     }
 
     @Override
