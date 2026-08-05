@@ -12,7 +12,7 @@ public class TestBulkBpmnGeneration {
 
     @Test
     public void testBulkBpmnGeneration() throws Exception {
-        final var inputCount = 6;
+        final var inputCount = 8;
         final var parser = new IntermediateModelParser<>(BpmnIntermediateModel.class);
         final var input = IntStream.rangeClosed(1, inputCount)
                 .mapToObj(n -> String.format("generation-examples/base/input/example-%d-input.json", n))

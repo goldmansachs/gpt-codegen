@@ -65,44 +65,34 @@ public class BpmnSubprocessLayoutOptimizer {
         for (SubProcess sp : model.getModelElementsByType(SubProcess.class)) {
             Bounds spBounds = boundsById.get(sp.getId());
             if (spBounds == null) continue;
-
-            double leftmostX = findLeftmostOverlapX(model, sp, spBounds);
-            if (leftmostX == Double.MAX_VALUE) continue;
-
-            double spRight = spBounds.getX() + spBounds.getWidth();
-            double shift = spRight + EXTERNAL_PADDING - leftmostX;
-            if (shift <= 0) continue;
-
-            shiftExternalShapes(model, sp, leftmostX, shift);
+            shiftOverlappingExternalShapes(model, sp, spBounds);
         }
     }
 
-    private double findLeftmostOverlapX(BpmnModelInstance model,
-                                        SubProcess sp, Bounds spBounds) {
-        double leftmostX = Double.MAX_VALUE;
+    private void shiftOverlappingExternalShapes(BpmnModelInstance model, SubProcess sp, Bounds spBounds) {
+        final double spRight = spBounds.getX() + spBounds.getWidth();
+        double leftmostOverlapX = Double.MAX_VALUE;
+        final List<Bounds> overlapping = new ArrayList<>();
         for (BpmnShape shape : model.getModelElementsByType(BpmnShape.class)) {
             BaseElement el = shape.getBpmnElement();
-            if (el == null || el.equals(sp) || isDescendantOf(el, sp)) continue;
+            if (el == null || belongsToSubProcess(el, sp)) continue;
 
             Bounds ob = shape.getBounds();
             if (ob != null && boundsOverlap(spBounds, ob)) {
-                leftmostX = Math.min(leftmostX, ob.getX());
+                overlapping.add(ob);
+                leftmostOverlapX = Math.min(leftmostOverlapX, ob.getX());
             }
         }
-        return leftmostX;
+        if (overlapping.isEmpty()) return;
+
+        double shift = spRight + EXTERNAL_PADDING - leftmostOverlapX;
+        if (shift <= 0) return;
+        for (Bounds ob : overlapping) ob.setX(ob.getX() + shift);
     }
 
-    private void shiftExternalShapes(BpmnModelInstance model, SubProcess sp,
-                                     double thresholdX, double shift) {
-        for (BpmnShape shape : model.getModelElementsByType(BpmnShape.class)) {
-            BaseElement el = shape.getBpmnElement();
-            if (el == null || el.equals(sp) || isDescendantOf(el, sp)) continue;
-
-            Bounds ob = shape.getBounds();
-            if (ob.getX() >= thresholdX) {
-                ob.setX(ob.getX() + shift);
-            }
-        }
+    private static boolean belongsToSubProcess(BaseElement el, SubProcess sp) {
+        return el.equals(sp) || isDescendantOf(el, sp)
+                || (el instanceof BoundaryEvent be && sp.equals(be.getAttachedTo()));
     }
 
     private void shiftChildBoundaryEvents(BpmnModelInstance model, SubProcess sp,

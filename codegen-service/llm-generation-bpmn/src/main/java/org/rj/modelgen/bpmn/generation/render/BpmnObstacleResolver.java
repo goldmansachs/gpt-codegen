@@ -20,6 +20,33 @@ public class BpmnObstacleResolver {
         for (var scope : allScopes) {
             resolveForScope(model, scope, boundsById);
         }
+        for (var scope : allScopes) {
+            for (BpmnEdge edge : scope.edges()) simplifyWaypoints(model, edge);
+        }
+    }
+
+    private void simplifyWaypoints(BpmnModelInstance model, BpmnEdge edge) {
+        List<Waypoint> waypoints = new ArrayList<>(edge.getWaypoints());
+        if (waypoints.size() < 3) return;
+
+        List<double[]> points = new ArrayList<>(waypoints.size());
+        for (Waypoint wp : waypoints) {
+            double[] pt = {wp.getX(), wp.getY()};
+            double[] prev = points.isEmpty() ? null : points.get(points.size() - 1);
+            if (prev == null || Math.abs(prev[0] - pt[0]) > INSET || Math.abs(prev[1] - pt[1]) > INSET) {
+                points.add(pt);
+            }
+        }
+        for (int i = points.size() - 2; i >= 1; i--) {
+            double[] a = points.get(i - 1), b = points.get(i), c = points.get(i + 1);
+            boolean sameX = Math.abs(a[0] - b[0]) <= INSET && Math.abs(b[0] - c[0]) <= INSET;
+            boolean sameY = Math.abs(a[1] - b[1]) <= INSET && Math.abs(b[1] - c[1]) <= INSET;
+            if (sameX || sameY) points.remove(i);
+        }
+
+        if (points.size() == waypoints.size()) return;
+        new ArrayList<>(edge.getWaypoints()).forEach(edge::removeChildElement);
+        for (double[] pt : points) addWaypoint(model, edge, pt[0], pt[1]);
     }
 
     private void collectScopes(BpmnDiagramLayoutOptimizer.LayoutScope scope, List<BpmnDiagramLayoutOptimizer.LayoutScope> result) {
@@ -40,25 +67,56 @@ public class BpmnObstacleResolver {
         for (int iter = 0; iter < MAX_REROUTE_ITERS; iter++) {
             boolean changed = false;
             for (BpmnEdge edge : scope.edges()) {
-                if (fixEdgeCollisions(model, edge, scopeBounds)) changed = true;
+                Map<String, Bounds> obstacles = edgeObstacles(edge, scopeBounds);
+                if (obstacles == null) continue;
+                if (fixEdgeCollisions(model, edge, obstacles)) changed = true;
+                if (removeRedundantDetours(model, edge, obstacles)) changed = true;
             }
-            if (!changed) {
-                break;
-            }
+            if (!changed) break;
         }
     }
 
-    private boolean fixEdgeCollisions(BpmnModelInstance model, BpmnEdge edge, Map<String, Bounds> scopeBounds) {
-        if (!(edge.getBpmnElement() instanceof SequenceFlow sequenceFlow)) return false;
-
+    private Map<String, Bounds> edgeObstacles(BpmnEdge edge, Map<String, Bounds> scopeBounds) {
+        if (!(edge.getBpmnElement() instanceof SequenceFlow sequenceFlow)) return null;
         FlowNode src = sequenceFlow.getSource();
         FlowNode tgt = sequenceFlow.getTarget();
 
         Map<String, Bounds> obstacles = new LinkedHashMap<>(scopeBounds);
         if (src != null) obstacles.remove(src.getId());
         if (tgt != null) obstacles.remove(tgt.getId());
-        if (obstacles.isEmpty()) return false;
+        return obstacles.isEmpty() ? null : obstacles;
+    }
 
+    private boolean removeRedundantDetours(BpmnModelInstance model, BpmnEdge edge, Map<String, Bounds> obstacles) {
+        boolean changedOverall = false;
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            List<Waypoint> waypoints = new ArrayList<>(edge.getWaypoints());
+            final int n = waypoints.size();
+            for (int i = 0; i < n && !changed; i++) {
+                final double xi = waypoints.get(i).getX(), yi = waypoints.get(i).getY();
+                for (int j = n - 1; j > i + 1; j--) {
+                    final double xj = waypoints.get(j).getX(), yj = waypoints.get(j).getY();
+                    final boolean sameX = Math.abs(xi - xj) <= INSET;
+                    final boolean sameY = Math.abs(yi - yj) <= INSET;
+                    if (!sameX && !sameY) continue;
+                    if (firstObstacleHit(xi, yi, xj, yj, obstacles) != null) continue;
+
+                    final List<double[]> rebuilt = new ArrayList<>();
+                    for (int k = 0; k <= i; k++) rebuilt.add(new double[]{waypoints.get(k).getX(), waypoints.get(k).getY()});
+                    for (int k = j; k < n; k++) rebuilt.add(new double[]{waypoints.get(k).getX(), waypoints.get(k).getY()});
+                    applyWaypoints(model, edge, rebuilt);
+                    changed = true;
+                    changedOverall = true;
+                    break;
+                }
+            }
+        }
+        return changedOverall;
+    }
+
+    private boolean fixEdgeCollisions(BpmnModelInstance model, BpmnEdge edge, Map<String, Bounds> obstacles) {
         List<Waypoint> waypoints = new ArrayList<>(edge.getWaypoints());
         for (int i = 0; i < waypoints.size() - 1; i++) {
             Waypoint a = waypoints.get(i);

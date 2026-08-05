@@ -408,4 +408,5 @@ public class BasicBpmnModelGenerator {
                 .filter(node -> isStartEventType(node.getElementType()))
                 .findFirst();
     }
+
 }

@@ -37,11 +37,10 @@ public class BpmnDiagramRestorer {
 
         resolveShapeOverlapsIncrementally(scaled.boundsById(), model, pinnedIds);
         bpmnDiagramLayoutOptimizer.subprocessLayoutResolver.layout(model, scaled.boundsById());
+        bpmnDiagramLayoutOptimizer.redistributeSubProcessBoundaryEvents(model, scaled.boundsById());
         alignAndRouteIncrementally(bpmnDiagramLayoutOptimizer, model, scaled.boundsById(), scaled.routableEdges(), multiplier, pinnedIds, canvas);
         final BpmnDiagramLayoutOptimizer.LayoutScope scopeTree = bpmnDiagramLayoutOptimizer.buildScopeTree(model, scaled.boundsById());
         new BpmnObstacleResolver().resolveConnectorObstacles(model, scopeTree, scaled.boundsById());
-
-        bpmnDiagramLayoutOptimizer.snapEndpointsToNodeMidpoints(model, scaled.boundsById());
 
         // Restore diagram element ids and swimlane pools from the original canvas
         restoreDiagramElementIds(model, canvas);
@@ -315,8 +314,7 @@ public class BpmnDiagramRestorer {
     }
 
     private void alignAndRouteIncrementally(BpmnDiagramLayoutOptimizer bpmnDiagramLayoutOptimizer, BpmnModelInstance model, Map<String, Bounds> boundsById, List<BpmnEdge> edges, double multiplier, Set<String> pinnedIds, BpmnOriginalCanvas canvas) {
-        final Map<String, Set<BpmnDiagramLayoutOptimizer.Side>> usedExits = new HashMap<>();
-        final Map<String, Set<BpmnDiagramLayoutOptimizer.Side>> usedEntries = new HashMap<>();
+        bpmnDiagramLayoutOptimizer.alignCenters(model, boundsById, edges, pinnedIds);
 
         final List<BpmnDiagramLayoutOptimizer.EdgeRoute> routes = new ArrayList<>();
 
@@ -338,25 +336,18 @@ public class BpmnDiagramRestorer {
             if (bothPinned && canvasPointers != null) {
                 restoreWaypoints(bpmnDiagramLayoutOptimizer, model, edge, canvasPointers);
             } else {
-                BpmnDiagramLayoutOptimizer.Side exit = (src instanceof BoundaryEvent) ? BpmnDiagramLayoutOptimizer.Side.BOTTOM : bpmnDiagramLayoutOptimizer.assignSide(srcB, tgtB, src.getId(), usedExits, usedEntries, true);
-                BpmnDiagramLayoutOptimizer.Side entry = bpmnDiagramLayoutOptimizer.assignSide(tgtB, srcB, tgt.getId(), usedExits, usedEntries, false);
-                routes.add(new BpmnDiagramLayoutOptimizer.EdgeRoute(edge, src, tgt, srcB, tgtB, exit, entry));
+                BpmnDiagramLayoutOptimizer.Side[] sides = bpmnDiagramLayoutOptimizer.computeSides(src, srcB, tgt, tgtB, boundsById);
+                routes.add(new BpmnDiagramLayoutOptimizer.EdgeRoute(edge, src, tgt, srcB, tgtB, sides[0], sides[1]));
             }
         }
 
-        final Set<String> alignedCircular = new HashSet<>();
-        final Set<String> alignedDiamond  = new HashSet<>();
+        final Map<BpmnEdge, double[]> entryPoints = bpmnDiagramLayoutOptimizer.computeEntryPoints(routes);
+        final Map<BpmnEdge, double[]> exitPoints = bpmnDiagramLayoutOptimizer.computeExitPoints(routes, bpmnDiagramLayoutOptimizer.computeContestedExitKeys(routes));
 
         for (BpmnDiagramLayoutOptimizer.EdgeRoute r : routes) {
-            if (!pinnedIds.contains(r.src().getId())) {
-                bpmnDiagramLayoutOptimizer.alignY(r.src(), r.srcBounds(), r.tgt(), r.tgtBounds(), boundsById, alignedCircular, alignedDiamond);
-            }
-
-            if (!pinnedIds.contains(r.tgt().getId())) {
-                bpmnDiagramLayoutOptimizer.alignY(r.tgt(), r.tgtBounds(), r.src(), r.srcBounds(),boundsById, alignedCircular, alignedDiamond);
-            }
-
-            bpmnDiagramLayoutOptimizer.rebuildEdge(model, r.edge(), r.srcBounds(), r.tgtBounds(), r.exitSide(), r.entrySide());
+            double[] s = exitPoints.get(r.edge());
+            double[] t = entryPoints.get(r.edge());
+            bpmnDiagramLayoutOptimizer.routeOrthogonal(model, r.edge(), s, r.exitSide(), t, r.entrySide());
         }
     }
 
