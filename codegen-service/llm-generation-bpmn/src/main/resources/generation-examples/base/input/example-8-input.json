@@ -206,16 +206,16 @@
           "name": "routingStrategy",
           "properties": [
             {
-              "name": "permitRoleRoutingRule",
+              "name": "privateRoleRoutingRule",
               "properties": [
                 {
-                  "name": "permitDomainExpression",
+                  "name": "privateDomainExpression",
                   "value": "LENDING",
                   "variableSource": "CONSTANT",
                   "isProvided": true
                 },
                 {
-                  "name": "permitRoleExpression",
+                  "name": "privateRoleExpression",
                   "value": "PRIMARY_LOAN_MANAGER",
                   "variableSource": "CONSTANT",
                   "isProvided": true
@@ -699,16 +699,16 @@
           "name": "routingStrategy",
           "properties": [
             {
-              "name": "permitRoleRoutingRule",
+              "name": "privateRoleRoutingRule",
               "properties": [
                 {
-                  "name": "permitDomainExpression",
+                  "name": "privateDomainExpression",
                   "value": "LENDING",
                   "variableSource": "CONSTANT",
                   "isProvided": true
                 },
                 {
-                  "name": "permitRoleExpression",
+                  "name": "privateRoleExpression",
                   "value": "SECONDARY_LOAN_MANAGER",
                   "variableSource": "CONSTANT",
                   "isProvided": true

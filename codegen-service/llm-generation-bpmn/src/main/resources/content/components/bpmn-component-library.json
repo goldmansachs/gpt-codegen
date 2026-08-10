@@ -7,7 +7,7 @@
       "requiredInputs": [
         {
           "name": "taskName",
-          "description": "Name of the eTask for identification and display purposes",
+          "description": "Name of the user task for identification and display purposes",
           "alias": "workItemName",
           "type": "string",
           "mandatory": true,
