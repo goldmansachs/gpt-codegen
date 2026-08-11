@@ -80,9 +80,7 @@ public class PrepareAndSubmitLlmGenerationRequest extends ModelInterfaceState im
 
                     // Prompt generation failed for some other reason
                     else {
-                        return outboundSignal(prepareResult.getId(),
-                                Optional.ofNullable(prepareResult.getDescription()).orElse("Prepare phase did not succeed"))
-                                .mono();
+                        return prepareResult.mono();
                     }
                 });
     }
@@ -102,6 +100,11 @@ public class PrepareAndSubmitLlmGenerationRequest extends ModelInterfaceState im
         // Override child state IDs, unless they have been explicitly overridden already
         if (!prepareRequestPhase.hasOverriddenId()) prepareRequestPhase.overrideDefaultId(getPrepareStateId());
         if (!submitRequestPhase.hasOverriddenId()) submitRequestPhase.overrideDefaultId(getSubmitStateId());
+
+        if (description != null) {
+            prepareRequestPhase.setDescription(description);
+            submitRequestPhase.setDescription(description);
+        }
     }
 
     @Override

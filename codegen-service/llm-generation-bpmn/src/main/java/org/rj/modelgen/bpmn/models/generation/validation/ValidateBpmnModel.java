@@ -21,6 +21,7 @@ import org.rj.modelgen.llm.validation.beans.IntermediateModelValidationError;
 
 import java.util.*;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -646,8 +647,7 @@ public class ValidateBpmnModel {
     private void validateScriptInput(ElementNode node, ElementNodeInput input, String inputPath, Set<PayloadVariable> startingPayload, Set<PayloadVariable> nodePayload) {
         String script = input.getValue();
 
-        // Replace literal "\n" sequences with actual newlines; LLM may generate scripts with literal escape sequences for readability which are not valid in Groovy source
-        script = script.replace("\\n", "\n");
+        script = replaceNewLines(script);
 
         // Check for variable writes
         List<PayloadVariable> writtenVariables = retrieveWriteVariables(script);
@@ -823,6 +823,34 @@ public class ValidateBpmnModel {
                             "SCRIPT inputs must contain executable code that may read or write variables using getVariable() and setVariable(). Exception: '%s'",
                     inputPath, node.getId(), e.getMessage()), node.getId()));
         }
+    }
+
+    private static final Pattern STRING_OR_COMMENT_OR_ESCAPED_NEWLINE = Pattern.compile(
+              "'''(?:\\\\.|(?!''').)*'''"            // triple-single
+            + "|\"\"\"(?:\\\\.|(?!\"\"\").)*\"\"\""       // triple-double
+            + "|'(?:\\\\.|[^'\\\\])*'"                    // single-quoted
+            + "|\"(?:\\\\.|[^\"\\\\])*\""                 // double-quoted
+            + "|//[^\\n]*"                                // line comment
+            + "|/\\*.*?\\*/"                              // block comment
+            + "|\\\\n",                                   // replacement target
+            Pattern.DOTALL);
+
+    static String replaceNewLines(String src) {
+        if (src == null || src.isEmpty()) return src;
+
+        final Matcher matcher = STRING_OR_COMMENT_OR_ESCAPED_NEWLINE.matcher(src);
+        final StringBuilder out = new StringBuilder(src.length());
+        while (matcher.find()) {
+            final String group = matcher.group();
+            if ("\\n".equals(group)) {
+                matcher.appendReplacement(out, Matcher.quoteReplacement("\n"));
+            } else {
+                // A string literal or comment - keep exactly as-is.
+                matcher.appendReplacement(out, Matcher.quoteReplacement(group));
+            }
+        }
+        matcher.appendTail(out);
+        return out.toString();
     }
 
     // Data flow analysis

@@ -33,15 +33,14 @@ public class BpmnDiagramRestorer {
             if (el != null && canvas.hasNode(el.getId())) pinnedIds.add(el.getId());
         }
 
-        addNode(scaled.boundsById(), model);
+        addNode(scaled.boundsById(), model, pinnedIds);
 
         resolveShapeOverlapsIncrementally(scaled.boundsById(), model, pinnedIds);
         bpmnDiagramLayoutOptimizer.subprocessLayoutResolver.layout(model, scaled.boundsById());
+        bpmnDiagramLayoutOptimizer.redistributeSubProcessBoundaryEvents(model, scaled.boundsById());
         alignAndRouteIncrementally(bpmnDiagramLayoutOptimizer, model, scaled.boundsById(), scaled.routableEdges(), multiplier, pinnedIds, canvas);
         final BpmnDiagramLayoutOptimizer.LayoutScope scopeTree = bpmnDiagramLayoutOptimizer.buildScopeTree(model, scaled.boundsById());
         new BpmnObstacleResolver().resolveConnectorObstacles(model, scopeTree, scaled.boundsById());
-
-        bpmnDiagramLayoutOptimizer.snapEndpointsToNodeMidpoints(model, scaled.boundsById());
 
         // Restore diagram element ids and swimlane pools from the original canvas
         restoreDiagramElementIds(model, canvas);
@@ -315,8 +314,7 @@ public class BpmnDiagramRestorer {
     }
 
     private void alignAndRouteIncrementally(BpmnDiagramLayoutOptimizer bpmnDiagramLayoutOptimizer, BpmnModelInstance model, Map<String, Bounds> boundsById, List<BpmnEdge> edges, double multiplier, Set<String> pinnedIds, BpmnOriginalCanvas canvas) {
-        final Map<String, Set<BpmnDiagramLayoutOptimizer.Side>> usedExits = new HashMap<>();
-        final Map<String, Set<BpmnDiagramLayoutOptimizer.Side>> usedEntries = new HashMap<>();
+        bpmnDiagramLayoutOptimizer.alignCenters(model, boundsById, edges, pinnedIds);
 
         final List<BpmnDiagramLayoutOptimizer.EdgeRoute> routes = new ArrayList<>();
 
@@ -332,32 +330,31 @@ public class BpmnDiagramRestorer {
                 continue;
             }
 
-            boolean bothPinned = pinnedIds.contains(src.getId()) && pinnedIds.contains(tgt.getId());
+            boolean bothPinnedAndUnmoved = pinnedIds.contains(src.getId()) && pinnedIds.contains(tgt.getId()) && unchangedFromCanvas(src.getId(), srcB, canvas) && unchangedFromCanvas(tgt.getId(), tgtB, canvas);
+
             List<BpmnOriginalCanvas.Pointer> canvasPointers = canvas.waypointsFor(src.getId(), tgt.getId());
 
-            if (bothPinned && canvasPointers != null) {
+            if (bothPinnedAndUnmoved && canvasPointers != null) {
                 restoreWaypoints(bpmnDiagramLayoutOptimizer, model, edge, canvasPointers);
             } else {
-                BpmnDiagramLayoutOptimizer.Side exit = (src instanceof BoundaryEvent) ? BpmnDiagramLayoutOptimizer.Side.BOTTOM : bpmnDiagramLayoutOptimizer.assignSide(srcB, tgtB, src.getId(), usedExits, usedEntries, true);
-                BpmnDiagramLayoutOptimizer.Side entry = bpmnDiagramLayoutOptimizer.assignSide(tgtB, srcB, tgt.getId(), usedExits, usedEntries, false);
-                routes.add(new BpmnDiagramLayoutOptimizer.EdgeRoute(edge, src, tgt, srcB, tgtB, exit, entry));
+                BpmnDiagramLayoutOptimizer.Side[] sides = bpmnDiagramLayoutOptimizer.computeSides(src, srcB, tgt, tgtB, boundsById);
+                routes.add(new BpmnDiagramLayoutOptimizer.EdgeRoute(edge, src, tgt, srcB, tgtB, sides[0], sides[1]));
             }
         }
 
-        final Set<String> alignedCircular = new HashSet<>();
-        final Set<String> alignedDiamond  = new HashSet<>();
+        final Map<BpmnEdge, double[]> entryPoints = bpmnDiagramLayoutOptimizer.computeEntryPoints(routes);
+        final Map<BpmnEdge, double[]> exitPoints = bpmnDiagramLayoutOptimizer.computeExitPoints(routes, bpmnDiagramLayoutOptimizer.computeContestedExitKeys(routes));
 
         for (BpmnDiagramLayoutOptimizer.EdgeRoute r : routes) {
-            if (!pinnedIds.contains(r.src().getId())) {
-                bpmnDiagramLayoutOptimizer.alignY(r.src(), r.srcBounds(), r.tgt(), r.tgtBounds(), boundsById, alignedCircular, alignedDiamond);
-            }
-
-            if (!pinnedIds.contains(r.tgt().getId())) {
-                bpmnDiagramLayoutOptimizer.alignY(r.tgt(), r.tgtBounds(), r.src(), r.srcBounds(),boundsById, alignedCircular, alignedDiamond);
-            }
-
-            bpmnDiagramLayoutOptimizer.rebuildEdge(model, r.edge(), r.srcBounds(), r.tgtBounds(), r.exitSide(), r.entrySide());
+            double[] s = exitPoints.get(r.edge());
+            double[] t = entryPoints.get(r.edge());
+            bpmnDiagramLayoutOptimizer.routeOrthogonal(model, r.edge(), s, r.exitSide(), t, r.entrySide());
         }
+    }
+
+    private static boolean unchangedFromCanvas(String id, Bounds current, BpmnOriginalCanvas canvas) {
+        BpmnOriginalCanvas.Rectangle original = canvas.boundsOf(id);
+        return original != null && Math.abs(original.x() - current.getX()) < 0.5 && Math.abs(original.y() - current.getY()) < 0.5;
     }
 
     private void restoreWaypoints(BpmnDiagramLayoutOptimizer bpmnDiagramLayoutOptimizer, BpmnModelInstance model, BpmnEdge edge, List<BpmnOriginalCanvas.Pointer> points) {
@@ -367,7 +364,7 @@ public class BpmnDiagramRestorer {
         }
     }
 
-    private void addNode(Map<String, Bounds> boundsById, BpmnModelInstance model) {
+    private void addNode(Map<String, Bounds> boundsById, BpmnModelInstance model, Set<String> pinnedIds) {
         final double MIN_SPACING = 20.0;
 
         final Set<String> insideSubprocess = new HashSet<>();
@@ -377,13 +374,13 @@ public class BpmnDiagramRestorer {
             }
         }
 
-        final List<Bounds> rootBounds = new ArrayList<>();
+        final Map<String, Bounds> rootBoundsById = new LinkedHashMap<>();
         final List<SequenceFlow> rootFlows = new ArrayList<>();
         for (FlowNode fn : model.getModelElementsByType(FlowNode.class)) {
             if (insideSubprocess.contains(fn.getId()) || fn instanceof BoundaryEvent) continue;
             Bounds b = boundsById.get(fn.getId());
             if (b != null) {
-                rootBounds.add(b);
+                rootBoundsById.put(fn.getId(), b);
                 for (SequenceFlow sf : fn.getOutgoing()) {
                     FlowNode tgt = sf.getTarget();
                     if (tgt != null && !insideSubprocess.contains(tgt.getId()) && !(tgt instanceof BoundaryEvent)) {
@@ -392,32 +389,35 @@ public class BpmnDiagramRestorer {
                 }
             }
         }
-        applyPushRight(rootBounds, MIN_SPACING);
-        addNodesInSequence(rootFlows, boundsById, MIN_SPACING);
+        applyPushRight(rootBoundsById, pinnedIds, MIN_SPACING);
+        addNodesInSequence(rootFlows, boundsById, pinnedIds, MIN_SPACING);
 
         for (SubProcess sp : model.getModelElementsByType(SubProcess.class)) {
-            final List<Bounds> children = new ArrayList<>();
+            final Map<String, Bounds> childBoundsById = new LinkedHashMap<>();
             final List<SequenceFlow> childFlows = new ArrayList<>();
             for (FlowElement fe : sp.getFlowElements()) {
                 if (fe instanceof FlowNode fn && !(fn instanceof BoundaryEvent)) {
                     Bounds b = boundsById.get(fn.getId());
                     if (b != null) {
-                        children.add(b);
+                        childBoundsById.put(fn.getId(), b);
                         childFlows.addAll(fn.getOutgoing());
                     }
                 }
             }
-            applyPushRight(children, MIN_SPACING);
-            addNodesInSequence(childFlows, boundsById, MIN_SPACING);
+            applyPushRight(childBoundsById, pinnedIds, MIN_SPACING);
+            addNodesInSequence(childFlows, boundsById, pinnedIds, MIN_SPACING);
         }
     }
 
-    private static void applyPushRight(List<Bounds> bounds, double minSpacing) {
-        if (bounds.size() < 2) return;
-        bounds.sort(Comparator.comparingDouble(Bounds::getX));
-        for (int i = 1; i < bounds.size(); i++) {
-            Bounds prev = bounds.get(i - 1);
-            Bounds curr = bounds.get(i);
+    private static void applyPushRight(Map<String, Bounds> boundsById, Set<String> pinnedIds, double minSpacing) {
+        List<Map.Entry<String, Bounds>> entries = new ArrayList<>(boundsById.entrySet());
+        if (entries.size() < 2) return;
+        entries.sort(Comparator.comparingDouble(e -> e.getValue().getX()));
+        for (int i = 1; i < entries.size(); i++) {
+            Map.Entry<String, Bounds> currEntry = entries.get(i);
+            if (pinnedIds.contains(currEntry.getKey())) continue;
+            Bounds prev = entries.get(i - 1).getValue();
+            Bounds curr = currEntry.getValue();
             boolean yOverlap = prev.getY() < curr.getY() + curr.getHeight()  && curr.getY() < prev.getY() + prev.getHeight();
             if (!yOverlap) continue;
             double required = prev.getX() + prev.getWidth() + minSpacing;
@@ -425,7 +425,7 @@ public class BpmnDiagramRestorer {
         }
     }
 
-    private static void addNodesInSequence(Collection<SequenceFlow> flows,  Map<String, Bounds> boundsById,  double minSpacing) {
+    private static void addNodesInSequence(Collection<SequenceFlow> flows, Map<String, Bounds> boundsById, Set<String> pinnedIds, double minSpacing) {
         if (flows.isEmpty()) return;
         boolean changed = true;
         for (int iter = 0; changed && iter < 50; iter++) {
@@ -434,6 +434,7 @@ public class BpmnDiagramRestorer {
                 FlowNode src = sf.getSource();
                 FlowNode tgt = sf.getTarget();
                 if (src == null || tgt == null) continue;
+                if (pinnedIds.contains(tgt.getId())) continue;
                 Bounds srcB = boundsById.get(src.getId());
                 Bounds tgtB = boundsById.get(tgt.getId());
                 if (srcB == null || tgtB == null) continue;

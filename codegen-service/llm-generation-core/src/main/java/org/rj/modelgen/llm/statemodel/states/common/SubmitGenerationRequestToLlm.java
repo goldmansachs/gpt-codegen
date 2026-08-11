@@ -38,6 +38,8 @@ public class SubmitGenerationRequestToLlm extends ModelInterfaceState implements
     // First matching override will be selected
     private List<OverriddenLlmResponse> responseOverrides;
 
+    private String description = "Submitting new generation request to LLM";
+
     public SubmitGenerationRequestToLlm(ResponseSanitizer modelSanitizer) {
         this(SubmitGenerationRequestToLlm.class, modelSanitizer);
     }
@@ -49,7 +51,11 @@ public class SubmitGenerationRequestToLlm extends ModelInterfaceState implements
 
     @Override
     public String getDescription() {
-        return "Submitting new generation request to LLM";
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description + ": Submitting new generation request to LLM";
     }
 
     @Override

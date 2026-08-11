@@ -182,7 +182,8 @@ public class PrepareBpmnModelForRendering extends PrepareModelForRendering {
                 inputValue = resolveVariableReads(inputValue, getComponentLibrary(), !isConditionExpr);
                 inputValue = resolveGlobalVariableReads(inputValue, globalVariableLibrary, !isConditionExpr);
                 inputValue = stripQuotes(inputValue);
-                if (isConditionExpr && !inputValue.isBlank()) {
+                boolean alreadyWrapped = inputValue.startsWith("${") && inputValue.endsWith("}");
+                if (isConditionExpr && !inputValue.isBlank() && !alreadyWrapped) {
                     inputValue = "${" + inputValue + "}";
                 }
             }

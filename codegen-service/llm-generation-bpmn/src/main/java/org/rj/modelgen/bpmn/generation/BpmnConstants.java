@@ -60,6 +60,7 @@ public class BpmnConstants {
         public static final String MESSAGE_INTERMEDIATE_CATCH_EVENT = "messageIntermediateCatchEvent";
         public static final String MESSAGE_INTERMEDIATE_THROW_EVENT = "messageIntermediateThrowEvent";
         public static final String TIMER_INTERMEDIATE_CATCH_EVENT = "timerIntermediateCatchEvent";
+        public static final String CONDITIONAL_INTERMEDIATE_CATCH_EVENT = "conditionalIntermediateCatchEvent";
 
         public static final List<String> BOUNDARY_EVENT_TYPES = List.of(TIMER_BOUNDARY_EVENT, MESSAGE_BOUNDARY_EVENT, ERROR_BOUNDARY_EVENT, CONDITIONAL_BOUNDARY_EVENT);
 

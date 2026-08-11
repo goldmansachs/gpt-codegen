@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 public abstract class PrepareModelGenerationRequest extends ModelInterfaceState implements CommonStateInterface {
     private final ModelSchema modelSchema;
     private final ContextProvider contextProvider;
+    private String description = "Preparing model generation request";
 
     public PrepareModelGenerationRequest(Class<? extends PrepareModelGenerationRequest> cls, ModelSchema modelSchema,
                                          ContextProvider contextProvider) {
@@ -32,7 +33,11 @@ public abstract class PrepareModelGenerationRequest extends ModelInterfaceState 
 
     @Override
     public String getDescription() {
-        return "Preparing model generation request";
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description + ": Preparing model generation request";
     }
 
     @Override

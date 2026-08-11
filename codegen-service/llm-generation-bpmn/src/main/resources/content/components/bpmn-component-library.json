@@ -7,7 +7,7 @@
       "requiredInputs": [
         {
           "name": "taskName",
-          "description": "Name of the eTask for identification and display purposes",
+          "description": "Name of the user task for identification and display purposes",
           "alias": "workItemName",
           "type": "string",
           "mandatory": true,
@@ -1248,6 +1248,23 @@
           "mandatory": false,
           "keyValue": true,
           "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
+      "generatedOutputs": []
+    },
+    {
+      "name": "conditionalIntermediateCatchEvent",
+      "description": "An intermediate catch event placed in the process flow that pauses execution and waits until a specified condition evaluates to true before continuing.",
+      "usage": "Use when the process should wait for a data condition to become true before continuing",
+      "requiredInputs": [
+        {
+          "name": "conditionExpression",
+          "description": "A boolean expression that is evaluated to determine whether this event should trigger",
+          "type": "string",
+          "mandatory": true,
+          "keyValue": true,
+          "allowedInputSourceTypes": ["EXPRESSION", "SCRIPT"],
           "resolutionStrategy": "INFERRED"
         }
       ],

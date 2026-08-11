@@ -1,0 +1,2140 @@
+{
+  "nodes": [
+    {
+      "id": "lending.loanApplication.process",
+      "name": "Loan Application Process Configuration",
+      "elementType": "processConfig",
+      "description": "Configuration for the loan application process",
+      "connectedTo": [],
+      "inputs": [
+        {
+          "name": "processId",
+          "value": "lending.loanApplication.process",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "processId",
+          "value": "lending.loanApplication.process",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "processName",
+          "value": "Loan Application Process",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "processDescription",
+          "value": "Process for handling loan applications from appointment scheduling through risk assessment, credit checks, and terms acceptance.",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "processTypeName",
+          "value": "LENDING_LOAN_APPLICATION",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "sourceSystemName",
+          "value": "LENDING",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "processPriority",
+          "value": "MEDIUM",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "processDeadline",
+          "value": "P30DT0H0M",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "maximumActiveProcesses",
+          "value": "100",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "systemId",
+          "value": "500",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "sessionId",
+          "value": "26eb2157aef843158e94e5c5c5026376",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "routingStrategy",
+          "properties": [
+            {
+              "name": "privateRoutingRule",
+              "value": "getGlobalVariable('currentUserId', [])",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "action",
+          "properties": [
+            {
+              "name": "actionId",
+              "value": "SEND_MESSAGE_terminate",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionName",
+              "value": "Terminate Process",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionType",
+              "value": "SEND_MESSAGE",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "availabilityScript",
+              "value": "return input.assignedToInvokingUser && input.taskStatus == \"IN_PROGRESS\";",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "actionTheme",
+              "value": "DESTRUCTIVE",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionMultiplicity",
+              "value": "ANY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "013gdus",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "startAppointmentCheck",
+      "name": "Applicant Checks Appointment",
+      "elementType": "startEvent",
+      "description": "Process starts when a potential loan applicant checks for an appointment on the company website.",
+      "connectedTo": [
+        {
+          "targetNode": "fillOutApplication",
+          "description": "Proceed to application ui",
+          "sequenceFlowId": "seq-0"
+        }
+      ],
+      "inputs": []
+    },
+    {
+      "id": "fillOutApplication",
+      "name": "Fill Out Loan Application",
+      "elementType": "userTask",
+      "description": "On the appointment date, the applicant meets the primary loan manager and fills out their application.",
+      "connectedTo": [
+        {
+          "targetNode": "classifyRiskGroup",
+          "description": "Application submitted, classify risk",
+          "sequenceFlowId": "seq-1"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "taskName",
+          "value": "Loan Application - getVariable('applicantName')",
+          "variableSource": "EXPRESSION",
+          "isProvided": true
+        },
+        {
+          "name": "taskDescription",
+          "value": "The applicant meets the primary loan manager on the appointment date and fills out the loan application ui. Review applicant details and loan amount requested.",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "taskTypeName",
+          "value": "LOAN_APPLICATION_FORM",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "sourceSystemName",
+          "value": "LENDING",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "taskPriority",
+          "value": "MEDIUM",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "taskDeadline",
+          "value": "P1DT0H0M",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "maximumActiveTasks",
+          "value": "50",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "routingStrategy",
+          "properties": [
+            {
+              "name": "privateRoleRoutingRule",
+              "properties": [
+                {
+                  "name": "privateDomainExpression",
+                  "value": "LENDING",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "privateRoleExpression",
+                  "value": "PRIMARY_LOAN_MANAGER",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "2dotmjm",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "action",
+          "properties": [
+            {
+              "name": "actionId",
+              "value": "claimTask",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionName",
+              "value": "Claim",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionType",
+              "value": "CLAIM_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "availabilityScript",
+              "value": "return input.taskStatus == 'OPEN' && input.invokingUserIsPotentialAssignee;",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "actionTheme",
+              "value": "PRIMARY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionMultiplicity",
+              "value": "ANY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "0hgl4h5",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "action",
+          "properties": [
+            {
+              "name": "actionId",
+              "value": "submitApplication",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionName",
+              "value": "Submit Application",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionType",
+              "value": "COMPLETE_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "reasonCode",
+              "value": "SUBMITTED",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "availabilityScript",
+              "value": "return input.taskStatus == 'IN_PROGRESS' && input.assignedToInvokingUser;",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "actionTheme",
+              "value": "PRIMARY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionMultiplicity",
+              "value": "SINGLE_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "1oevwtr",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "formPanel",
+          "properties": [
+            {
+              "name": "panelName",
+              "value": "Loan Application ui",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "panelDescription",
+              "value": "ui for the primary loan manager to fill out the loan application details including applicant information, loan amount, and supporting documents.",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "formType",
+              "value": "FORMS",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "formId",
+              "value": "lending.loanApplicationForm",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "formVersion",
+              "value": "latest",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "formPanelId",
+              "value": "loanApplicationFormPanel",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "panelAvailabilityScript",
+              "value": "",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "1k6demr",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "queryParams",
+              "properties": [
+                {
+                  "name": "parameterName",
+                  "value": "applicantName",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "parameterExpression",
+                  "value": "getVariable('applicantName')",
+                  "variableSource": "EXPRESSION",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "1lj1uqv",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            },
+            {
+              "name": "queryParams",
+              "properties": [
+                {
+                  "name": "parameterName",
+                  "value": "loanAmount",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "parameterExpression",
+                  "value": "getVariable('loanAmount')",
+                  "variableSource": "EXPRESSION",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "0nj8obq",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            },
+            {
+              "name": "queryParams",
+              "properties": [
+                {
+                  "name": "parameterName",
+                  "value": "appointmentDate",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "parameterExpression",
+                  "value": "getVariable('appointmentDate')",
+                  "variableSource": "EXPRESSION",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "0ug0acs",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "action",
+          "properties": [
+            {
+              "name": "actionId",
+              "value": "action_Release_397wot6",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionName",
+              "value": "RELEASE",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionType",
+              "value": "RELEASE_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "availabilityScript",
+              "value": "return input.assignedToInvokingUser && input.taskStatus == \"IN_PROGRESS\";",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "actionTheme",
+              "value": "PRIMARY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionMultiplicity",
+              "value": "ANY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "1q5lqkp",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "classifyRiskGroup",
+      "name": "Classify Application Risk Group",
+      "elementType": "scriptTask",
+      "description": "Check the loan amount and classify the application into one of three risk groups: Red (ineligible), Yellow (requires further review), or Green (auto-approved).",
+      "connectedTo": [
+        {
+          "targetNode": "riskGroupGateway",
+          "description": "Branch based on risk group",
+          "sequenceFlowId": "seq-2"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "def loanAmount = getVariable('loanAmount');\ndef riskGroup;\nif (loanAmount > 500000) {\n\triskGroup = 'Red';\n} else if (loanAmount > 100000) {\n\triskGroup = 'Yellow';\n} else {\n\triskGroup = 'Green';\n}\nsetVariable('riskGroup', riskGroup, 'String');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "riskGroupGateway",
+      "name": "Risk Group?",
+      "elementType": "exclusiveGateway",
+      "description": "Branches based on the risk group classification: Red, Yellow, or Green.",
+      "connectedTo": [
+        {
+          "targetNode": "rejectApplicationRed",
+          "description": "Red",
+          "sequenceFlowId": "seq-3"
+        },
+        {
+          "targetNode": "autoApproveAllocateFunds",
+          "description": "Green",
+          "sequenceFlowId": "seq-4"
+        },
+        {
+          "targetNode": "creditCheckBySecondaryManager",
+          "description": "Yellow",
+          "sequenceFlowId": "seq-5"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "conditions",
+          "properties": [
+            {
+              "name": "targetNodeId",
+              "value": "rejectApplicationRed",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "conditionExpression",
+              "value": "getVariable('riskGroup') == 'Red'",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "conditions",
+          "properties": [
+            {
+              "name": "targetNodeId",
+              "value": "autoApproveAllocateFunds",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "conditionExpression",
+              "value": "getVariable('riskGroup') == 'Green'",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "conditions",
+          "properties": [
+            {
+              "name": "targetNodeId",
+              "value": "creditCheckBySecondaryManager",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "conditionExpression",
+              "value": "getVariable('riskGroup') == 'Yellow'",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rejectApplicationRed",
+      "name": "Reject Application - Ineligible",
+      "elementType": "scriptTask",
+      "description": "The application is rejected because it falls in the Red risk group. The loan applicant receives a refusal message.",
+      "connectedTo": [
+        {
+          "targetNode": "endRejectedRed",
+          "description": "Application rejected",
+          "sequenceFlowId": "seq-6"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "setVariable('applicationStatus', 'REJECTED', 'String');\nsetVariable('rejectionReason', 'Application is ineligible based on risk assessment (Red group).', 'String');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "autoApproveAllocateFunds",
+      "name": "Auto-Approve and Allocate Funds",
+      "elementType": "scriptTask",
+      "description": "The application is auto-approved as it falls in the Green risk group. Funds are allocated to the loan applicant.",
+      "connectedTo": [
+        {
+          "targetNode": "callTermsSubprocessGreen",
+          "description": "Proceed to terms and conditions subprocess",
+          "sequenceFlowId": "seq-7"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "setVariable('applicationStatus', 'AUTO_APPROVED', 'String');\nsetVariable('fundsAllocated', true, 'Boolean');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "creditCheckBySecondaryManager",
+      "name": "Credit Check by Secondary Loan Manager",
+      "elementType": "userTask",
+      "description": "The application requires an extra credit check by a secondary loan manager for the Yellow risk group.",
+      "connectedTo": [
+        {
+          "targetNode": "storeCreditCheckOutcome",
+          "description": "Credit check completed",
+          "sequenceFlowId": "seq-8"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "taskName",
+          "value": "Credit Check - getVariable('applicantName')",
+          "variableSource": "EXPRESSION",
+          "isProvided": true
+        },
+        {
+          "name": "taskDescription",
+          "value": "Perform an extra credit check for the loan application. The application has been classified as Yellow risk group and requires further review by a secondary loan manager before approval or rejection.",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "taskTypeName",
+          "value": "LOAN_CREDIT_CHECK",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "sourceSystemName",
+          "value": "LENDING",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "taskPriority",
+          "value": "HIGH",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "taskDeadline",
+          "value": "P3DT0H0M",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "maximumActiveTasks",
+          "value": "50",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "routingStrategy",
+          "properties": [
+            {
+              "name": "privateRoleRoutingRule",
+              "properties": [
+                {
+                  "name": "privateDomainExpression",
+                  "value": "LENDING",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "privateRoleExpression",
+                  "value": "SECONDARY_LOAN_MANAGER",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "qp2mcn3",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "action",
+          "properties": [
+            {
+              "name": "actionId",
+              "value": "claimCreditCheck",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionName",
+              "value": "Claim",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionType",
+              "value": "CLAIM_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "availabilityScript",
+              "value": "return input.taskStatus == 'OPEN' && input.invokingUserIsPotentialAssignee;",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "actionTheme",
+              "value": "PRIMARY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionMultiplicity",
+              "value": "ANY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "0rlu9so",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "action",
+          "properties": [
+            {
+              "name": "actionId",
+              "value": "approveCreditCheck",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionName",
+              "value": "Approve",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionType",
+              "value": "COMPLETE_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "reasonCode",
+              "value": "APPROVED",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "availabilityScript",
+              "value": "return input.taskStatus == 'IN_PROGRESS' && input.assignedToInvokingUser;",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "actionTheme",
+              "value": "PRIMARY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionMultiplicity",
+              "value": "SINGLE_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "12xmtgr",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "action",
+          "properties": [
+            {
+              "name": "actionId",
+              "value": "rejectCreditCheck",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionName",
+              "value": "Reject",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionType",
+              "value": "COMPLETE_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "reasonCode",
+              "value": "REJECTED",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "availabilityScript",
+              "value": "return input.taskStatus == 'IN_PROGRESS' && input.assignedToInvokingUser;",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "actionTheme",
+              "value": "DESTRUCTIVE",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionMultiplicity",
+              "value": "SINGLE_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "0fu3gn3",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "formPanel",
+          "properties": [
+            {
+              "name": "panelName",
+              "value": "Credit Check Review",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "panelDescription",
+              "value": "Panel for the secondary loan manager to review the applicant's credit information and make an approval or rejection decision on the loan application.",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "formType",
+              "value": "FORMS",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "formId",
+              "value": "lending.creditCheckForm",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "formVersion",
+              "value": "latest",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "formPanelId",
+              "value": "creditCheckFormPanel",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "panelAvailabilityScript",
+              "value": "",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "11i921t",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "queryParams",
+              "properties": [
+                {
+                  "name": "parameterName",
+                  "value": "applicantName",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "parameterExpression",
+                  "value": "getVariable('applicantName')",
+                  "variableSource": "EXPRESSION",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "1thnhw0",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            },
+            {
+              "name": "queryParams",
+              "properties": [
+                {
+                  "name": "parameterName",
+                  "value": "loanAmount",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "parameterExpression",
+                  "value": "getVariable('loanAmount')",
+                  "variableSource": "EXPRESSION",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "03dqhzm",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "action",
+          "properties": [
+            {
+              "name": "actionId",
+              "value": "action_Release_z87el7b",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionName",
+              "value": "RELEASE",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionType",
+              "value": "RELEASE_TASK",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "availabilityScript",
+              "value": "return input.assignedToInvokingUser && input.taskStatus == \"IN_PROGRESS\";",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            },
+            {
+              "name": "actionTheme",
+              "value": "PRIMARY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "actionMultiplicity",
+              "value": "ANY",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "testId",
+              "value": "00ulwsu",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "endRejectedRed",
+      "name": "Application Rejected (Red)",
+      "elementType": "endEvent",
+      "description": "Process ends with the application rejected due to Red risk classification.",
+      "connectedTo": [],
+      "inputs": []
+    },
+    {
+      "id": "storeCreditCheckOutcome",
+      "name": "Store Credit Check Outcome",
+      "elementType": "scriptTask",
+      "description": "Persists the credit check reason code from the user task into the shared state for downstream gateway evaluation.",
+      "connectedTo": [
+        {
+          "targetNode": "creditCheckOutcomeGateway",
+          "description": "Evaluate credit check result",
+          "sequenceFlowId": "seq-11"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "def creditCheckResult = getVariable('reasonCode');\nsetVariable('creditCheckResult', creditCheckResult, 'String');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "storeTermsOutcomeGreen",
+      "name": "Store Terms Outcome (Green)",
+      "elementType": "scriptTask",
+      "description": "Reads the terms acceptance outcome set by the terms and conditions subprocess and persists it into the shared state for downstream gateway evaluation on the Green path.",
+      "connectedTo": [
+        {
+          "targetNode": "termsOutcomeGatewayGreen",
+          "description": "Evaluate terms acceptance",
+          "sequenceFlowId": "seq-12"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "def spOutcome = getVariable('spTermsOutcome');\ndef accepted = (spOutcome == 'ACCEPTED');\nsetVariable('termsAccepted', accepted, 'String');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "storeTermsOutcomeYellow",
+      "name": "Store Terms Outcome (Yellow)",
+      "elementType": "scriptTask",
+      "description": "Reads the terms acceptance outcome set by the terms and conditions subprocess and persists it into the shared state for downstream gateway evaluation on the Yellow path.",
+      "connectedTo": [
+        {
+          "targetNode": "termsOutcomeGatewayYellow",
+          "description": "Evaluate terms acceptance",
+          "sequenceFlowId": "seq-13"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "def spOutcome = getVariable('spTermsOutcome');\ndef accepted = (spOutcome == 'ACCEPTED');\nsetVariable('termsAccepted', accepted, 'String');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "creditCheckOutcomeGateway",
+      "name": "Credit Check Approved?",
+      "elementType": "exclusiveGateway",
+      "description": "Checks the outcome of the credit check performed by the secondary loan manager.",
+      "connectedTo": [
+        {
+          "targetNode": "rejectApplicationYellow",
+          "description": "No",
+          "sequenceFlowId": "seq-14"
+        },
+        {
+          "targetNode": "allocateFundsYellow",
+          "description": "Yes",
+          "sequenceFlowId": "seq-15"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "conditions",
+          "properties": [
+            {
+              "name": "targetNodeId",
+              "value": "rejectApplicationYellow",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "conditionExpression",
+              "value": "getVariable('creditCheckResult') == 'REJECTED'",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "conditions",
+          "properties": [
+            {
+              "name": "targetNodeId",
+              "value": "allocateFundsYellow",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "conditionExpression",
+              "value": "getVariable('creditCheckResult') == 'APPROVED'",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "termsOutcomeGatewayGreen",
+      "name": "Terms Accepted? (Green)",
+      "elementType": "exclusiveGateway",
+      "description": "Checks the outcome of the terms and conditions subprocess for the Green path.",
+      "connectedTo": [
+        {
+          "targetNode": "loanApprovedGreen",
+          "description": "Yes",
+          "sequenceFlowId": "seq-16"
+        },
+        {
+          "targetNode": "deallocateFundsGreen",
+          "description": "No",
+          "sequenceFlowId": "seq-17"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "conditions",
+          "properties": [
+            {
+              "name": "targetNodeId",
+              "value": "loanApprovedGreen",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "conditionExpression",
+              "value": "getVariable('termsAccepted') == true",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "conditions",
+          "properties": [
+            {
+              "name": "targetNodeId",
+              "value": "deallocateFundsGreen",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "conditionExpression",
+              "value": "getVariable('termsAccepted') == false",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "termsOutcomeGatewayYellow",
+      "name": "Terms Accepted? (Yellow)",
+      "elementType": "exclusiveGateway",
+      "description": "Checks the outcome of the terms and conditions subprocess for the Yellow path.",
+      "connectedTo": [
+        {
+          "targetNode": "loanApprovedYellow",
+          "description": "Yes",
+          "sequenceFlowId": "seq-18"
+        },
+        {
+          "targetNode": "deallocateFundsYellow",
+          "description": "No",
+          "sequenceFlowId": "seq-19"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "conditions",
+          "properties": [
+            {
+              "name": "targetNodeId",
+              "value": "loanApprovedYellow",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "conditionExpression",
+              "value": "getVariable('termsAccepted') == true",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "name": "conditions",
+          "properties": [
+            {
+              "name": "targetNodeId",
+              "value": "deallocateFundsYellow",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "conditionExpression",
+              "value": "getVariable('termsAccepted') == false",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rejectApplicationYellow",
+      "name": "Reject Application - Credit Check Failed",
+      "elementType": "scriptTask",
+      "description": "The application is rejected after credit check failure. The loan applicant receives a refusal message.",
+      "connectedTo": [
+        {
+          "targetNode": "endRejectedYellow",
+          "description": "Application rejected",
+          "sequenceFlowId": "seq-20"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "setVariable('applicationStatus', 'REJECTED', 'String');\nsetVariable('rejectionReason', 'Application rejected after credit check by secondary loan manager.', 'String');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "allocateFundsYellow",
+      "name": "Allocate Funds After Credit Check Approval",
+      "elementType": "scriptTask",
+      "description": "Credit check approved. Funds are allocated to the loan applicant.",
+      "connectedTo": [
+        {
+          "targetNode": "callTermsSubprocessGreen",
+          "description": "Proceed to terms and conditions subprocess",
+          "sequenceFlowId": "seq-21"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "setVariable('applicationStatus', 'CREDIT_CHECK_APPROVED', 'String');\nsetVariable('fundsAllocated', true, 'Boolean');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "loanApprovedGreen",
+      "name": "Complete Application - Loan Approved (Green)",
+      "elementType": "scriptTask",
+      "description": "The application is completed and the loan is approved after terms acceptance on the Green path.",
+      "connectedTo": [
+        {
+          "targetNode": "endLoanApprovedGreen",
+          "description": "Loan approved",
+          "sequenceFlowId": "seq-22"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "setVariable('applicationStatus', 'APPROVED', 'String');\nsetVariable('loanApproved', true, 'Boolean');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "deallocateFundsGreen",
+      "name": "Deallocate Funds - Loan Rejected (Green)",
+      "elementType": "scriptTask",
+      "description": "Terms and conditions were rejected. Funds are de-allocated and the loan is rejected on the Green path.",
+      "connectedTo": [
+        {
+          "targetNode": "endLoanRejectedGreen",
+          "description": "Loan rejected",
+          "sequenceFlowId": "seq-23"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "setVariable('applicationStatus', 'REJECTED', 'String');\nsetVariable('fundsAllocated', false, 'Boolean');\nsetVariable('rejectionReason', 'Applicant rejected terms and conditions.', 'String');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "loanApprovedYellow",
+      "name": "Complete Application - Loan Approved (Yellow)",
+      "elementType": "scriptTask",
+      "description": "The application is completed and the loan is approved after terms acceptance on the Yellow path.",
+      "connectedTo": [
+        {
+          "targetNode": "endLoanApprovedYellow",
+          "description": "Loan approved",
+          "sequenceFlowId": "seq-24"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "setVariable('applicationStatus', 'APPROVED', 'String');\nsetVariable('loanApproved', true, 'Boolean');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "deallocateFundsYellow",
+      "name": "Deallocate Funds - Loan Rejected (Yellow)",
+      "elementType": "scriptTask",
+      "description": "Terms and conditions were rejected. Funds are de-allocated and the loan is rejected on the Yellow path.",
+      "connectedTo": [
+        {
+          "targetNode": "endLoanRejectedYellow",
+          "description": "Loan rejected",
+          "sequenceFlowId": "seq-25"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "script",
+          "value": "setVariable('applicationStatus', 'REJECTED', 'String');\nsetVariable('fundsAllocated', false, 'Boolean');\nsetVariable('rejectionReason', 'Applicant rejected terms and conditions.', 'String');\n",
+          "variableSource": "SCRIPT",
+          "isProvided": true
+        }
+      ]
+    },
+    {
+      "id": "endRejectedYellow",
+      "name": "Application Rejected (Yellow)",
+      "elementType": "endEvent",
+      "description": "Process ends with the application rejected after credit check failure.",
+      "connectedTo": [],
+      "inputs": []
+    },
+    {
+      "id": "endLoanApprovedGreen",
+      "name": "Loan Approved (Green)",
+      "elementType": "endEvent",
+      "description": "Process ends successfully with the loan approved on the Green path.",
+      "connectedTo": [],
+      "inputs": []
+    },
+    {
+      "id": "endLoanRejectedGreen",
+      "name": "Loan Rejected (Green)",
+      "elementType": "endEvent",
+      "description": "Process ends with the loan rejected after terms rejection on the Green path.",
+      "connectedTo": [],
+      "inputs": []
+    },
+    {
+      "id": "endLoanApprovedYellow",
+      "name": "Loan Approved (Yellow)",
+      "elementType": "endEvent",
+      "description": "Process ends successfully with the loan approved on the Yellow path.",
+      "connectedTo": [],
+      "inputs": []
+    },
+    {
+      "id": "endLoanRejectedYellow",
+      "name": "Loan Rejected (Yellow)",
+      "elementType": "endEvent",
+      "description": "Process ends with the loan rejected after terms rejection on the Yellow path.",
+      "connectedTo": [],
+      "inputs": []
+    },
+    {
+      "id": "callTermsSubprocessGreen",
+      "name": "Terms and Conditions Subprocess",
+      "elementType": "subprocessCallNode",
+      "description": null,
+      "connectedTo": [
+        {
+          "targetNode": "storeTermsOutcomeGreen",
+          "description": "Store terms outcome for gateway evaluation",
+          "sequenceFlowId": "seq-9"
+        },
+        {
+          "targetNode": "storeTermsOutcomeYellow",
+          "description": "Store terms outcome for gateway evaluation",
+          "sequenceFlowId": "seq-10"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "subProcessId",
+          "value": "SP1",
+          "variableSource": "CONSTANT",
+          "isProvided": true
+        },
+        {
+          "name": "subProcessName",
+          "value": "Terms and Conditions Subprocess",
+          "variableSource": "CONSTANT",
+          "isProvided": false
+        }
+      ]
+    }
+  ],
+  "subModels": [
+    {
+      "nodes": [
+        {
+          "id": "startTermsAndConditions",
+          "name": "Start Terms and Conditions Handling",
+          "elementType": "startEvent",
+          "description": "The subprocess starts to handle the preparation and acceptance of terms and conditions.",
+          "connectedTo": [
+            {
+              "targetNode": "prepareAndSendTerms",
+              "description": "Proceed to prepare and send terms and conditions",
+              "sequenceFlowId": "seq-sp-callTermsSubprocessGreen-0"
+            }
+          ],
+          "inputs": []
+        },
+        {
+          "id": "prepareAndSendTerms",
+          "name": "Prepare and Send Terms and Conditions",
+          "elementType": "scriptTask",
+          "description": "Terms and conditions are prepared and sent to the applicant.",
+          "connectedTo": [
+            {
+              "targetNode": "reviewTermsAndConditions",
+              "description": "Proceed to applicant review of terms and conditions",
+              "sequenceFlowId": "seq-sp-callTermsSubprocessGreen-1"
+            }
+          ],
+          "inputs": [
+            {
+              "name": "script",
+              "value": "def applicantName = getVariable('applicantName');\ndef applicantEmail = getVariable('applicantEmail');\ndef loanAmount = getVariable('loanAmount');\ndef sdf = new java.text.SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss\");\ndef generatedDate = sdf.format(new java.util.Date());\ndef termsDocument = [\n\tapplicantName: applicantName,\n\tapplicantEmail: applicantEmail,\n\tloanAmount: loanAmount,\n\ttermsContent: 'Standard loan terms and conditions for the requested loan amount of ' + loanAmount + '.',\n\tgeneratedDate: generatedDate\n];\nsetVariable('termsDocument', termsDocument, 'String');\nsetVariable('termsSentToApplicant', true, 'Boolean');\n",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "id": "reviewTermsAndConditions",
+          "name": "Review and Respond to Terms and Conditions",
+          "elementType": "userTask",
+          "description": "The applicant reviews and responds to the terms and conditions, choosing to accept or reject them.",
+          "connectedTo": [
+            {
+              "targetNode": "storeTermsDecision",
+              "description": "Proceed to store the applicant's decision",
+              "sequenceFlowId": "seq-sp-callTermsSubprocessGreen-2"
+            }
+          ],
+          "inputs": [
+            {
+              "name": "taskName",
+              "value": "Review Terms and Conditions - getVariable('applicantName')",
+              "variableSource": "EXPRESSION",
+              "isProvided": true
+            },
+            {
+              "name": "taskDescription",
+              "value": "Please review the terms and conditions for the loan application. After reviewing, please accept or reject the terms.",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "taskTypeName",
+              "value": "REVIEW_TERMS_CONDITIONS",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "sourceSystemName",
+              "value": "LOAN_APPLICATION",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "taskPriority",
+              "value": "MEDIUM",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "taskDeadline",
+              "value": "P5DT0H0M",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "maximumActiveTasks",
+              "value": "100",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "routingStrategy",
+              "properties": [
+                {
+                  "name": "privateRoutingRule",
+                  "value": "getGlobalVariable('currentUserId', [])",
+                  "variableSource": "SCRIPT",
+                  "isProvided": true
+                }
+              ]
+            },
+            {
+              "name": "action",
+              "properties": [
+                {
+                  "name": "actionId",
+                  "value": "acceptTerms",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionName",
+                  "value": "ACCEPT",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionType",
+                  "value": "COMPLETE_TASK",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "reasonCode",
+                  "value": "ACCEPT",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "availabilityScript",
+                  "value": "return input.taskStatus == 'IN_PROGRESS' && input.assignedToInvokingUser;",
+                  "variableSource": "SCRIPT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionTheme",
+                  "value": "PRIMARY",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionMultiplicity",
+                  "value": "SINGLE_TASK",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "1ddl4xt",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            },
+            {
+              "name": "action",
+              "properties": [
+                {
+                  "name": "actionId",
+                  "value": "rejectTerms",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionName",
+                  "value": "REJECT",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionType",
+                  "value": "COMPLETE_TASK",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "reasonCode",
+                  "value": "REJECT",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "availabilityScript",
+                  "value": "return input.taskStatus == 'IN_PROGRESS' && input.assignedToInvokingUser;",
+                  "variableSource": "SCRIPT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionTheme",
+                  "value": "DESTRUCTIVE",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionMultiplicity",
+                  "value": "SINGLE_TASK",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "0nvnyf3",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            },
+            {
+              "name": "action",
+              "properties": [
+                {
+                  "name": "actionId",
+                  "value": "claimTask",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionName",
+                  "value": "CLAIM",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionType",
+                  "value": "CLAIM_TASK",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "availabilityScript",
+                  "value": "return input.taskStatus == 'OPEN' && input.invokingUserIsPotentialAssignee;",
+                  "variableSource": "SCRIPT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionTheme",
+                  "value": "PRIMARY",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionMultiplicity",
+                  "value": "ANY",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "0l4m82o",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            },
+            {
+              "name": "formPanel",
+              "properties": [
+                {
+                  "name": "panelName",
+                  "value": "Terms and Conditions Review",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "panelDescription",
+                  "value": "This panel displays the terms and conditions document for the loan application. The applicant should review the loan amount, interest rate, repayment schedule, and all associated terms before accepting or rejecting.",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "formType",
+                  "value": "FORMS",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "formId",
+                  "value": "loan.termsReviewForm",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "formVersion",
+                  "value": "latest",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "formPanelId",
+                  "value": "termsReviewPanel",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "panelAvailabilityScript",
+                  "value": "",
+                  "variableSource": "SCRIPT",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "0cxhtqz",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "queryParams",
+                  "properties": [
+                    {
+                      "name": "parameterName",
+                      "value": "applicantName",
+                      "variableSource": "CONSTANT",
+                      "isProvided": true
+                    },
+                    {
+                      "name": "parameterExpression",
+                      "value": "getVariable('applicantName')",
+                      "variableSource": "EXPRESSION",
+                      "isProvided": true
+                    },
+                    {
+                      "name": "testId",
+                      "value": "0na0qek",
+                      "variableSource": "CONSTANT",
+                      "isProvided": true
+                    }
+                  ]
+                },
+                {
+                  "name": "queryParams",
+                  "properties": [
+                    {
+                      "name": "parameterName",
+                      "value": "loanAmount",
+                      "variableSource": "CONSTANT",
+                      "isProvided": true
+                    },
+                    {
+                      "name": "parameterExpression",
+                      "value": "getVariable('loanAmount')",
+                      "variableSource": "EXPRESSION",
+                      "isProvided": true
+                    },
+                    {
+                      "name": "testId",
+                      "value": "0rjqlzm",
+                      "variableSource": "CONSTANT",
+                      "isProvided": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "action",
+              "properties": [
+                {
+                  "name": "actionId",
+                  "value": "action_Release_vrwe4rj",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionName",
+                  "value": "RELEASE",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionType",
+                  "value": "RELEASE_TASK",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "availabilityScript",
+                  "value": "return input.assignedToInvokingUser && input.taskStatus == \"IN_PROGRESS\";",
+                  "variableSource": "SCRIPT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionTheme",
+                  "value": "PRIMARY",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "actionMultiplicity",
+                  "value": "ANY",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "testId",
+                  "value": "0cepp6c",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "storeTermsDecision",
+          "name": "Store Terms Decision",
+          "elementType": "scriptTask",
+          "description": "Persists the applicant's terms decision reason code into the shared state for use by the gateway.",
+          "connectedTo": [
+            {
+              "targetNode": "checkTermsDecision",
+              "description": "Proceed to check the applicant's decision",
+              "sequenceFlowId": "seq-sp-callTermsSubprocessGreen-3"
+            }
+          ],
+          "inputs": [
+            {
+              "name": "script",
+              "value": "def decision = getVariable('reasonCode');\nsetVariable('termsDecision', decision, 'String');\n",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "id": "checkTermsDecision",
+          "name": "Terms Accepted?",
+          "elementType": "exclusiveGateway",
+          "description": "Checks whether the applicant accepted or rejected the terms and conditions.",
+          "connectedTo": [
+            {
+              "targetNode": "endTermsAccepted",
+              "description": "Yes",
+              "sequenceFlowId": "seq-sp-callTermsSubprocessGreen-4"
+            },
+            {
+              "targetNode": "endTermsRejected",
+              "description": "No",
+              "sequenceFlowId": "seq-sp-callTermsSubprocessGreen-5"
+            }
+          ],
+          "inputs": [
+            {
+              "name": "conditions",
+              "properties": [
+                {
+                  "name": "targetNodeId",
+                  "value": "endTermsAccepted",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "conditionExpression",
+                  "value": "getVariable('termsDecision') == 'ACCEPT'",
+                  "variableSource": "EXPRESSION",
+                  "isProvided": true
+                }
+              ]
+            },
+            {
+              "name": "conditions",
+              "properties": [
+                {
+                  "name": "targetNodeId",
+                  "value": "endTermsRejected",
+                  "variableSource": "CONSTANT",
+                  "isProvided": true
+                },
+                {
+                  "name": "conditionExpression",
+                  "value": "getVariable('termsDecision') == 'REJECT'",
+                  "variableSource": "EXPRESSION",
+                  "isProvided": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "endTermsAccepted",
+          "name": "End - Terms Accepted",
+          "elementType": "endEvent",
+          "description": "The subprocess ends with a success outcome as the terms and conditions were accepted.",
+          "connectedTo": [],
+          "inputs": []
+        },
+        {
+          "id": "endTermsRejected",
+          "name": "End - Terms Rejected",
+          "elementType": "endEvent",
+          "description": "The subprocess ends with a rejection outcome as the terms and conditions were rejected.",
+          "connectedTo": [],
+          "inputs": []
+        }
+      ],
+      "subProcessConfig": {
+        "subProcessId": "SP1",
+        "subProcessName": "Terms and Conditions Subprocess",
+        "subProcessDescription": "Handles the preparation and sending of terms and conditions to the applicant, captures their acceptance or rejection decision, and routes to the appropriate outcome.",
+        "triggeredByEvent": false
+      }
+    },
+    {
+      "nodes": [
+        {
+          "id": "creditCheckTimeoutTimer",
+          "name": "Credit Check 10 Day Timeout Timer",
+          "elementType": "timerStartEvent",
+          "description": "Triggers the event subprocess when the secondary loan manager's credit check task takes longer than 10 days.",
+          "connectedTo": [
+            {
+              "targetNode": "notifyCeoToAccelerateDecision",
+              "description": "Proceed to notify CEO after timeout",
+              "sequenceFlowId": "seq-sp-SP2-0"
+            }
+          ],
+          "inputs": [
+            {
+              "name": "isInterrupting",
+              "value": "true",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "timeDuration",
+              "value": "P10D",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "id": "notifyCeoToAccelerateDecision",
+          "name": "Send CEO Notification to Accelerate Decision",
+          "elementType": "scriptTask",
+          "description": "Sends a notification to the CEO to accelerate the decision on the loan application due to the credit check taking longer than 10 days.",
+          "connectedTo": [
+            {
+              "targetNode": "ceoNotificationSentEnd",
+              "description": "Proceed to end after CEO notification is sent",
+              "sequenceFlowId": "seq-sp-SP2-1"
+            }
+          ],
+          "inputs": [
+            {
+              "name": "script",
+              "value": "def applicantName = getVariable('applicantName');\ndef loanAmount = getVariable('loanAmount');\n\ndef notificationMessage = \"URGENT: The credit check for applicant '\" + applicantName + \"' (loan amount: \" + loanAmount + \") has exceeded the 10-day threshold. Please accelerate the decision on this application.\";\n\nsetVariable('ceoNotificationSent', true, 'Boolean');\nsetVariable('ceoNotificationMessage', notificationMessage, 'String');\n\ndef sdf = new java.text.SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss\");\ndef timestamp = sdf.format(new Date());\nsetVariable('ceoNotificationTimestamp', timestamp, 'String');\n",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "id": "ceoNotificationSentEnd",
+          "name": "End After CEO Notification Sent",
+          "elementType": "endEvent",
+          "description": "The subprocess ends after the CEO notification has been sent.",
+          "connectedTo": [],
+          "inputs": []
+        }
+      ],
+      "subProcessConfig": {
+        "subProcessId": "SP2",
+        "subProcessName": "Credit Check Timeout Escalation",
+        "subProcessDescription": "Event subprocess that triggers when the secondary loan manager's credit check task takes longer than 10 days, sending a notification to the CEO to accelerate the decision on the application.",
+        "triggeredByEvent": true
+      }
+    },
+    {
+      "nodes": [
+        {
+          "id": "creditCheckTimeoutTimerStart",
+          "name": "Credit Check 30-Day Timeout Timer",
+          "elementType": "timerStartEvent",
+          "description": "Triggered when the secondary loan manager's credit check task takes longer than 30 days.",
+          "connectedTo": [
+            {
+              "targetNode": "cancelApplicationDueToTimeout",
+              "description": "Proceed to cancel the application after 30-day timeout",
+              "sequenceFlowId": "seq-sp-SP3-0"
+            }
+          ],
+          "inputs": [
+            {
+              "name": "isInterrupting",
+              "value": "true",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "timeDuration",
+              "value": "P30D",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "id": "cancelApplicationDueToTimeout",
+          "name": "Cancel Application Due to Timeout",
+          "elementType": "scriptTask",
+          "description": "Cancels the application because the secondary loan manager did not review it within 30 days.",
+          "connectedTo": [
+            {
+              "targetNode": "applicationCancelledEnd",
+              "description": "Proceed to terminate the process after cancellation",
+              "sequenceFlowId": "seq-sp-SP3-1"
+            }
+          ],
+          "inputs": [
+            {
+              "name": "script",
+              "value": "setVariable('applicationStatus', 'CANCELLED', 'String');\ndef cancellationReason = 'Secondary loan manager did not complete credit check review within 30 days';\nsetVariable('cancellationReason', cancellationReason, 'String');\ndef now = new Date();\ndef sdf = new java.text.SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss\");\ndef formattedDate = sdf.format(now);\nsetVariable('cancellationDate', formattedDate, 'String');\n",
+              "variableSource": "SCRIPT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "id": "applicationCancelledEnd",
+          "name": "Application Cancelled Due to Timeout",
+          "elementType": "terminateEndEvent",
+          "description": "The subprocess ends with the application cancelled and the entire process terminated.",
+          "connectedTo": [],
+          "inputs": []
+        }
+      ],
+      "subProcessConfig": {
+        "subProcessId": "SP3",
+        "subProcessName": "Secondary Loan Manager Credit Check Timeout Handler",
+        "subProcessDescription": "Event subprocess that is triggered when the secondary loan manager's credit check task exceeds the 30-day deadline. It cancels the application and terminates the process.",
+        "triggeredByEvent": true
+      }
+    },
+    {
+      "nodes": [
+        {
+          "id": "Event_terminate_start",
+          "name": "Terminate Workflow",
+          "elementType": "messageStartEvent",
+          "description": "messageStartEvent",
+          "connectedTo": [
+            {
+              "targetNode": "Event_terminate_end",
+              "description": null,
+              "sequenceFlowId": "seq-sp-TerminateProcess-0"
+            }
+          ],
+          "inputs": [
+            {
+              "name": "isInterrupting",
+              "value": "true",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            },
+            {
+              "name": "messageRef",
+              "value": "terminate",
+              "variableSource": "CONSTANT",
+              "isProvided": true
+            }
+          ]
+        },
+        {
+          "id": "Event_terminate_end",
+          "name": "Event_terminate_end",
+          "elementType": "endEvent",
+          "description": "endEvent",
+          "connectedTo": [],
+          "inputs": []
+        }
+      ],
+      "subProcessConfig": {
+        "subProcessId": "TerminateProcess",
+        "subProcessName": "Terminate Process",
+        "triggeredByEvent": true
+      }
+    }
+  ]
+}

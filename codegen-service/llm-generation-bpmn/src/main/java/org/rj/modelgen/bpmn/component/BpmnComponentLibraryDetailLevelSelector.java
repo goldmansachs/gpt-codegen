@@ -7,6 +7,7 @@ import org.rj.modelgen.llm.exception.LlmGenerationModelException;
 import org.rj.modelgen.llm.intrep.IntermediateModelParser;
 import org.rj.modelgen.llm.models.generation.multilevel.data.MultiLevelModelStandardPayloadData;
 import org.rj.modelgen.llm.state.ModelInterfacePayload;
+import org.rj.modelgen.llm.validation.impl.GenericModelResponseSanitizer;
 
 import java.util.stream.Collectors;
 
@@ -33,7 +34,7 @@ public class BpmnComponentLibraryDetailLevelSelector implements ComponentLibrary
     }
 
     private BpmnHighLevelIntermediateModel getLatestHighLevelModel(ModelInterfacePayload payload) {
-        final String content = payload.get(MultiLevelModelStandardPayloadData.HighLevelModel);
+        final String content = new GenericModelResponseSanitizer().sanitize(payload.get(MultiLevelModelStandardPayloadData.HighLevelModel));
         final var parser = new IntermediateModelParser<>(BpmnHighLevelIntermediateModel.class);
 
         return parser.parse(content).orElseThrow(e -> new LlmGenerationModelException(String.format(
