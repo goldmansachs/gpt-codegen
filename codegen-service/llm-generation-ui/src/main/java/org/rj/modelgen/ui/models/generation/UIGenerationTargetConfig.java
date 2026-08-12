@@ -31,7 +31,7 @@ public class UIGenerationTargetConfig {
      * Creates a new target configuration.
      *
      * @param targetStates  the target-specific states to add to the pipeline (e.g. ConvertToA2UI, ValidateOutput).
-     *                      The first state in this list will be wired as the successor of the FormaliseIntent stage.
+     *                      The first state in this list will be wired as the successor of the EvaluateImpactAnalysis stage.
      *                      Must be non-null and non-empty.
      * @param targetRules   the target-specific transition rules governing flow between the target states
      *                      and from the last target state to the Complete state. Rules that target a

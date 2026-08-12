@@ -4,7 +4,6 @@ import org.rj.modelgen.llm.context.provider.ContextProvider;
 import org.rj.modelgen.llm.context.provider.impl.DefaultContextProvider;
 import org.rj.modelgen.llm.model.ModelInterface;
 import org.rj.modelgen.llm.state.ModelInterfaceExecutionResult;
-import org.rj.modelgen.llm.state.ModelInterfaceStandardStates;
 import org.rj.modelgen.llm.state.ModelInterfaceState;
 import org.rj.modelgen.llm.state.ModelInterfaceTransitionRule;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
@@ -39,7 +38,7 @@ import java.util.List;
  *
  * <p>Full pipeline flow:</p>
  * <pre>
- * Start ──► FormaliseIntent ──► ConvertToA2UI ──► ValidateOutput ──► Complete
+ * Start ──► ImpactAnalysis ──► ConvertToA2UI ──► ValidateOutput ──► Complete
  *              (base)               (A2UI)              (A2UI)
  *                                     ▲                    │
  *                                     │   (on failure)     │
@@ -79,7 +78,7 @@ public class A2UIGenerationModel extends UIGenerationModel<UIGenerationResult> {
      */
     private static UIGenerationTargetConfig buildA2UITargetConfig(A2UIPromptGenerator promptGenerator,
                                                                   ContextProvider contextProvider) {
-        // Convert to A2UI: transforms the formalised intent into A2UI Protocol v0.9 JSONL.
+        // Convert to A2UI: transforms the user's intent into A2UI Protocol v0.9 JSONL.
         // Uses the A2UI component library for structured schema injection into the prompt.
         final var a2uiLibrary = A2UIComponentLibrary.defaultLibrary();
 

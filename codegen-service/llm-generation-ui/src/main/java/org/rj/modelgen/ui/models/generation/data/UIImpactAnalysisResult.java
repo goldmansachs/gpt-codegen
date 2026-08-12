@@ -35,18 +35,22 @@ public class UIImpactAnalysisResult {
     @JsonProperty("removeComponentIds")
     private List<String> removeComponentIds = new ArrayList<>();
 
-    @JsonProperty("reasoning")
-    private String reasoning;
+    @JsonProperty("formalAnalysis")
+    private String formalAnalysis;
+
+    @JsonProperty("commentary")
+    private String commentary;
 
     public UIImpactAnalysisResult() {
     }
 
     public UIImpactAnalysisResult(List<String> affectedComponentIds, boolean addComponents,
-                                  List<String> removeComponentIds, String reasoning) {
+                                  List<String> removeComponentIds, String formalAnalysis, String commentary) {
         this.affectedComponentIds = affectedComponentIds != null ? affectedComponentIds : new ArrayList<>();
         this.addComponents = addComponents;
         this.removeComponentIds = removeComponentIds != null ? removeComponentIds : new ArrayList<>();
-        this.reasoning = reasoning;
+        this.formalAnalysis = formalAnalysis;
+        this.commentary = commentary;
     }
 
     public List<String> getAffectedComponentIds() {
@@ -61,8 +65,12 @@ public class UIImpactAnalysisResult {
         return removeComponentIds != null ? removeComponentIds : List.of();
     }
 
-    public String getReasoning() {
-        return reasoning;
+    public String getFormalAnalysis() {
+        return formalAnalysis;
+    }
+
+    public String getCommentary() {
+        return commentary;
     }
 
     public boolean isComponentAffected(String componentId) {
@@ -109,8 +117,8 @@ public class UIImpactAnalysisResult {
 
     @Override
     public String toString() {
-        return String.format("UIImpactAnalysisResult{affected=%s, addComponents=%s, remove=%s, reasoning='%s'}",
-                affectedComponentIds, addComponents, removeComponentIds, reasoning);
+        return String.format("UIImpactAnalysisResult{affected=%s, addComponents=%s, remove=%s, formalAnalysis='%s', commentary='%s'}",
+                affectedComponentIds, addComponents, removeComponentIds, formalAnalysis, commentary);
     }
 }
 

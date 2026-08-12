@@ -9,7 +9,8 @@ import org.rj.modelgen.llm.util.StringSerializable;
  * <p>These states handle the common preprocessing stages:</p>
  * <ol>
  *   <li><b>StartUIGeneration</b> — Validate input and initialize session context</li>
- *   <li><b>FormaliseIntent</b> — Transform sanitized request into structured UI element description</li>
+ *   <li><b>ExecuteImpactAnalysis</b> — LLM call which decides whether generation is required</li>
+ *   <li><b>EvaluateImpactAnalysis</b> — Routes to Complete (no changes) or the target flow</li>
  *   <li><b>Complete</b> — Terminal state capturing pipeline outputs</li>
  * </ol>
  *
@@ -20,7 +21,6 @@ public enum UIGenerationModelStates implements StringSerializable {
     StartUIGeneration,
     ExecuteImpactAnalysis,
     EvaluateImpactAnalysis,
-    FormaliseIntent,
     Complete;
 
     @Override
@@ -33,7 +33,6 @@ public enum UIGenerationModelStates implements StringSerializable {
             case StartUIGeneration -> "Starting UI generation pipeline";
             case ExecuteImpactAnalysis -> "Analyzing request to determine which parts of the UI need to change";
             case EvaluateImpactAnalysis -> "Evaluating impact analysis to determine whether generation should proceed";
-            case FormaliseIntent -> "Formalizing user intent";
             case Complete -> "UI generation pipeline complete";
         };
     }

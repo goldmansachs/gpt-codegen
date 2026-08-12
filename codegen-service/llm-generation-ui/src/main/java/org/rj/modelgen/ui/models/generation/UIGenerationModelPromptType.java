@@ -11,8 +11,7 @@ import org.rj.modelgen.llm.util.StringSerializable;
  */
 public enum UIGenerationModelPromptType implements StringSerializable {
     SanitizeInput,
-    ImpactAnalysis,
-    FormaliseIntent;
+    ImpactAnalysis;
 
     @Override
     public String toString() {

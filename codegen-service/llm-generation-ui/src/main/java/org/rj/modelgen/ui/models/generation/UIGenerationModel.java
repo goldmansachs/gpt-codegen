@@ -66,7 +66,6 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
 
         // 2a. Execute Impact Analysis: LLM call which determines whether generation is
         //     required and, in copilot mode, which parts of the existing UI are impacted.
-        //     Runs before FormaliseIntent so we can halt early on a "no change" outcome.
         final var stateExecuteImpactAnalysis = new PrepareAndSubmitLlmGenericRequest<>(
                 contextProvider, modelPromptGenerator, UIGenerationModelPromptType.ImpactAnalysis,
                 componentLibrary,
@@ -76,18 +75,10 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
                 .withResponseOutputKey(UIGenerationModelInputPayload.IMPACT_ANALYSIS)
                 .withOverriddenId(UIGenerationModelStates.ExecuteImpactAnalysis);
 
-        // 2b. Evaluate Impact Analysis: routes to Complete (no changes),
-        //     FormaliseIntent (initial generation) or straight to the target flow (copilot with changes).
+        // 2b. Evaluate Impact Analysis: routes to Complete (no changes) or straight to the
+        //     target-specific generation flow (initial generation, or copilot with changes).
         final var stateEvaluateImpactAnalysis = new EvaluateUIImpactAnalysis()
                 .withOverriddenId(UIGenerationModelStates.EvaluateImpactAnalysis);
-
-        // 3. Formalise Intent: transforms the request into a structured description of UI elements.
-        final var stateFormaliseIntent = new PrepareAndSubmitLlmGenericRequest<>(
-                contextProvider, modelPromptGenerator, UIGenerationModelPromptType.FormaliseIntent, componentLibrary,
-                new DefaultComponentLibrarySelector<TComponentLibrary>(),
-                componentLibrarySummarySerializer)
-                .withResponseOutputKey(UIGenerationModelInputPayload.FORMALISED_INTENT)
-                .withOverriddenId(UIGenerationModelStates.FormaliseIntent);
 
         // Terminal: Captures the final outputs from the pipeline stages
         final var stateComplete = new UIGenerationComplete()
@@ -95,7 +86,7 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
 
         // --- Combine generic states with target-specific states ---
         final var allStates = new ArrayList<ModelInterfaceState>();
-        allStates.addAll(List.of(stateStart, stateExecuteImpactAnalysis, stateEvaluateImpactAnalysis, stateFormaliseIntent));
+        allStates.addAll(List.of(stateStart, stateExecuteImpactAnalysis, stateEvaluateImpactAnalysis));
         allStates.addAll(targetConfig.getTargetStates());
         allStates.add(stateComplete);
 
@@ -115,10 +106,8 @@ public abstract class UIGenerationModel<R extends GenerationResult> extends Gene
                 new ModelInterfaceTransitionRule(stateExecuteImpactAnalysis, StandardSignals.SUCCESS, stateEvaluateImpactAnalysis),
                 // EvaluateImpactAnalysis routing
                 new ModelInterfaceTransitionRule(stateEvaluateImpactAnalysis, UIGenerationSignals.NoChangesRequired, stateComplete),
-                new ModelInterfaceTransitionRule(stateEvaluateImpactAnalysis, UIGenerationSignals.InitialGenerationRequired, stateFormaliseIntent),
-                new ModelInterfaceTransitionRule(stateEvaluateImpactAnalysis, UIGenerationSignals.CopilotChangesRequired, firstTargetState),
-                // FormaliseIntent -> target
-                new ModelInterfaceTransitionRule(stateFormaliseIntent, StandardSignals.SUCCESS, firstTargetState)
+                new ModelInterfaceTransitionRule(stateEvaluateImpactAnalysis, UIGenerationSignals.InitialGenerationRequired, firstTargetState),
+                new ModelInterfaceTransitionRule(stateEvaluateImpactAnalysis, UIGenerationSignals.CopilotChangesRequired, firstTargetState)
         ));
 
         // Add target-specific transition rules, resolving any UIGenerationComplete placeholder

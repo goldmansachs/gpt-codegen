@@ -4,7 +4,7 @@ import org.rj.modelgen.llm.util.StringSerializable;
 
 /**
  * Defines the A2UI-specific states in the UI generation pipeline.
- * Generic states (Start, SanitizeInput, FormaliseIntent, Complete) are defined in
+ * Generic states (Start, ExecuteImpactAnalysis, EvaluateImpactAnalysis, Complete) are defined in
  * {@link org.rj.modelgen.ui.models.generation.UIGenerationModelStates}.
  *
  * <p>These states handle the A2UI-specific processing:</p>

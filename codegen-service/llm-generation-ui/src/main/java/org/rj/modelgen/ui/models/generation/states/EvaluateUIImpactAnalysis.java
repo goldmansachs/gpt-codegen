@@ -21,11 +21,11 @@ import java.util.List;
  *   <li>No changes required - short-circuit to Complete with the LLM's reasoning as
  *       the user-facing reply. In copilot mode the existing canvas is passed through
  *       untouched.</li>
- *   <li>Copilot mode with changes required - skip FormaliseIntent and go straight to
- *       the target-specific generation flow (the impact analysis result is available
+ *   <li>Copilot mode with changes required - route to the target-specific generation
+ *       flow (impact analysis result, formal analysis and commentary are all available
  *       to downstream states via the payload).</li>
- *   <li>Initial generation with changes required - continue through FormaliseIntent
- *       so the user's raw request gets structured before generation.</li>
+ *   <li>Initial generation with changes required - route to the target-specific
+ *       generation flow using the formal analysis as the source-of-truth description.</li>
  * </ul>
  */
 public class EvaluateUIImpactAnalysis extends ModelInterfaceState implements CommonStateInterface {
@@ -65,7 +65,7 @@ public class EvaluateUIImpactAnalysis extends ModelInterfaceState implements Com
         if (isCopilotMode) {
             LOG.info("Copilot UI impact analysis: changes required (affected={}, add={}, remove={})",
                     impact.getAffectedComponentIds(), impact.isAddComponents(), impact.getRemoveComponentIds());
-            return outboundSignal(UIGenerationSignals.CopilotChangesRequired, "Copilot changes required - skipping formalise-intent").mono();
+            return outboundSignal(UIGenerationSignals.CopilotChangesRequired, "Copilot changes required - continuing to target flow").mono();
         }
 
         LOG.info("Initial-generation UI impact analysis: generation required (add={})", impact.isAddComponents());
@@ -74,26 +74,26 @@ public class EvaluateUIImpactAnalysis extends ModelInterfaceState implements Com
 
     private Mono<ModelInterfaceSignal> shortCircuitWithExistingUI(UIImpactAnalysisResult impact) {
         final String canvasModel = getPayload().getOrElse(StandardModelData.CanvasModel, (String) null);
-        final String reasoning = impact.getReasoning();
-        final String commentary = reasoning != null && !reasoning.isBlank() ? reasoning : DEFAULT_NO_CHANGE_COMMENTARY;
+        final String llmCommentary = impact.getCommentary();
+        final String commentary = llmCommentary != null && !llmCommentary.isBlank() ? llmCommentary : DEFAULT_NO_CHANGE_COMMENTARY;
 
-        LOG.info("Copilot UI impact analysis identified no changes required. Reasoning: {}", reasoning);
+        LOG.info("Copilot UI impact analysis identified no changes required. Commentary: {}", commentary);
 
         return outboundSignal(UIGenerationSignals.NoChangesRequired, "No UI changes required - returning existing UI")
-                .withPayloadData(UIGenerationModelInputPayload.FORMALISED_INTENT, commentary)
+                .withPayloadData(UIGenerationModelInputPayload.COMMENTARY, commentary)
                 .withPayloadData(UIGenerationModelInputPayload.UI_OUTPUT, canvasModel)
                 .withPayloadData(StandardModelData.ModelValidationMessages, List.<String>of())
                 .mono();
     }
 
     private Mono<ModelInterfaceSignal> shortCircuitInitialGeneration(UIImpactAnalysisResult impact) {
-        final String reasoning = impact.getReasoning();
-        final String commentary = reasoning != null && !reasoning.isBlank() ? reasoning : DEFAULT_NO_GENERATION_COMMENTARY;
+        final String llmCommentary = impact.getCommentary();
+        final String commentary = llmCommentary != null && !llmCommentary.isBlank() ? llmCommentary : DEFAULT_NO_GENERATION_COMMENTARY;
 
-        LOG.info("Initial-generation UI impact analysis identified no generation required. Reasoning: {}", reasoning);
+        LOG.info("Initial-generation UI impact analysis identified no generation required. Commentary: {}", commentary);
 
-        return outboundSignal(UIGenerationSignals.NoChangesRequired, "No UI generation required - returning empty UI with commentary")
-                .withPayloadData(UIGenerationModelInputPayload.FORMALISED_INTENT, commentary)
+        return outboundSignal(UIGenerationSignals.NoChangesRequired, "No UI generation required - returning empty UI")
+                .withPayloadData(UIGenerationModelInputPayload.COMMENTARY, commentary)
                 .withPayloadData(UIGenerationModelInputPayload.UI_OUTPUT, (String) null)
                 .withPayloadData(StandardModelData.ModelValidationMessages, List.<String>of())
                 .mono();
@@ -118,6 +118,8 @@ public class EvaluateUIImpactAnalysis extends ModelInterfaceState implements Com
 
             final UIImpactAnalysisResult result = UIImpactAnalysisResult.fromJson(json);
             getPayload().put(UIGenerationModelInputPayload.IMPACT_ANALYSIS, result);
+            getPayload().put(UIGenerationModelInputPayload.FORMAL_ANALYSIS, result.getFormalAnalysis());
+            getPayload().put(UIGenerationModelInputPayload.COMMENTARY, result.getCommentary());
             return result;
         } catch (Exception e) {
             LOG.warn("Failed to parse UI impact analysis JSON ({}); raw content: [{}]; falling back to normal generation",

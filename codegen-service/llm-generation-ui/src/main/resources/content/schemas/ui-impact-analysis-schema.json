@@ -18,11 +18,15 @@
       "items": { "type": "string" },
       "description": "IDs of components that should be removed entirely or replaced/split. Must be disjoint from affectedComponentIds."
     },
-    "reasoning": {
+    "formalAnalysis": {
       "type": "string",
-      "description": "Brief technical explanation of why components are affected, OR a user-friendly conversational reply when no generation is required."
+      "description": "Structured technical breakdown of the requested UI changes (fields, layout, validation, groupings, etc.) that downstream generation stages will use as the source-of-truth description of what to build. Should be empty when no generation/changes are required."
+    },
+    "commentary": {
+      "type": "string",
+      "description": "User-facing conversational reply shown DIRECTLY to the user. When no generation is required this should answer their question or ask for clarification. When generation is required this should be a short friendly acknowledgement of what is being built."
     }
   },
-  "required": ["affectedComponentIds", "addComponents", "removeComponentIds", "reasoning"]
+  "required": ["affectedComponentIds", "addComponents", "removeComponentIds", "formalAnalysis", "commentary"]
 }
 

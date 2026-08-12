@@ -10,11 +10,10 @@ import java.util.List;
 
 /**
  * Terminal state for the UI generation pipeline.
- * Captures the final outputs from the pipeline stages: the formalised intent
- * and the generated UI output.
+ * Captures the final outputs from the pipeline stages and the generated UI output.
  */
 public class UIGenerationComplete extends GenerationComplete {
-    private String formalisedIntent;
+    private String commentary;
     private String uiOutput;
     private List<String> uiValidationMessages = List.of();
 
@@ -29,7 +28,7 @@ public class UIGenerationComplete extends GenerationComplete {
 
     @Override
     protected Mono<ModelInterfaceSignal> invokeAction(ModelInterfaceSignal inputSignal) {
-        this.formalisedIntent = getPayload().get(UIGenerationModelInputPayload.FORMALISED_INTENT);
+        this.commentary = getPayload().get(UIGenerationModelInputPayload.COMMENTARY);
         this.uiOutput = getPayload().get(UIGenerationModelInputPayload.UI_OUTPUT);
         this.uiValidationMessages = getPayload().get(StandardModelData.ModelValidationMessages);
 
@@ -41,8 +40,9 @@ public class UIGenerationComplete extends GenerationComplete {
         return uiOutput;
     }
 
-    public String getFormalisedIntent() {
-        return formalisedIntent;
+
+    public String getCommentary() {
+        return commentary;
     }
 
     public String getUIOutput() {

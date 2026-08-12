@@ -9,9 +9,10 @@ import org.rj.modelgen.llm.state.ModelInterfaceInputPayload;
 public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
 
     public static final String SANITIZED_REQUEST = "sanitizedRequest";
-    public static final String FORMALISED_INTENT = "formalisedIntent";
+    public static final String COMMENTARY = "commentary";
     public static final String UI_OUTPUT = "uiOutput";
     public static final String IMPACT_ANALYSIS = "impactAnalysis";
+    public static final String FORMAL_ANALYSIS = "formalAnalysis";
     public static final String PROMPT_HISTORY = "promptHistory";
 
     public UIGenerationModelInputPayload(String sessionId, String request) {
@@ -26,12 +27,13 @@ public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
         put(SANITIZED_REQUEST, sanitizedRequest);
     }
 
-    public String getFormalisedIntent() {
-        return get(FORMALISED_INTENT);
+
+    public String getCommentary() {
+        return get(COMMENTARY);
     }
 
-    public void setFormalisedIntent(String formalisedIntent) {
-        put(FORMALISED_INTENT, formalisedIntent);
+    public void setCommentary(String commentary) {
+        put(COMMENTARY, commentary);
     }
 
     public String getUIOutput() {
@@ -48,6 +50,14 @@ public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
 
     public void setImpactAnalysis(String impactAnalysis) {
         put(IMPACT_ANALYSIS, impactAnalysis);
+    }
+
+    public String getFormalAnalysis() {
+        return get(FORMAL_ANALYSIS);
+    }
+
+    public void setFormalAnalysis(String formalAnalysis) {
+        put(FORMAL_ANALYSIS, formalAnalysis);
     }
 
     public String getPromptHistory() {

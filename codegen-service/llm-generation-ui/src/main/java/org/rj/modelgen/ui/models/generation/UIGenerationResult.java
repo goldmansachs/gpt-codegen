@@ -12,12 +12,10 @@ import java.util.Optional;
 
 /**
  * Result of a UI generation pipeline execution.
- * Contains the formalised intent (structured description of UI elements)
- * and the generated UI output in whatever target format was used.
+ * Contains the generated UI output in whatever target format was used.
  */
 public class UIGenerationResult extends GenerationResult {
     private final boolean successful;
-    private final String formalisedIntent;
     private final String uiOutput;
     private final List<String> uiValidationMessages;
     private final ModelInterfaceExecutionResult executionResults;
@@ -27,16 +25,15 @@ public class UIGenerationResult extends GenerationResult {
                 .flatMap(state -> state.getAs(UIGenerationComplete.class));
 
         return successResult.map(res ->
-            new UIGenerationResult(true, res.getFormalisedIntent(), res.getUIOutput(), res.getUIValidationMessages(), result)
+            new UIGenerationResult(true, res.getUIOutput(), res.getUIValidationMessages(), result)
         ).orElseGet(() ->
-            new UIGenerationResult(false, null, null, null, result)
+            new UIGenerationResult(false, null, null, result)
         );
     }
 
-    protected UIGenerationResult(boolean successful, String formalisedIntent, String uiOutput,
+    protected UIGenerationResult(boolean successful, String uiOutput,
                                  List<String> uiValidationMessages, ModelInterfaceExecutionResult executionResults) {
         this.successful = successful;
-        this.formalisedIntent = formalisedIntent;
         this.uiOutput = uiOutput;
         this.uiValidationMessages = Optional.ofNullable(uiValidationMessages).orElseGet(ArrayList::new);
         this.executionResults = executionResults;
@@ -46,9 +43,6 @@ public class UIGenerationResult extends GenerationResult {
         return successful;
     }
 
-    public String getFormalisedIntent() {
-        return formalisedIntent;
-    }
 
     public String getUIOutput() {
         return uiOutput;
