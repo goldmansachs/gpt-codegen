@@ -2,6 +2,7 @@ package org.rj.modelgen.llm.state;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardSignals;
 import org.rj.modelgen.llm.statemodel.states.common.ExecuteLogic;
 import org.rj.modelgen.llm.util.Result;
@@ -11,6 +12,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ModelInterfaceStateMachineTest {
     private static final Logger LOG = LoggerFactory.getLogger(ModelInterfaceStateMachineTest.class);
@@ -47,6 +49,45 @@ public class ModelInterfaceStateMachineTest {
                 new ModelInterfaceTransitionRule.Reference("B", "Success", "Y"),
                 new ModelInterfaceTransitionRule.Reference("Y", "Success", "C")
         ), layout);
+    }
+
+    @Test
+    public void testCancellationStopsExecutionBeforeNextState() throws Exception {
+        final CancellationRequest token = new CancellationRequest();
+        final AtomicInteger stateAInvocations = new AtomicInteger();
+        final AtomicInteger stateBInvocations = new AtomicInteger();
+
+        final ModelInterfaceState stateA = new ExecuteLogic() {
+            @Override
+            protected Mono<Result<Void, String>> executeLogic() {
+                stateAInvocations.incrementAndGet();
+                token.cancel();
+                return Mono.just(Result.Ok());
+            }
+        }.withOverriddenId("A");
+
+        final ModelInterfaceState stateB = new ExecuteLogic() {
+            @Override
+            protected Mono<Result<Void, String>> executeLogic() {
+                stateBInvocations.incrementAndGet();
+                return Mono.just(Result.Ok());
+            }
+        }.withOverriddenId("B");
+
+        final var states = List.of(stateA, stateB);
+        final var rules = new ModelInterfaceTransitionRules(List.of(testRule(stateA, stateB)));
+        final var model = new ModelInterfaceStateMachine(ModelInterfaceStateMachine.class, null, states, rules);
+
+        final var payload = new ModelInterfaceInputPayload("session-1", "request", null);
+        payload.put(StandardModelData.Cancel, token);
+
+        final var result = model.execute("A", StandardSignals.SUCCESS, payload).block();
+
+        Assertions.assertEquals(1, stateAInvocations.get());
+        Assertions.assertEquals(0, stateBInvocations.get());
+        Assertions.assertInstanceOf(ModelInterfaceStandardStates.CANCELLED.class, result.getResult());
+        Assertions.assertTrue(result.isCancelled());
+        Assertions.assertFalse(result.isSuccessful());
     }
 
     private ModelInterfaceStateMachine createBasicModel() {

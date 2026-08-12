@@ -1,5 +1,6 @@
 package org.rj.modelgen.llm.state;
 
+import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import reactor.core.publisher.Mono;
 
@@ -107,6 +108,24 @@ public class ModelInterfaceStandardStates {
 
             setLastError(getDescription());
 
+            return Mono.empty();
+        }
+    }
+
+    public static class CANCELLED extends ModelInterfaceState {
+
+        public CANCELLED() {
+            super(CANCELLED.class, ModelInterfaceStateType.TERMINAL_CANCELLED);
+        }
+
+        @Override
+        public String getDescription() {
+            return "Model generation cancelled";
+        }
+
+        @Override
+        protected Mono<ModelInterfaceSignal> invokeAction(ModelInterfaceSignal inputSignal) {
+            setLastError(getDescription());
             return Mono.empty();
         }
     }
