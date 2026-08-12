@@ -1,6 +1,5 @@
 package org.rj.modelgen.llm.state;
 
-import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import reactor.core.publisher.Mono;
 

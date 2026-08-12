@@ -53,7 +53,7 @@ public class ModelInterfaceStateMachineTest {
 
     @Test
     public void testCancellationStopsExecutionBeforeNextState() throws Exception {
-        final CancellationRequest token = new CancellationRequest();
+        final CancellationRequest request = new CancellationRequest();
         final AtomicInteger stateAInvocations = new AtomicInteger();
         final AtomicInteger stateBInvocations = new AtomicInteger();
 
@@ -61,7 +61,7 @@ public class ModelInterfaceStateMachineTest {
             @Override
             protected Mono<Result<Void, String>> executeLogic() {
                 stateAInvocations.incrementAndGet();
-                token.cancel();
+                request.cancel();
                 return Mono.just(Result.Ok());
             }
         }.withOverriddenId("A");
@@ -79,7 +79,7 @@ public class ModelInterfaceStateMachineTest {
         final var model = new ModelInterfaceStateMachine(ModelInterfaceStateMachine.class, null, states, rules);
 
         final var payload = new ModelInterfaceInputPayload("session-1", "request", null);
-        payload.put(StandardModelData.Cancel, token);
+        payload.put(StandardModelData.Cancel, request);
 
         final var result = model.execute("A", StandardSignals.SUCCESS, payload).block();
 

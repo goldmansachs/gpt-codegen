@@ -149,6 +149,10 @@ public abstract class ModelInterfaceState implements CommonStateInterface {
                 type == ModelInterfaceStateType.TERMINAL_CANCELLED;
     }
 
+    private StateStatus successEndStatus() {
+        return type == ModelInterfaceStateType.TERMINAL_CANCELLED ? StateStatus.CANCELLED : StateStatus.SUCCESS;
+    }
+
     protected ModelInterfacePayload getPayload() {
         return payload;
     }
@@ -198,7 +202,7 @@ public abstract class ModelInterfaceState implements CommonStateInterface {
                 model.publishStateListener(new ModelInterfaceStateEmittedSignal(this, inputSignal, StateEvent.START, StateStatus.IN_PROGRESS));
                 return invokeAction(inputSignal)
                         .onErrorResume(error -> handleInvokeException(inputSignal, error))
-                        .doOnSuccess(__ -> model.publishStateListener(new ModelInterfaceStateEmittedSignal(this, inputSignal, StateEvent.END, this instanceof ModelInterfaceStandardStates.CANCELLED ? StateStatus.CANCELLED : StateStatus.SUCCESS)))
+                        .doOnSuccess(__ -> model.publishStateListener(new ModelInterfaceStateEmittedSignal(this, inputSignal, StateEvent.END, successEndStatus())))
                         .doOnError(__ -> model.publishStateListener(new ModelInterfaceStateEmittedSignal(this, inputSignal, StateEvent.END, StateStatus.FAIL)));
             } else {
                 return invokeAction(inputSignal)

@@ -147,8 +147,8 @@ public class ModelInterfaceStateMachine {
     }
 
     private boolean isCancelled(ModelInterfaceSignal signal) {
-        final CancellationRequest token = signal.getPayload().get(StandardModelData.Cancel);
-        return token != null && token.isCancelled();
+        final CancellationRequest request = signal.getPayload().get(StandardModelData.Cancel);
+        return request != null && request.isCancelled();
     }
 
     public ModelInterfaceStateMachine withModelCustomization(Function<ModelCustomizationData, ModelInterfaceStateMachineCustomization> modification) {
