@@ -82,6 +82,25 @@ Output:
 {"version": "v0.9", "updateDataModel":{"surfaceId":"contact_form_1","path":"/contact","value":{"firstName":"","lastName":"","email":"","phone":"","preference":[],"subscribe":false}}}
 
 === GENERATION INSTRUCTIONS ===
+<#if SCOPED_GENERATION?? && SCOPED_GENERATION?has_content>
+This request is a PARTIAL update to a model that already exists. The masking
+instructions further below list exactly which components you must return.
+
+Output a SINGLE line of JSONL: one updateComponents message containing only those
+components. Do NOT emit createSurface. Do NOT emit updateDataModel. Do NOT emit
+deleteSurface.
+
+The following CRITICAL RULES above do not apply to a partial update, because you are
+not producing a whole model:
+- Rule 3 (createSurface must come first) - the surface already exists.
+- Rule 6 (exactly one component with id "root") - only include "root" if it is itself
+  listed as in scope.
+- Rule 8 (every child reference must exist in the components array) - child references
+  to components you were not asked to return are correct and MUST be preserved; those
+  components still exist and will be merged back in.
+
+Every component you omit is kept exactly as it is. Omitting a component never deletes it.
+<#else>
 Before generating, mentally plan the component hierarchy:
 1. Identify the root container type (Card, Column, Row, etc.)
 2. Break the UI into logical groups and layout containers
@@ -97,6 +116,7 @@ Generate the output as a JSONL stream:
 - Line 2: updateComponents message with ALL components in a single flat array
 - Line 3 (if needed): updateDataModel message to initialize form/data state
 - Line 4 (only if explicitly requested): deleteSurface message
+</#if>
 
 <#if ADDITIONAL_INSTRUCTIONS?has_content>
 === CATALOG-SPECIFIC INSTRUCTIONS ===

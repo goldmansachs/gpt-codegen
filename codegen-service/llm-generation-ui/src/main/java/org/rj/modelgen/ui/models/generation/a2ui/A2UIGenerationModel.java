@@ -85,7 +85,7 @@ public class A2UIGenerationModel extends UIGenerationModel<UIGenerationResult> {
         final var stateConvertToA2UI = new PrepareAndSubmitA2UIConversionRequest(
                 contextProvider, promptGenerator, A2UIPromptType.ConvertToA2UI, a2uiLibrary)
                 .withResponseOutputKey(UIGenerationModelInputPayload.UI_OUTPUT)
-                .withOverriddenId(A2UIStates.ConvertToA2UI);
+                .withOverriddenId(A2UIStates.GenerateA2UI);
 
         // Validate Output: validates the generated A2UI output against the A2UI schema and
         // structural rules. Emits OutputValidated on success, or OutputValidationFailed on

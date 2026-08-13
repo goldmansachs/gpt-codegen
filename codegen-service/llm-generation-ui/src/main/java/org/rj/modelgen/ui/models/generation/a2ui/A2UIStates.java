@@ -11,7 +11,8 @@ import org.rj.modelgen.llm.util.StringSerializable;
  * <ol>
  *   <li><b>BuildScopedContext</b> — Derive the scoped-generation masking instructions from the
  *       impact analysis (copilot flows that opt in)</li>
- *   <li><b>ConvertToA2UI</b> — Transform the structured intent into A2UI (Agent 2 UI) format</li>
+ *   <li><b>GenerateA2UI</b> — The LLM generation call. Produces either a complete A2UI model or,
+ *       under scoped generation, only the components in scope</li>
  *   <li><b>MergeScoped</b> — Merge a scoped LLM response back into the full model</li>
  *   <li><b>ValidateOutput</b> — Validate the generated A2UI output against the schema</li>
  * </ol>
@@ -21,7 +22,7 @@ import org.rj.modelgen.llm.util.StringSerializable;
  */
 public enum A2UIStates implements StringSerializable {
     BuildScopedContext,
-    ConvertToA2UI,
+    GenerateA2UI,
     MergeScoped,
     BuildScopedRetryContext,
     ValidateOutput;
@@ -34,7 +35,7 @@ public enum A2UIStates implements StringSerializable {
     public String description() {
         return switch (this) {
             case BuildScopedContext -> "Determining which components are in scope for this change";
-            case ConvertToA2UI -> "Converting user intent into A2UI model";
+            case GenerateA2UI -> "Generating A2UI content";
             case MergeScoped -> "Merging the scoped changes back into the full A2UI model";
             case BuildScopedRetryContext -> "Determining which components need correcting after validation";
             case ValidateOutput -> "Validating the generated A2UI model output";
