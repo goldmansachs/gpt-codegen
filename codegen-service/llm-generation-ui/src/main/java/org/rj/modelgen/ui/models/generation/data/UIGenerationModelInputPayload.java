@@ -18,6 +18,13 @@ public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
     public static final String PROMPT_HISTORY = "promptHistory";
 
     /**
+     * Prior turns of this session, as alternating user request and assistant commentary, supplied
+     * by the consumer. Distinct from {@link #PROMPT_HISTORY}, which carries user prompts only and
+     * is shared with other generation domains - the two formats are not interchangeable.
+     */
+    public static final String CONVERSATION_HISTORY = "conversationHistory";
+
+    /**
      * Snapshot of the full existing A2UI JSONL, published by the consumer before scoped
      * generation and used as the merge base. Refreshed to the merged model by
      * {@code MergeScopedA2UI} so a retry pass sees the current state.
@@ -103,6 +110,14 @@ public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
 
     public void setPromptHistory(String promptHistory) {
         put(PROMPT_HISTORY, promptHistory);
+    }
+
+    public String getConversationHistory() {
+        return get(CONVERSATION_HISTORY);
+    }
+
+    public void setConversationHistory(String conversationHistory) {
+        put(CONVERSATION_HISTORY, conversationHistory);
     }
 
     public String getOriginalA2UIJsonl() {
