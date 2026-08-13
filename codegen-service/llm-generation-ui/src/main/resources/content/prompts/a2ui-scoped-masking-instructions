@@ -1,0 +1,17 @@
+SCOPED GENERATION - MASKING INSTRUCTIONS
+An impact analysis has identified exactly which components your change affects.
+The full model is shown above for context, but you must return ONLY the components
+listed here, as a single updateComponents message.
+
+  Components you may modify (return all of them): {{AFFECTED_IDS}}
+  New components: {{ADD_COMPONENTS}}
+  Components being removed: {{REMOVE_IDS}}
+      Do NOT return these. If a container you return had one of them as a child,
+      omit it from that container's children array.
+
+Every other component will be preserved automatically - do NOT return them, and do
+NOT recreate them. You MUST preserve every child reference to components not listed
+above: they still exist in the full model and will be merged back in. Do not rename
+ids, and do not invent ids for components you did not create.
+
+Anything you return for a component that is not listed above will be discarded.
