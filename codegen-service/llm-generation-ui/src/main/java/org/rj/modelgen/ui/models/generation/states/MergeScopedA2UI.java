@@ -60,6 +60,14 @@ public class MergeScopedA2UI extends ExecuteLogic {
     private static final List<String> SINGLE_CHILD_REF_FIELDS = List.of(FIELD_CHILD, FIELD_TRIGGER, FIELD_CONTENT);
 
     /**
+     * Pure containment fields - they say what a component holds and in what order, never what
+     * it looks like. Changes confined to these are accepted even on components the impact
+     * analysis did not flag, so a new component can always be positioned. See
+     * {@link #acceptStructureOnlyChange}.
+     */
+    private static final List<String> STRUCTURAL_FIELDS = List.of(FIELD_CHILDREN, FIELD_CHILD);
+
+    /**
      * Behaviour modifier keys whose {@code args.rules[].checks[].input} entries reference
      * component ids. Matches the set validated by {@link ValidateA2UIModelCorrectness}.
      */
@@ -155,6 +163,10 @@ public class MergeScopedA2UI extends ExecuteLogic {
             LOG.warn("Removed {} dangling reference(s) to components no longer in the model", danglingRemoved);
         }
 
+        // Must run before the orphan sweep, which would otherwise mask the miss by
+        // attaching the stray components to root
+        warnOnUnplacedAdditions(merged, originalById.keySet(), EvaluateUIImpactAnalysis.getImpactAnalysis(payload));
+
         reparentNewOrphans(merged, originalComponents);
 
         final String surfaceId = resolveSurfaceId(originalMessages);
@@ -207,9 +219,17 @@ public class MergeScopedA2UI extends ExecuteLogic {
 
             final ObjectNode generated = generatedById.get(id);
             if (generated != null && !allowedIds.contains(id)) {
-                // Out-of-scope edit: the LLM changed something the analysis did not flag.
-                LOG.warn("Discarding out-of-scope change to component '{}' - not in the affected set", id);
-                merged.add(original);
+                // Out-of-scope: accept it only if the LLM did nothing but re-arrange what the
+                // component holds, which is how a new or moved component gets positioned.
+                final ObjectNode structureOnly = acceptStructureOnlyChange(original, generated);
+                if (structureOnly != null) {
+                    LOG.info("Accepted child-ordering change to out-of-scope container '{}' - "
+                            + "structural only, no property edits", id);
+                    merged.add(structureOnly);
+                } else {
+                    LOG.warn("Discarding out-of-scope change to component '{}' - not in the affected set", id);
+                    merged.add(original);
+                }
             } else {
                 merged.add(generated != null ? generated : original);
             }
@@ -226,6 +246,60 @@ public class MergeScopedA2UI extends ExecuteLogic {
         }
 
         return merged;
+    }
+
+    /**
+     * Accepts an out-of-scope component when the LLM changed nothing but its containment
+     * fields. Ordering within a container's {@code children} is what positions a component in
+     * the rendered UI, so a strict reading of the affected set would make "add a field after
+     * the email box" impossible whenever the analysis forgot to flag the parent. Comparing
+     * everything except the structural fields keeps the guarantee intact: property edits to
+     * unflagged components are still rejected.
+     *
+     * @return the original with only its structural fields replaced, or null if anything else differs
+     */
+    private ObjectNode acceptStructureOnlyChange(ObjectNode original, ObjectNode generated) {
+        final ObjectNode originalRest = original.deepCopy();
+        final ObjectNode generatedRest = generated.deepCopy();
+        STRUCTURAL_FIELDS.forEach(originalRest::remove);
+        STRUCTURAL_FIELDS.forEach(generatedRest::remove);
+
+        if (!originalRest.equals(generatedRest)) return null;
+
+        final ObjectNode accepted = original.deepCopy();
+        for (String field : STRUCTURAL_FIELDS) {
+            if (generated.has(field)) {
+                accepted.set(field, generated.get(field).deepCopy());
+            } else {
+                accepted.remove(field);
+            }
+        }
+        return accepted;
+    }
+
+    /**
+     * Flags new components the LLM created but never referenced from a container. They are
+     * still recoverable - {@link #reparentNewOrphans} attaches them to root - but root is a
+     * fallback, not the position the user asked for, so this is worth surfacing.
+     */
+    private void warnOnUnplacedAdditions(List<ObjectNode> merged, Set<String> originalIds, UIImpactAnalysisResult impact) {
+        if (impact == null || !impact.isAddComponents()) return;
+
+        final Set<String> referenced = new LinkedHashSet<>();
+        merged.forEach(c -> collectChildReferences(c, referenced));
+
+        final List<String> unplaced = merged.stream()
+                .map(MergeScopedA2UI::idOf)
+                .filter(java.util.Objects::nonNull)
+                .filter(id -> !originalIds.contains(id))
+                .filter(id -> !referenced.contains(id))
+                .toList();
+
+        if (!unplaced.isEmpty()) {
+            LOG.warn("New component(s) {} were not placed into any container's children. The model did not "
+                    + "wire them into the tree, so they will fall back to the end of root rather than the "
+                    + "requested position.", unplaced);
+        }
     }
 
     /**

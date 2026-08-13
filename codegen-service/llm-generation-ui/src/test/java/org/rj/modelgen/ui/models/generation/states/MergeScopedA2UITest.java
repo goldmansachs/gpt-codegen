@@ -226,6 +226,116 @@ class MergeScopedA2UITest {
         assertTrue(result.jsonl().contains("createSurface"), "createSurface must be carried over from the original");
     }
 
+    // ------------------------------------------------------------------
+    //  Positional insertion
+    //
+    //  Order comes from a container's children array, not from position in the flat
+    //  components array, so these assert on children ordering throughout.
+    // ------------------------------------------------------------------
+
+    private static List<String> childrenOf(MergeResult result, String containerId) {
+        final List<String> children = new ArrayList<>();
+        result.component(containerId).path("children").forEach(c -> children.add(c.asText()));
+        return children;
+    }
+
+    @Test
+    void insertsNewComponentAtRequestedPosition_whenParentIsInScope() {
+        // "Add a phone field between name and email"
+        final var result = merge(ORIGINAL,
+                generated("{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"name\",\"phone\",\"email\"]},"
+                        + "{\"id\":\"phone\",\"component\":\"TextField\",\"label\":\"Phone\"}"),
+                impact(List.of("root"), true, List.of()), Set.of("root"), Set.of());
+
+        assertEquals(List.of("name", "phone", "email"), childrenOf(result, "root"),
+                "The requested position must be honoured exactly");
+    }
+
+    @Test
+    void insertsAtRequestedPosition_evenWhenParentWasNotFlagged() {
+        // The analysis forgot to flag 'root'. The container edit is pure re-ordering, so it is
+        // accepted anyway - otherwise the new field would be dumped at the end of the form.
+        final var result = merge(ORIGINAL,
+                generated("{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"name\",\"phone\",\"email\"]},"
+                        + "{\"id\":\"phone\",\"component\":\"TextField\",\"label\":\"Phone\"}"),
+                impact(List.of(), true, List.of()), Set.of(), Set.of());
+
+        assertEquals(List.of("name", "phone", "email"), childrenOf(result, "root"),
+                "A children-only change must be accepted even for an unflagged container");
+    }
+
+    @Test
+    void stillRejectsPropertyEditsSmuggledAlongsideAChildrenChange() {
+        // Same unflagged container, but the LLM also changed a property - reject the whole node
+        final var result = merge(ORIGINAL,
+                generated("{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"name\",\"phone\",\"email\"],"
+                        + "\"justify\":\"HIJACKED\"},"
+                        + "{\"id\":\"phone\",\"component\":\"TextField\",\"label\":\"Phone\"}"),
+                impact(List.of(), true, List.of()), Set.of(), Set.of());
+
+        assertTrue(result.component("root").path("justify").isMissingNode(),
+                "A property edit on an unflagged component must still be discarded");
+        // Rejecting the node rejects its ordering too, so the add degrades to the orphan
+        // sweep: recovered, but appended rather than placed between name and email.
+        assertEquals(List.of("name", "email", "phone"), childrenOf(result, "root"),
+                "The component survives at the end of root, having lost the requested position");
+    }
+
+    @Test
+    void placesIntoNestedContainer_notRoot() {
+        // root -> [section]; section -> [a]. "Add b at the end of the section"
+        final String nested = CREATE_SURFACE + "\n"
+                + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":["
+                + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"section\"]},"
+                + "{\"id\":\"section\",\"component\":\"Column\",\"children\":[\"a\"]},"
+                + "{\"id\":\"a\",\"component\":\"TextField\",\"label\":\"A\"}"
+                + "]}}";
+
+        final var result = merge(nested,
+                generated("{\"id\":\"section\",\"component\":\"Column\",\"children\":[\"a\",\"b\"]},"
+                        + "{\"id\":\"b\",\"component\":\"TextField\",\"label\":\"B\"}"),
+                impact(List.of("section"), true, List.of()), Set.of("section"), Set.of());
+
+        assertEquals(List.of("a", "b"), childrenOf(result, "section"),
+                "The new component belongs to the section it was added to");
+        assertEquals(List.of("section"), childrenOf(result, "root"),
+                "root must not be flattened - picking the wrong parent is its own failure mode");
+    }
+
+    @Test
+    void unplacedAddition_fallsBackToRootRatherThanVanishing() {
+        // The LLM returns a new component but never wires it into any container
+        final var result = merge(ORIGINAL,
+                generated("{\"id\":\"phone\",\"component\":\"TextField\",\"label\":\"Phone\"}"),
+                impact(List.of(), true, List.of()), Set.of(), Set.of());
+
+        assertTrue(result.componentIds().contains("phone"), "An unwired component must not be silently dropped");
+        assertTrue(childrenOf(result, "root").contains("phone"),
+                "It falls back to the end of root, which is recoverable but not the requested position");
+    }
+
+    @Test
+    void movesExistingComponentBetweenContainers() {
+        // "Move the email field into the section" - a re-parent, not an add
+        final String nested = CREATE_SURFACE + "\n"
+                + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":["
+                + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"section\",\"email\"]},"
+                + "{\"id\":\"section\",\"component\":\"Column\",\"children\":[\"a\"]},"
+                + "{\"id\":\"a\",\"component\":\"TextField\",\"label\":\"A\"},"
+                + "{\"id\":\"email\",\"component\":\"TextField\",\"label\":\"Email\"}"
+                + "]}}";
+
+        final var result = merge(nested,
+                generated("{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"section\"]},"
+                        + "{\"id\":\"section\",\"component\":\"Column\",\"children\":[\"a\",\"email\"]}"),
+                impact(List.of("root", "section"), false, List.of()), Set.of("root", "section"), Set.of());
+
+        assertEquals(List.of("section"), childrenOf(result, "root"));
+        assertEquals(List.of("a", "email"), childrenOf(result, "section"));
+        assertTrue(result.componentIds().contains("email"),
+                "A re-parented component must not be treated as orphaned and duplicated back onto root");
+    }
+
     @Test
     void invokesPostMergeHookWithMergedComponents() {
         final List<String> seen = new ArrayList<>();

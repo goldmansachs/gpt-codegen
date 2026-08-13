@@ -5,6 +5,12 @@ listed here, as a single updateComponents message.
 
   Components you may modify (return all of them): {{AFFECTED_IDS}}
   New components: {{ADD_COMPONENTS}}
+      Every new component MUST also be wired into the tree: return the container
+      that will hold it, with the new id placed in that container's "children"
+      array at the exact position the user asked for. Position in the children
+      array is what determines where the component appears - a new component
+      that is not referenced by any container's children will not be placed
+      correctly. Returning the component on its own is not enough.
   Components being removed: {{REMOVE_IDS}}
       Do NOT return these. If a container you return had one of them as a child,
       omit it from that container's children array.

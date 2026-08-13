@@ -37,6 +37,8 @@ Also include any components whose layout, grouping or dependency changes as a re
 
 IMPORTANT: If a component is being REMOVED, any parent container or sibling whose layout depends on it should be included in "affectedComponentIds" so it can be updated.
 
+IMPORTANT: If a component is being ADDED, the container that will hold it MUST be included in "affectedComponentIds". A new component only appears in the UI once it is listed in its parent container's "children", and the position within that list is what determines where the user sees it. Without the parent in scope the new component cannot be placed, so requests like "add a field after the email box" or "add another option near the end of the section" will end up in the wrong place. Pick the container the user actually means - the specific section, column or tab they described, not the outermost container by default.
+
 If the request does NOT call for a change to the UI, follow the "NO GENERATION REQUIRED" instructions below instead.
 <#else>
 Because there is no existing UI, "affectedComponentIds" and "removeComponentIds" MUST be empty arrays. The primary structural decision is "addComponents":
