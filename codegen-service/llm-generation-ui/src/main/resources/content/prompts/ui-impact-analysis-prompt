@@ -1,4 +1,10 @@
-<#assign isCopilotMode = canvasModel?? && canvasModel?trim?has_content>
+<#-- Prefer the reverse-rendered A2UI when a consumer has produced one. The component ids
+     reported here are consumed downstream by scoped generation and the scoped merge, which both
+     work in A2UI id space - analysing the raw canvas instead reports ids from the canvas format,
+     which match nothing when the merge looks them up. Falls back to the canvas for consumers
+     that do not reverse-render, and when reverse rendering failed. -->
+<#assign existingModel = (originalA2UIJsonl!canvasModel!"")>
+<#assign isCopilotMode = existingModel?trim?has_content>
 <#if isCopilotMode>
 You are analyzing a user request against an existing UI model.
 First determine whether the request calls for a change to the UI; if so, identify which components are impacted. If the request is not a change (e.g. a question about the UI, a general question, off-topic, or something already satisfied by the current UI), indicate that no changes are required.
@@ -13,8 +19,9 @@ Your capabilities are:
 <#if isCopilotMode>
 The existing UI model is:
 ```
-${canvasModel}
+${existingModel}
 ```
+Every component id you report MUST be an "id" that appears in the model above. Do not use ids from any other representation of this UI, and do not invent them.
 <#else>
 There is no existing UI yet - the user is making an initial request and a new UI would need to be generated from scratch if the request is a valid generation request.
 </#if>

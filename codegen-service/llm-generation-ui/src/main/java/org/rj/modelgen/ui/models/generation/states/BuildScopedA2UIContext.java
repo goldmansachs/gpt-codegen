@@ -1,5 +1,7 @@
 package org.rj.modelgen.ui.models.generation.states;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.rj.modelgen.llm.statemodel.states.common.ExecuteLogic;
 import org.rj.modelgen.llm.util.Result;
 import org.rj.modelgen.llm.util.Util;
@@ -26,6 +28,8 @@ import java.util.Set;
 public class BuildScopedA2UIContext extends ExecuteLogic {
 
     private static final Logger LOG = LoggerFactory.getLogger(BuildScopedA2UIContext.class);
+
+    private static final ObjectMapper MAPPER = Util.getObjectMapper();
 
     private static final String MASKING_TEMPLATE =
             Util.loadStringResource("content/prompts/a2ui-scoped-masking-instructions");
@@ -69,6 +73,8 @@ public class BuildScopedA2UIContext extends ExecuteLogic {
         final Set<String> affectedIds = new LinkedHashSet<>(impact.getAffectedComponentIds());
         final Set<String> removeIds = new LinkedHashSet<>(impact.getRemoveComponentIds());
 
+        warnOnUnknownIds(originalJsonl, affectedIds, removeIds);
+
         payload.put(UIGenerationModelInputPayload.SCOPED_A2UI_COMPONENT_IDS, affectedIds);
         payload.put(UIGenerationModelInputPayload.SCOPED_A2UI_REMOVE_IDS, removeIds);
         payload.put(UIGenerationModelInputPayload.SCOPED_A2UI_MASKING_INSTRUCTIONS,
@@ -78,6 +84,48 @@ public class BuildScopedA2UIContext extends ExecuteLogic {
                 affectedIds.size(), removeIds.size(), impact.isAddComponents());
 
         return Mono.just(Result.Ok());
+    }
+
+    /**
+     * Flags impact-analysis ids that do not exist in the model the merge will run against.
+     *
+     * <p>The merge matches purely by id, so an unknown id fails silently: nothing is replaced or
+     * removed, whatever the model returns under that id looks brand new, and it gets appended and
+     * then re-parented to root. The result is a plausible-looking model with duplicates bolted on
+     * the end. This is the symptom of the analysis and the merge disagreeing about id space, which
+     * is worth saying out loud rather than leaving to be spotted in the output.</p>
+     */
+    private void warnOnUnknownIds(String originalJsonl, Set<String> affectedIds, Set<String> removeIds) {
+        final Set<String> known = componentIdsIn(originalJsonl);
+        if (known.isEmpty()) return;
+
+        final Set<String> unknown = new LinkedHashSet<>();
+        affectedIds.stream().filter(id -> !known.contains(id)).forEach(unknown::add);
+        removeIds.stream().filter(id -> !known.contains(id)).forEach(unknown::add);
+
+        if (!unknown.isEmpty()) {
+            LOG.warn("Impact analysis reported {} component id(s) that do not exist in the model being edited: {}. "
+                    + "These cannot be matched during the merge and will have no effect. This usually means the "
+                    + "analysis ran against a different representation of the UI than the one being merged into.",
+                    unknown.size(), unknown);
+        }
+    }
+
+    private Set<String> componentIdsIn(String jsonl) {
+        final Set<String> ids = new LinkedHashSet<>();
+        try {
+            for (String line : jsonl.strip().lines().toList()) {
+                if (line.isBlank()) continue;
+                final JsonNode components = MAPPER.readTree(line).path("updateComponents").path("components");
+                if (!components.isArray()) continue;
+                for (JsonNode component : components) {
+                    if (component.path("id").isTextual()) ids.add(component.get("id").asText());
+                }
+            }
+        } catch (Exception e) {
+            LOG.debug("Could not index component ids for the scope check: {}", e.getMessage());
+        }
+        return ids;
     }
 
     private static String buildMaskingInstructions(Set<String> affectedIds, Set<String> removeIds, boolean addComponents) {
