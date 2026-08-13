@@ -20,6 +20,7 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 /**
  * Validates the correctness of the generated A2UI output.
@@ -34,11 +35,19 @@ import java.util.concurrent.*;
 public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
     private static final Logger LOG = LoggerFactory.getLogger(ValidateA2UIModelCorrectness.class);
     private static final String BASIC_CATALOG_RESOURCE = "classpath:schemas/basic_catalog.json";
+    private static final String CLASSPATH_PREFIX = "classpath:";
+    private static final String UNEVALUATED_PROPERTIES = "unevaluatedProperties";
     private static final String SUPPORTED_A2UI_VERSION = "0.9";
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Schema primarySchema;
     private final Schema componentSchema;
+
+    /**
+     * Component name to its index in the catalog's {@code anyComponent} oneOf. Used to report only
+     * the errors from the branch a component actually targets - see {@link #focusComponentErrors}.
+     */
+    private final Map<String, Integer> componentBranchIndex;
 
     // JSON field name constants
     private static final String FIELD_CREATE_SURFACE = "createSurface";
@@ -132,6 +141,8 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
         // canonical basic catalog key, falling back to the default if not overridden.
         String effectiveCatalogResource = mergedMappings.getOrDefault(
                 "basic_catalog.json", BASIC_CATALOG_RESOURCE);
+
+        this.componentBranchIndex = loadComponentBranchIndex(effectiveCatalogResource);
 
         start = System.nanoTime();
         this.componentSchema = schemaRegistry.getSchema(
@@ -678,19 +689,27 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
             ComponentValidationResult result = future.get(
                     COMPONENT_VALIDATION_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
             if (!result.schemaErrors().isEmpty()) {
-                LOG.info("Line {}: component '{}' validate={}ms, schemaErrors={}",
-                        lineIndex + 1, result.compId(), result.elapsedMs(), result.schemaErrors().size());
-                for (Error error : result.schemaErrors()) {
-                    errors.add(String.format(
-                            "{\"error\":{\"code\":\"VALIDATION_FAILED\"," +
-                                    "\"surfaceId\":\"%s\"," +
-                                    "\"componentId\":\"%s\"," +
-                                    "\"path\":\"%s\"," +
-                                    "\"message\":\"%s\"}}",
-                            surfaceLabel,
-                            result.compId(),
-                            error.getEvaluationPath(),
-                            error.getMessage().replace("\"", "\\\"")));
+                final String unknownType = unknownComponentTypeError(compNode, surfaceLabel, result.compId());
+                if (unknownType != null) {
+                    LOG.info("Line {}: component '{}' declares an unknown component type", lineIndex + 1, result.compId());
+                    errors.add(unknownType);
+                } else {
+                    final Set<Error> focused = focusComponentErrors(result.schemaErrors(), compNode);
+                    LOG.info("Line {}: component '{}' validate={}ms, schemaErrors={} (reported={})",
+                            lineIndex + 1, result.compId(), result.elapsedMs(),
+                            result.schemaErrors().size(), focused.size());
+                    for (Error error : focused) {
+                        errors.add(String.format(
+                                "{\"error\":{\"code\":\"VALIDATION_FAILED\"," +
+                                        "\"surfaceId\":\"%s\"," +
+                                        "\"componentId\":\"%s\"," +
+                                        "\"path\":\"%s\"," +
+                                        "\"message\":\"%s\"}}",
+                                surfaceLabel,
+                                result.compId(),
+                                error.getEvaluationPath(),
+                                error.getMessage().replace("\"", "\\\"")));
+                    }
                 }
             }
             errors.addAll(result.structuralErrors());
@@ -711,6 +730,103 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
             Thread.currentThread().interrupt();
             throw new CancellationException("Component validation interrupted");
         }
+    }
+
+    /**
+     * Reads the catalog's {@code $defs.anyComponent.oneOf} and maps each component name to its
+     * branch index, so validation failures can be attributed to the branch the component targets.
+     * Returns an empty map if the catalog cannot be read - focusing is then skipped and the raw
+     * error set is reported, which is the pre-existing behaviour.
+     */
+    private static Map<String, Integer> loadComponentBranchIndex(String catalogResource) {
+        final String resourcePath = catalogResource.startsWith(CLASSPATH_PREFIX)
+                ? catalogResource.substring(CLASSPATH_PREFIX.length())
+                : catalogResource;
+
+        try (var is = ValidateA2UIModelCorrectness.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) {
+                LOG.warn("Could not read catalog '{}' for error focusing; full error sets will be reported", resourcePath);
+                return Map.of();
+            }
+
+            final JsonNode branches = new ObjectMapper().readTree(is)
+                    .path("$defs").path("anyComponent").path("oneOf");
+            if (!branches.isArray()) return Map.of();
+
+            final Map<String, Integer> index = new LinkedHashMap<>();
+            for (int i = 0; i < branches.size(); i++) {
+                // Branch refs are of the form "#/components/<ComponentName>"
+                final String ref = branches.get(i).path("$ref").asText("");
+                final int lastSlash = ref.lastIndexOf('/');
+                if (lastSlash >= 0 && lastSlash < ref.length() - 1) {
+                    index.put(ref.substring(lastSlash + 1), i);
+                }
+            }
+            LOG.info("Loaded {} component branches from '{}' for validation error focusing", index.size(), resourcePath);
+            return Map.copyOf(index);
+        } catch (Exception e) {
+            LOG.warn("Failed to index catalog components for error focusing: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    /**
+     * Reduces a component's schema errors to the ones that actually describe what is wrong with it.
+     *
+     * <p>{@code anyComponent} is a {@code oneOf} over every component type in the catalog, so a
+     * single bad property makes the component fail all ~22 branches at once and the validator
+     * reports why against each of them. The overwhelming majority of that output is noise about
+     * component types the author never intended - "must be the constant value 'Tabs'" and similar.
+     * The catalog declares {@code discriminator: {propertyName: "component"}}, so the intended
+     * branch is known exactly: keep only that branch's errors.</p>
+     *
+     * <p>Within the surviving branch, {@code unevaluatedProperties} errors are dropped whenever a
+     * concrete failure is also present. They are a cascade: once a subschema fails, its properties
+     * count as unevaluated and every field on the component is reported a second time.</p>
+     */
+    private Set<Error> focusComponentErrors(Set<Error> schemaErrors, JsonNode component) {
+        if (schemaErrors.size() <= 1 || componentBranchIndex.isEmpty()) return schemaErrors;
+
+        final String declaredType = component.path("component").asText(null);
+        if (declaredType == null || declaredType.isBlank()) return schemaErrors;
+
+        final Integer branch = componentBranchIndex.get(declaredType);
+        if (branch == null) return schemaErrors;
+
+        final String branchPrefix = "/oneOf/" + branch + "/";
+        final Set<Error> onBranch = schemaErrors.stream()
+                .filter(error -> evaluationPathOf(error).startsWith(branchPrefix))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        // No branch-specific errors means the failure is structural (e.g. not an object at all)
+        if (onBranch.isEmpty()) return schemaErrors;
+
+        final Set<Error> concrete = onBranch.stream()
+                .filter(error -> !evaluationPathOf(error).endsWith(UNEVALUATED_PROPERTIES))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        return concrete.isEmpty() ? onBranch : concrete;
+    }
+
+    /**
+     * A component naming a type the catalog does not define fails every branch on the discriminator
+     * alone. The full error set says nothing useful; the unknown name does.
+     */
+    private String unknownComponentTypeError(JsonNode component, String surfaceLabel, String compId) {
+        final String declaredType = component.path("component").asText(null);
+        if (declaredType == null || declaredType.isBlank() || componentBranchIndex.isEmpty()
+                || componentBranchIndex.containsKey(declaredType)) {
+            return null;
+        }
+
+        return String.format(
+                "{\"error\":{\"code\":\"VALIDATION_FAILED\",\"surfaceId\":\"%s\",\"componentId\":\"%s\"," +
+                        "\"message\":\"Unknown component type '%s'. Valid component types are: %s\"}}",
+                surfaceLabel, compId, declaredType, String.join(", ", componentBranchIndex.keySet()));
+    }
+
+    private static String evaluationPathOf(Error error) {
+        return String.valueOf(error.getEvaluationPath());
     }
 
     private List<String> formatErrors(Set<Error> schemaErrors, String surfaceLabel) {
