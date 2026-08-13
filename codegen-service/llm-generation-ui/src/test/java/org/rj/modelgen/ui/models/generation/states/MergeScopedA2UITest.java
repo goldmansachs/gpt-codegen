@@ -22,11 +22,11 @@ class MergeScopedA2UITest {
 
     private static final ObjectMapper MAPPER = Util.getObjectMapper();
 
-    private static final String CREATE_SURFACE = "{\"version\":\"0.9\",\"createSurface\":{\"surfaceId\":\"s\"}}";
+    private static final String CREATE_SURFACE = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"s\"}}";
 
     /** root -> [name, email]; email carries a visibility rule keyed off name. */
     private static final String ORIGINAL = CREATE_SURFACE + "\n"
-            + "{\"version\":\"0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":["
+            + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":["
             + "{\"id\":\"formConfig\",\"component\":\"FormConfig\",\"formId\":\"f1\"},"
             + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"name\",\"email\"]},"
             + "{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"Name\"},"
@@ -35,7 +35,7 @@ class MergeScopedA2UITest {
             + "]}}";
 
     private static String generated(String componentsJson) {
-        return "{\"version\":\"0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":[" + componentsJson + "]}}";
+        return "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":[" + componentsJson + "]}}";
     }
 
     private record MergeResult(String jsonl, ModelInterfacePayload payload) {

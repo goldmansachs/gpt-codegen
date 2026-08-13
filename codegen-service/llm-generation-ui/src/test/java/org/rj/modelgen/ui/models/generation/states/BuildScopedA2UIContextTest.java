@@ -15,8 +15,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class BuildScopedA2UIContextTest {
 
     private static final String ORIGINAL_JSONL =
-            "{\"version\":\"0.9\",\"createSurface\":{\"surfaceId\":\"s\"}}\n"
-            + "{\"version\":\"0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":["
+            "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"s\"}}\n"
+            + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":["
             + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"name\"]},"
             + "{\"id\":\"name\",\"component\":\"TextField\"}]}}";
 
