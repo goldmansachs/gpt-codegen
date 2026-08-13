@@ -23,6 +23,7 @@ public enum A2UIStates implements StringSerializable {
     BuildScopedContext,
     ConvertToA2UI,
     MergeScoped,
+    BuildScopedRetryContext,
     ValidateOutput;
 
     @Override
@@ -35,6 +36,7 @@ public enum A2UIStates implements StringSerializable {
             case BuildScopedContext -> "Determining which components are in scope for this change";
             case ConvertToA2UI -> "Converting user intent into A2UI model";
             case MergeScoped -> "Merging the scoped changes back into the full A2UI model";
+            case BuildScopedRetryContext -> "Determining which components need correcting after validation";
             case ValidateOutput -> "Validating the generated A2UI model output";
         };
     }

@@ -191,6 +191,13 @@ public class MergeScopedA2UI extends ExecuteLogic {
      * implicitly removed or replaced, matching the BPMN merge behaviour.
      */
     private void applyImplicitRemovals(ModelInterfacePayload payload, Map<String, ObjectNode> generatedById, Set<String> removeIds) {
+        if (Boolean.TRUE.equals(payload.getOrElse(UIGenerationModelInputPayload.SCOPED_A2UI_RETRY, (Boolean) null))) {
+            // A retry returns only the components being fixed, so absence carries no meaning here.
+            // Treating it as removal would delete everything the previous pass got right.
+            LOG.debug("Scoped retry - not treating unreturned components as removed");
+            return;
+        }
+
         final UIImpactAnalysisResult impact = EvaluateUIImpactAnalysis.getImpactAnalysis(payload);
         if (impact == null) return;
 
@@ -567,13 +574,22 @@ public class MergeScopedA2UI extends ExecuteLogic {
     }
 
     private static void clearScopingData(ModelInterfacePayload payload) {
-        // Deliberately leaves IMPACT_ANALYSIS, FORMAL_ANALYSIS and COMMENTARY in place:
-        // the conversion prompt still needs the formal analysis on a retry, and the
-        // commentary stage consumes its key downstream. Clearing the masking instructions
-        // is what makes any subsequent validation retry run unscoped.
+        // Deliberately leaves IMPACT_ANALYSIS, FORMAL_ANALYSIS and COMMENTARY in place: the
+        // conversion prompt still needs the formal analysis on a retry, and the commentary stage
+        // consumes its key downstream.
+        //
+        // The scope is moved rather than dropped: BuildScopedA2UIRetryContext extends it with the
+        // failing component ids so a validation failure is retried scoped. Clearing the masking
+        // instructions still means the retry runs unscoped if no retry state is wired in.
+        final Object scope = payload.getOrElse(UIGenerationModelInputPayload.SCOPED_A2UI_COMPONENT_IDS, (Object) null);
+        if (scope != null) {
+            payload.put(UIGenerationModelInputPayload.PREVIOUS_SCOPED_A2UI_COMPONENT_IDS, scope);
+        }
+
         payload.remove(UIGenerationModelInputPayload.SCOPED_A2UI_MASKING_INSTRUCTIONS);
         payload.remove(UIGenerationModelInputPayload.SCOPED_A2UI_COMPONENT_IDS);
         payload.remove(UIGenerationModelInputPayload.SCOPED_A2UI_REMOVE_IDS);
+        payload.remove(UIGenerationModelInputPayload.SCOPED_A2UI_RETRY);
     }
 
     private static boolean isBlank(String value) {

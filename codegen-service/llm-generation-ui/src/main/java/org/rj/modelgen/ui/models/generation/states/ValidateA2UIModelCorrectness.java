@@ -49,6 +49,9 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
      */
     private final Map<String, Integer> componentBranchIndex;
 
+    /** Ids of components that failed the most recent validation pass. Reset per pass. */
+    private final Set<String> failedComponentIds = ConcurrentHashMap.newKeySet();
+
     // JSON field name constants
     private static final String FIELD_CREATE_SURFACE = "createSurface";
     private static final String FIELD_UPDATE_COMPONENTS = "updateComponents";
@@ -162,6 +165,9 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
         final List<String> validationMessages = validateA2uiOutput(a2uiOutput);
 
         getPayload().put(StandardModelData.ModelValidationMessages, validationMessages);
+        // Published so a scoped retry can widen its scope to reach the offending components -
+        // they are frequently ones the model was not permitted to touch on the previous pass
+        getPayload().put(UIGenerationModelInputPayload.FAILED_COMPONENT_IDS, Set.copyOf(failedComponentIds));
 
         // If there are validation errors, signal failure so the A2UI can loop back for regeneration
         if (!validationMessages.isEmpty()) {
@@ -181,6 +187,8 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
      * Empty list means no issues found.
      */
     public List<String> validateA2uiOutput(String a2uiOutput) {
+        failedComponentIds.clear();
+
         if (a2uiOutput == null || a2uiOutput.isBlank()) {
             return List.of("Generated A2UI output is null or empty");
         }
@@ -689,6 +697,7 @@ public class ValidateA2UIModelCorrectness extends ModelInterfaceState {
             ComponentValidationResult result = future.get(
                     COMPONENT_VALIDATION_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
             if (!result.schemaErrors().isEmpty()) {
+                failedComponentIds.add(result.compId());
                 final String unknownType = unknownComponentTypeError(compNode, surfaceLabel, result.compId());
                 if (unknownType != null) {
                     LOG.info("Line {}: component '{}' declares an unknown component type", lineIndex + 1, result.compId());

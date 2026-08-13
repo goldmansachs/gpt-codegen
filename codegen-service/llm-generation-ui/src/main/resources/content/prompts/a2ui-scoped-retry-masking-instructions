@@ -1,0 +1,19 @@
+SCOPED RETRY - MASKING INSTRUCTIONS
+Your previous response was merged into the model shown above, and the merged result
+failed validation. The validation errors are listed elsewhere in this prompt.
+
+Fix ONLY the components listed here, and return them as a single updateComponents
+message:
+
+  Components in scope for this retry: {{AFFECTED_IDS}}
+      This includes the components you were working on, plus every component the
+      validator reported an error against - some of those you did not previously
+      touch, and you are now permitted to correct them.
+
+Do NOT return any other component, and do NOT recreate the rest of the model: it is
+already correct and will be preserved automatically. Ignore any validation error that
+references a component not listed above.
+
+Nothing is being removed on this pass. Every component you do not return is kept
+exactly as it appears above, so returning fewer components never deletes anything.
+Preserve every child reference to components not listed above.

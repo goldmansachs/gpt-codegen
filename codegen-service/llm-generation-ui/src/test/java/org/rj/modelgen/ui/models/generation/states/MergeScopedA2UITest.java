@@ -336,6 +336,74 @@ class MergeScopedA2UITest {
                 "A re-parented component must not be treated as orphaned and duplicated back onto root");
     }
 
+    // ------------------------------------------------------------------
+    //  Retry passes
+    // ------------------------------------------------------------------
+
+    private static MergeResult mergeAsRetry(String original, String generated, Set<String> allowed) {
+        final var payload = new ModelInterfacePayload();
+        payload.put(UIGenerationModelInputPayload.ORIGINAL_A2UI_JSONL, original);
+        payload.put(UIGenerationModelInputPayload.UI_OUTPUT, generated);
+        payload.put(UIGenerationModelInputPayload.IMPACT_ANALYSIS, impact(List.of("name", "email"), false, List.of()));
+        payload.put(UIGenerationModelInputPayload.SCOPED_A2UI_COMPONENT_IDS, allowed);
+        payload.put(UIGenerationModelInputPayload.SCOPED_A2UI_REMOVE_IDS, Set.<String>of());
+        payload.put(UIGenerationModelInputPayload.SCOPED_A2UI_MASKING_INSTRUCTIONS, "MASK");
+        payload.put(UIGenerationModelInputPayload.SCOPED_A2UI_RETRY, Boolean.TRUE);
+
+        final var signal = new ModelInterfaceSignal(StandardSignals.SUCCESS);
+        signal.setPayload(payload);
+        new MergeScopedA2UI().invoke(signal).block();
+
+        return new MergeResult(payload.get(UIGenerationModelInputPayload.UI_OUTPUT), payload);
+    }
+
+    @Test
+    void retryDoesNotTreatUnreturnedComponentsAsRemoved() {
+        // The analysis flagged name and email, but this retry only returns the one that failed.
+        // Implicit removal is a first-pass concept - applying it here would delete 'email',
+        // which the previous pass generated correctly.
+        final var result = mergeAsRetry(ORIGINAL,
+                generated("{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"Fixed\"}"),
+                Set.of("name", "email"));
+
+        assertEquals(List.of("formConfig", "root", "name", "email"), result.componentIds(),
+                "A retry must preserve everything it does not return");
+        assertEquals("Fixed", result.component("name").path("label").asText());
+        assertEquals("Email", result.component("email").path("label").asText());
+    }
+
+    @Test
+    void retryCanCorrectAComponentOutsideTheOriginalScope() {
+        // 'email' was never in the first-pass scope; the retry widened scope to include it
+        final var result = mergeAsRetry(ORIGINAL,
+                generated("{\"id\":\"email\",\"component\":\"TextField\",\"label\":\"Corrected\","
+                        + "\"visibility\":{\"args\":{\"rules\":[{\"checks\":[{\"input\":\"name\",\"op\":\"eq\"}]}]}}}"),
+                Set.of("name", "email"));
+
+        assertEquals("Corrected", result.component("email").path("label").asText());
+    }
+
+    @Test
+    void retryFlagIsClearedAfterMerging() {
+        final var result = mergeAsRetry(ORIGINAL,
+                generated("{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"Fixed\"}"),
+                Set.of("name"));
+
+        assertNull(result.payload().getOrElse(UIGenerationModelInputPayload.SCOPED_A2UI_RETRY, (Boolean) null),
+                "The retry marker must not leak into the next pass");
+    }
+
+    @Test
+    void retainsScopeForTheNextRetry() {
+        final var result = merge(ORIGINAL,
+                generated("{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"Full name\"}"),
+                impact(List.of("name"), false, List.of()), Set.of("name"), Set.of());
+
+        assertEquals(Set.of("name"),
+                result.payload().get(UIGenerationModelInputPayload.PREVIOUS_SCOPED_A2UI_COMPONENT_IDS),
+                "The scope is carried over so a retry can extend rather than abandon it");
+    }
+
     @Test
     void invokesPostMergeHookWithMergedComponents() {
         final List<String> seen = new ArrayList<>();

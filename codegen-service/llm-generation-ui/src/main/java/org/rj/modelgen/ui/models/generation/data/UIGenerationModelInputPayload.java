@@ -36,6 +36,22 @@ public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
      */
     public static final String SCOPED_A2UI_MASKING_INSTRUCTIONS = "scopedA2UIMaskingInstructions";
 
+    /**
+     * The scope from the previous pass, retained across the merge so a validation failure can be
+     * retried scoped rather than falling back to a full regeneration.
+     */
+    public static final String PREVIOUS_SCOPED_A2UI_COMPONENT_IDS = "previousScopedA2UIComponentIds";
+
+    /** Ids of components that failed the last validation pass, published by the validator. */
+    public static final String FAILED_COMPONENT_IDS = "failedComponentIds";
+
+    /**
+     * Marks the current pass as a scoped retry. The merge suppresses implicit removals when set:
+     * a retry returns only the components being fixed, so anything absent must be preserved rather
+     * than treated as deleted.
+     */
+    public static final String SCOPED_A2UI_RETRY = "scopedA2UIRetry";
+
     public UIGenerationModelInputPayload(String sessionId, String request) {
         super(sessionId, request, null);
     }
@@ -119,5 +135,13 @@ public class UIGenerationModelInputPayload extends ModelInterfaceInputPayload {
 
     public void setScopedA2UIMaskingInstructions(String scopedA2UIMaskingInstructions) {
         put(SCOPED_A2UI_MASKING_INSTRUCTIONS, scopedA2UIMaskingInstructions);
+    }
+
+    public Set<String> getPreviousScopedA2UIComponentIds() {
+        return get(PREVIOUS_SCOPED_A2UI_COMPONENT_IDS);
+    }
+
+    public Set<String> getFailedComponentIds() {
+        return get(FAILED_COMPONENT_IDS);
     }
 }
