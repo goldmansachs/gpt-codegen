@@ -8,5 +8,8 @@ public enum ModelInterfaceStateType {
     TERMINAL_SUCCESS,
 
     // Terminal state; model has ended in failure, e.g. exception, timeout, no matching transition rule
-    TERMINAL_FAILURE
+    TERMINAL_FAILURE,
+
+    // Terminal state; model was cancelled before it could reach a success/failure conclusion
+    TERMINAL_CANCELLED
 }

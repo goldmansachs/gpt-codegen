@@ -5,6 +5,7 @@ import org.rj.modelgen.llm.audit.ModelInterfaceStateMachineAuditLog;
 import org.rj.modelgen.llm.beans.AuditEntry;
 import org.rj.modelgen.llm.exception.LlmGenerationConfigException;
 import org.rj.modelgen.llm.model.ModelInterface;
+import org.rj.modelgen.llm.statemodel.data.common.StandardModelData;
 import org.rj.modelgen.llm.statemodel.signals.common.StandardErrorSignals;
 import org.rj.modelgen.llm.util.Util;
 import org.slf4j.Logger;
@@ -40,6 +41,7 @@ public class ModelInterfaceStateMachine {
     private final ModelInterfaceState defaultStateNoRule = new ModelInterfaceStandardStates.NO_TRANSITION_RULE();
     private final ModelInterfaceState defaultStateMaxInvocations = new ModelInterfaceStandardStates.EXCEEDED_MAX_INVOCATIONS();
     private final ModelInterfaceState defaultStateLlmProviderError = new ModelInterfaceStandardStates.FAILED_LLM_PROVIDER_ERROR();
+    private final ModelInterfaceState cancelledState = new ModelInterfaceStandardStates.CANCELLED();
 
     public ModelInterfaceStateMachine(Class<? extends ModelInterfaceStateMachine> modelClass,
                                       ModelInterface modelInterface, List<ModelInterfaceState> states,
@@ -52,6 +54,8 @@ public class ModelInterfaceStateMachine {
         this.rules = Optional.ofNullable(rules).orElseGet(() -> new ModelInterfaceTransitionRules(List.of()));
 
         this.states.values().forEach(state -> state.registerWithModel(this));
+
+        this.cancelledState.registerWithModel(this);
 
         this.auditLog = new ModelInterfaceStateMachineAuditLog();
     }
@@ -91,6 +95,13 @@ public class ModelInterfaceStateMachine {
         if (input.getState().isTerminal()) {
             return input.getState().invoke(input.getInputSignal())
                     .flatMap(__ -> Mono.empty());   // No output signal from a terminal state
+        }
+
+        // If cancellation has been requested go to the cancelled terminal state instead of invoking the next state's action. 
+        // The next executeStep pass will see it as terminal state as above
+        if (isCancelled(input.getInputSignal())) {
+            LOG.info("Model interface execution cancelled before state '{}'", input.getState().getId());
+            return Mono.just(new ModelInterfaceStateWithInputSignal(cancelledState, input.getInputSignal()));
         }
 
         // Execute the action associated with this state
@@ -133,6 +144,11 @@ public class ModelInterfaceStateMachine {
                                             new ModelInterfaceStandardSignals.FAIL_NO_MATCHING_TRANSITION_RULE(input.getState().getId(), outputSignal.getId())))
                             );
                     });
+    }
+
+    private boolean isCancelled(ModelInterfaceSignal signal) {
+        final CancellationRequest request = signal.getPayload().get(StandardModelData.Cancel);
+        return request != null && request.isCancelled();
     }
 
     public ModelInterfaceStateMachine withModelCustomization(Function<ModelCustomizationData, ModelInterfaceStateMachineCustomization> modification) {

@@ -110,4 +110,22 @@ public class ModelInterfaceStandardStates {
             return Mono.empty();
         }
     }
+
+    public static class CANCELLED extends ModelInterfaceState {
+
+        public CANCELLED() {
+            super(CANCELLED.class, ModelInterfaceStateType.TERMINAL_CANCELLED);
+        }
+
+        @Override
+        public String getDescription() {
+            return "Model generation cancelled";
+        }
+
+        @Override
+        protected Mono<ModelInterfaceSignal> invokeAction(ModelInterfaceSignal inputSignal) {
+            setLastError(getDescription());
+            return Mono.empty();
+        }
+    }
 }

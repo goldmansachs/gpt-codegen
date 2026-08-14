@@ -28,4 +28,11 @@ public class ModelInterfaceExecutionResult {
                 .map(x -> ModelInterfaceStateType.TERMINAL_SUCCESS.equals(x.getType()))
                 .orElse(false);
     }
+
+    @JsonIgnore
+    public boolean isCancelled() {
+        return Optional.ofNullable(result)
+                .map(x -> ModelInterfaceStateType.TERMINAL_CANCELLED.equals(x.getType()))
+                .orElse(false);
+    }
 }
