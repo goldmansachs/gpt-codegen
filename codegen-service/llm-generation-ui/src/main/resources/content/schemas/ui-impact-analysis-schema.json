@@ -20,7 +20,7 @@
     },
     "formalAnalysis": {
       "type": "string",
-      "description": "Structured technical breakdown of the requested UI changes (fields, layout, validation, groupings, etc.) that downstream generation stages will use as the source-of-truth description of what to build. Should be empty when no generation/changes are required."
+      "description": "Structured technical breakdown of the requested UI changes (fields, layout, validation, groupings, etc.) that downstream generation stages will use as the source-of-truth description of what to build. The generation stage sees this instead of the user's original request, so any explicit layout, structure or ordering instruction must be restated here or it is lost. Should be empty when no generation/changes are required."
     },
     "commentary": {
       "type": "string",

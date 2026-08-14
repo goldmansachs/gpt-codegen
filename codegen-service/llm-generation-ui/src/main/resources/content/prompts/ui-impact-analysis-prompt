@@ -79,6 +79,7 @@ When NO generation/changes are required, you MUST:
 In ALL OTHER cases (when generation/changes ARE required):
 - "formalAnalysis" MUST be a structured, source-of-truth description of the target UI, or specific intended changes that a downstream generation stage will consume directly. Do NOT address the user in this field. Use the following format:
 - For copilot-mode change requests, "formalAnalysis" only needs to describe the fields/sections being added or modified, in the same format, plus any layout/grouping impact on surrounding components.
+- "formalAnalysis" is the ONLY thing the generation stage receives - it never sees the user's original wording. Any instruction you leave out is lost, and the generation stage applies its own defaults instead. So carry through every explicit instruction the user gave about layout, structure or presentation, in their own terms: how the UI should be broken up or grouped (e.g. "one page", "a single screen", "no tabs", "split it into tabs", "use an accordion", "as a wizard"), the order of sections or fields, and anything else about how the UI should be arranged rather than what it captures. State these as requirements, not as background.
 - "commentary" MUST be a short, friendly user-facing acknowledgement of what is being built or changed (e.g. "Sure - I'll add a phone number field to the contact section."). Do NOT include technical identifiers, or ANY other commentary which is unrelated to Form Generation impact analysis.
 
 === COMMENTARY BOUNDARIES (ALWAYS APPLY) ===
