@@ -421,8 +421,9 @@ public class MergeScopedA2UI extends ExecuteLogic {
 
     /**
      * Drops behaviour modifier checks that reference components which no longer exist,
-     * pruning rules and the modifier itself when they are left empty. Leaving them would
-     * fail {@link ValidateA2UIModelCorrectness}.
+     * pruning rules that are left empty. Leaving them would fail
+     * {@link ValidateA2UIModelCorrectness}. See {@link #pruneEmptyRules} for what becomes
+     * of a modifier once its last rule is gone.
      */
     private int sanitizeBehaviourModifiers(ObjectNode component, Set<String> survivingIds) {
         int removed = 0;
@@ -450,10 +451,32 @@ public class MergeScopedA2UI extends ExecuteLogic {
                 if (checks.isEmpty()) ruleIt.remove();
             }
 
-            if (rules.isEmpty()) component.remove(modifier);
+            if (rules.isEmpty()) pruneEmptyRules(component, modifier);
         }
 
         return removed;
+    }
+
+    /**
+     * Decides what to do with a modifier left with no rules.
+     *
+     * <p>An empty rules array says nothing, but the {@code mode} beside it says a great deal:
+     * it is how "always required", "always hidden" and "always disabled" are expressed, and it
+     * is the shape every unconditional modifier arrives in when an existing model is reverse-
+     * rendered for a copilot edit. Removing the modifier wholesale would flip the component's
+     * default behaviour - a mandatory field quietly becoming optional on an unrelated edit -
+     * so only the rules array goes.</p>
+     *
+     * <p>A modifier that never had a mode has nothing left to say once its rules are gone, and
+     * is dropped outright.</p>
+     */
+    private void pruneEmptyRules(ObjectNode component, String modifier) {
+        if (component.path(modifier).get("args") instanceof ObjectNode args && args.path("mode").isTextual()) {
+            args.remove("rules");
+            return;
+        }
+
+        component.remove(modifier);
     }
 
     // ------------------------------------------------------------------

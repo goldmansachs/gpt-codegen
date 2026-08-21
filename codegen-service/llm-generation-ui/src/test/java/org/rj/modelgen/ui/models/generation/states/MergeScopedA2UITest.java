@@ -137,7 +137,54 @@ class MergeScopedA2UITest {
 
         final JsonNode email = result.component("email");
         assertTrue(email.path("visibility").isMissingNode(),
-                "Behaviour modifier referencing the removed component should be pruned entirely");
+                "A modifier that was nothing but a rule on the removed component should be pruned entirely");
+    }
+
+    @Test
+    void keepsUnconditionalModifiers() {
+        // "Always required" is a mode with an empty rules array. Pruning the modifier because
+        // its rules are empty would silently make a mandatory field optional on an edit that
+        // never went near it.
+        final String original = CREATE_SURFACE + "\n"
+                + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":["
+                + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"name\",\"email\"]},"
+                + "{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"Name\","
+                + "\"componentRequired\":{\"call\":\"componentRequired\","
+                + "\"args\":{\"mode\":\"Required\",\"matching\":\"ANY\",\"rules\":[]},\"returnType\":\"boolean\"}},"
+                + "{\"id\":\"email\",\"component\":\"TextField\",\"label\":\"Email\"}"
+                + "]}}";
+
+        final var result = merge(original,
+                generated("{\"id\":\"email\",\"component\":\"TextField\",\"label\":\"Email\",\"supportText\":\"Work\"}"),
+                impact(List.of("email"), false, List.of()), Set.of("email"), Set.of());
+
+        final JsonNode required = result.component("name").path("componentRequired");
+        assertEquals("Required", required.path("args").path("mode").asText(),
+                "An unconditional modifier must survive an edit elsewhere in the form");
+        assertFalse(required.path("args").has("rules"),
+                "The meaningless empty rules array should still be tidied away");
+    }
+
+    @Test
+    void keepsDefaultModeWhenItsLastRuleReferencesARemovedComponent() {
+        final String original = CREATE_SURFACE + "\n"
+                + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":["
+                + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"name\",\"email\"]},"
+                + "{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"Name\"},"
+                + "{\"id\":\"email\",\"component\":\"TextField\",\"label\":\"Email\","
+                + "\"componentRequired\":{\"call\":\"componentRequired\",\"args\":{\"mode\":\"Required\","
+                + "\"rules\":[{\"checks\":[{\"input\":\"name\",\"op\":\"eq\"}]}]},\"returnType\":\"boolean\"}}"
+                + "]}}";
+
+        final var result = merge(original,
+                generated("{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"email\"]}"),
+                impact(List.of("root"), false, List.of("name")), Set.of("root"), Set.of("name"));
+
+        final JsonNode required = result.component("email").path("componentRequired");
+        assertEquals("Required", required.path("args").path("mode").asText(),
+                "Losing the condition must not also lose the default state");
+        assertFalse(required.path("args").has("rules"),
+                "Rules pointing at the removed component must not survive");
     }
 
     @Test
