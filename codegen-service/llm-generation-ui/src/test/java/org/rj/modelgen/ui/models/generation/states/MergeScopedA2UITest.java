@@ -142,9 +142,6 @@ class MergeScopedA2UITest {
 
     @Test
     void keepsUnconditionalModifiers() {
-        // "Always required" is a mode with an empty rules array. Pruning the modifier because
-        // its rules are empty would silently make a mandatory field optional on an edit that
-        // never went near it.
         final String original = CREATE_SURFACE + "\n"
                 + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s\",\"components\":["
                 + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"name\",\"email\"]},"
