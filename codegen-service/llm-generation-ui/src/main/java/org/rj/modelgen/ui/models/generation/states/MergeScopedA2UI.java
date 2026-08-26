@@ -546,14 +546,6 @@ public class MergeScopedA2UI extends ExecuteLogic {
     /**
      * Picks out {@code updateDataModel} messages the LLM added for paths the original does not
      * already initialise.
-     *
-     * <p>Every non-component message is otherwise taken from the original, which leaves a scoped
-     * pass with no way to introduce a data-model path. That matters for data-bound components -
-     * a ChoicePicker sourcing its options from an external endpoint is only valid once its target
-     * path exists - so a component the LLM was asked to add could never be made to work.</p>
-     *
-     * <p>Whole-model writes ({@code path} of "/" or absent) are ignored: accepting one would
-     * replace the data model the rest of the form is bound to.</p>
      */
     private List<ObjectNode> newDataModelMessages(List<ObjectNode> originalMessages,
                                                   List<ObjectNode> generatedMessages,
