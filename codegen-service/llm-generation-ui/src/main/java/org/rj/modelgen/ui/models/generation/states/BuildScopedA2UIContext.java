@@ -73,6 +73,8 @@ public class BuildScopedA2UIContext extends ExecuteLogic {
         final Set<String> affectedIds = new LinkedHashSet<>(impact.getAffectedComponentIds());
         final Set<String> removeIds = new LinkedHashSet<>(impact.getRemoveComponentIds());
 
+        adjustScope(affectedIds, removeIds);
+
         warnOnUnknownIds(originalJsonl, affectedIds, removeIds);
 
         payload.put(UIGenerationModelInputPayload.SCOPED_A2UI_COMPONENT_IDS, affectedIds);
@@ -84,6 +86,20 @@ public class BuildScopedA2UIContext extends ExecuteLogic {
                 affectedIds.size(), removeIds.size(), impact.isAddComponents());
 
         return Mono.just(Result.Ok());
+    }
+
+    /**
+     * Extension point for target-specific scope adjustments, invoked before the id sets are
+     * published and the masking instructions rendered. Mirrors
+     * {@link MergeScopedA2UI#postMergeHook}: the analysis reasons about the visible component
+     * tree, so a target with components outside it can widen the scope here. The default
+     * implementation does nothing.
+     *
+     * @param affectedIds ids the LLM may modify, mutable
+     * @param removeIds   ids to be removed, mutable
+     */
+    protected void adjustScope(Set<String> affectedIds, Set<String> removeIds) {
+        // No-op by default
     }
 
     /**

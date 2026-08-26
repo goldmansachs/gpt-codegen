@@ -86,4 +86,47 @@ class BuildScopedA2UIContextTest {
         final var payload = run(ORIGINAL_JSONL, impact(List.of(), false, List.of("name")));
         assertTrue(isScoped(payload), "A removal on its own is still a change worth scoping");
     }
+
+    // ------------------------------------------------------------------
+    //  Subclass extension point
+    // ------------------------------------------------------------------
+
+    /** Runs a subclass that widens the scope, mirroring how a target adds a non-visual component. */
+    private static ModelInterfacePayload runWithExtraScope(String extraId) {
+        final var payload = new ModelInterfacePayload();
+        payload.put(UIGenerationModelInputPayload.ORIGINAL_A2UI_JSONL, ORIGINAL_JSONL);
+        payload.put(UIGenerationModelInputPayload.IMPACT_ANALYSIS, impact(List.of("name"), false, List.of("name")));
+
+        final var signal = new ModelInterfaceSignal(StandardSignals.SUCCESS);
+        signal.setPayload(payload);
+        new BuildScopedA2UIContext() {
+            @Override
+            protected void adjustScope(Set<String> affectedIds, Set<String> removeIds) {
+                affectedIds.add(extraId);
+                removeIds.clear();
+            }
+        }.invoke(signal).block();
+        return payload;
+    }
+
+    @Test
+    void adjustScope_widensThePublishedIdSets() {
+        final var payload = runWithExtraScope("formConfig");
+
+        final Set<String> allowed = payload.get(UIGenerationModelInputPayload.SCOPED_A2UI_COMPONENT_IDS);
+        final Set<String> remove = payload.get(UIGenerationModelInputPayload.SCOPED_A2UI_REMOVE_IDS);
+
+        assertTrue(allowed.contains("formConfig"));
+        assertTrue(allowed.contains("name"), "the analysis's own ids must survive the adjustment");
+        assertTrue(remove.isEmpty());
+    }
+
+    @Test
+    void adjustScope_runsBeforeTheMaskingInstructionsAreRendered() {
+        // Otherwise the model is never told it may return the component the merge now accepts
+        final var payload = runWithExtraScope("formConfig");
+
+        final String masking = payload.get(UIGenerationModelInputPayload.SCOPED_A2UI_MASKING_INSTRUCTIONS);
+        assertTrue(masking.contains("formConfig"));
+    }
 }

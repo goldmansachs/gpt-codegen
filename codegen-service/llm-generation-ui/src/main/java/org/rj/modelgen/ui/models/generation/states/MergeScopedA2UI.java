@@ -46,8 +46,11 @@ public class MergeScopedA2UI extends ExecuteLogic {
     protected static final String ROOT_ID = "root";
 
     private static final String FIELD_UPDATE_COMPONENTS = "updateComponents";
+    private static final String FIELD_UPDATE_DATA_MODEL = "updateDataModel";
     private static final String FIELD_COMPONENTS = "components";
     private static final String FIELD_SURFACE_ID = "surfaceId";
+    private static final String FIELD_PATH = "path";
+    private static final String ROOT_PATH = "/";
     private static final String FIELD_ID = "id";
     private static final String FIELD_CHILD = "child";
     private static final String FIELD_CHILDREN = "children";
@@ -172,7 +175,8 @@ public class MergeScopedA2UI extends ExecuteLogic {
         final String surfaceId = resolveSurfaceId(originalMessages);
         postMergeHook(merged, new MergeContext(originalById, removeIds, allowedIds, surfaceId));
 
-        final String mergedJsonl = renderJsonl(originalMessages, merged);
+        final String mergedJsonl = renderJsonl(originalMessages, merged,
+                newDataModelMessages(originalMessages, generatedMessages, surfaceId));
 
         payload.put(UIGenerationModelInputPayload.UI_OUTPUT, mergedJsonl);
         // Refresh the merge base so a subsequent retry sees the current state of the model
@@ -508,9 +512,12 @@ public class MergeScopedA2UI extends ExecuteLogic {
     /**
      * Rebuilds the JSONL from the original messages, replacing the components of the first
      * {@code updateComponents} message with the merged set. Non-component messages
-     * ({@code createSurface}, {@code updateDataModel}, ...) are taken from the original.
+     * ({@code createSurface}, {@code updateDataModel}, ...) are taken from the original,
+     * except for the generated data-model additions passed in - see
+     * {@link #newDataModelMessages}.
      */
-    private String renderJsonl(List<ObjectNode> originalMessages, List<ObjectNode> merged) throws Exception {
+    private String renderJsonl(List<ObjectNode> originalMessages, List<ObjectNode> merged,
+                               List<ObjectNode> dataModelAdditions) throws Exception {
         final ObjectNode carrier = findUpdateComponentsMessage(originalMessages);
         final ArrayNode components = MAPPER.createArrayNode();
         merged.forEach(components::add);
@@ -529,7 +536,55 @@ public class MergeScopedA2UI extends ExecuteLogic {
             }
             sb.append(MAPPER.writeValueAsString(message)).append('\n');
         }
+
+        for (ObjectNode addition : dataModelAdditions) {
+            sb.append(MAPPER.writeValueAsString(addition)).append('\n');
+        }
         return sb.toString();
+    }
+
+    /**
+     * Picks out {@code updateDataModel} messages the LLM added for paths the original does not
+     * already initialise.
+     *
+     * <p>Every non-component message is otherwise taken from the original, which leaves a scoped
+     * pass with no way to introduce a data-model path. That matters for data-bound components -
+     * a ChoicePicker sourcing its options from an external endpoint is only valid once its target
+     * path exists - so a component the LLM was asked to add could never be made to work.</p>
+     *
+     * <p>Whole-model writes ({@code path} of "/" or absent) are ignored: accepting one would
+     * replace the data model the rest of the form is bound to.</p>
+     */
+    private List<ObjectNode> newDataModelMessages(List<ObjectNode> originalMessages,
+                                                  List<ObjectNode> generatedMessages,
+                                                  String surfaceId) {
+        final Set<String> existingPaths = new LinkedHashSet<>();
+        for (ObjectNode message : originalMessages) {
+            final JsonNode dataModel = message.path(FIELD_UPDATE_DATA_MODEL);
+            if (dataModel.isObject()) existingPaths.add(dataModel.path(FIELD_PATH).asText(ROOT_PATH));
+        }
+
+        final List<ObjectNode> additions = new ArrayList<>();
+        for (ObjectNode message : generatedMessages) {
+            final JsonNode dataModel = message.path(FIELD_UPDATE_DATA_MODEL);
+            if (!dataModel.isObject()) continue;
+
+            final String path = dataModel.path(FIELD_PATH).asText(ROOT_PATH);
+            if (path.isBlank() || ROOT_PATH.equals(path)) {
+                LOG.warn("Ignoring a generated updateDataModel targeting the whole data model - "
+                        + "applying it would discard the existing one");
+                continue;
+            }
+            if (!existingPaths.add(path)) continue;
+
+            final ObjectNode addition = message.deepCopy();
+            if (surfaceId != null) {
+                ((ObjectNode) addition.get(FIELD_UPDATE_DATA_MODEL)).put(FIELD_SURFACE_ID, surfaceId);
+            }
+            additions.add(addition);
+            LOG.info("Carrying over the generated updateDataModel for new path '{}'", path);
+        }
+        return additions;
     }
 
     // ------------------------------------------------------------------

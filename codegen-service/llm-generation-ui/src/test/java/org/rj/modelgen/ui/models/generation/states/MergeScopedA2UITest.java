@@ -448,6 +448,82 @@ class MergeScopedA2UITest {
                 "The scope is carried over so a retry can extend rather than abandon it");
     }
 
+    // ------------------------------------------------------------------
+    //  Data model carry-over
+    // ------------------------------------------------------------------
+
+    /** Reads the updateDataModel messages out of a merge result, in emission order. */
+    private static List<JsonNode> dataModelMessages(MergeResult result) {
+        final List<JsonNode> messages = new ArrayList<>();
+        try {
+            for (String line : result.jsonl().strip().lines().toList()) {
+                final JsonNode node = MAPPER.readTree(line).path("updateDataModel");
+                if (node.isObject()) messages.add(node);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        return messages;
+    }
+
+    @Test
+    void carriesOverAGeneratedDataModelPathTheOriginalDoesNotHave() {
+        // A data-bound component is only valid once its target path exists, and every other
+        // non-component message comes from the original - so without this it can never be added
+        final String generated = generated("{\"id\":\"country\",\"component\":\"ChoicePicker\","
+                + "\"options\":{\"path\":\"/countryList\"}}")
+                + "\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"s\",\"path\":\"/countryList\",\"value\":[]}}";
+
+        final var result = merge(ORIGINAL, generated,
+                impact(List.of("root"), true, List.of()), Set.of("root"), Set.of());
+
+        final var messages = dataModelMessages(result);
+        assertEquals(1, messages.size());
+        assertEquals("/countryList", messages.get(0).path("path").asText());
+        assertEquals("s", messages.get(0).path("surfaceId").asText());
+    }
+
+    @Test
+    void ignoresAGeneratedWholeDataModelReplacement() {
+        // Applying this would discard the data model the rest of the form is bound to
+        final String generated = generated("{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"X\"}")
+                + "\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"s\",\"path\":\"/\",\"value\":{}}}";
+
+        final var result = merge(ORIGINAL, generated,
+                impact(List.of("name"), false, List.of()), Set.of("name"), Set.of());
+
+        assertTrue(dataModelMessages(result).isEmpty());
+    }
+
+    @Test
+    void doesNotDuplicateADataModelPathTheOriginalAlreadyInitialises() {
+        final String original = ORIGINAL
+                + "\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"s\",\"path\":\"/countryList\",\"value\":[\"GB\"]}}";
+        final String generated = generated("{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"X\"}")
+                + "\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"s\",\"path\":\"/countryList\",\"value\":[]}}";
+
+        final var result = merge(original, generated,
+                impact(List.of("name"), false, List.of()), Set.of("name"), Set.of());
+
+        final var messages = dataModelMessages(result);
+        assertEquals(1, messages.size(), "the original's data model must win");
+        assertEquals("GB", messages.get(0).path("value").get(0).asText());
+    }
+
+    @Test
+    void leavesTheOriginalDataModelAloneWhenNothingWasGenerated() {
+        final String original = ORIGINAL
+                + "\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"s\",\"path\":\"/\",\"value\":{\"a\":1}}}";
+
+        final var result = merge(original,
+                generated("{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"X\"}"),
+                impact(List.of("name"), false, List.of()), Set.of("name"), Set.of());
+
+        final var messages = dataModelMessages(result);
+        assertEquals(1, messages.size());
+        assertEquals(1, messages.get(0).path("value").path("a").asInt());
+    }
+
     @Test
     void invokesPostMergeHookWithMergedComponents() {
         final List<String> seen = new ArrayList<>();
