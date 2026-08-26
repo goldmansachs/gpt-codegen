@@ -21,9 +21,6 @@ import java.util.Set;
  * <p>The full model is still sent to the LLM for context - the protection comes from
  * {@link MergeScopedA2UI}, which discards anything returned outside the allowed set.
  * This state only publishes the id sets and the masking instruction block.</p>
- *
- * <p>No-ops when there is nothing to scope, so it is safe to leave on a path that also
- * carries unscoped traffic.</p>
  */
 public class BuildScopedA2UIContext extends ExecuteLogic {
 
@@ -88,16 +85,6 @@ public class BuildScopedA2UIContext extends ExecuteLogic {
         return Mono.just(Result.Ok());
     }
 
-    /**
-     * Extension point for target-specific scope adjustments, invoked before the id sets are
-     * published and the masking instructions rendered. Mirrors
-     * {@link MergeScopedA2UI#postMergeHook}: the analysis reasons about the visible component
-     * tree, so a target with components outside it can widen the scope here. The default
-     * implementation does nothing.
-     *
-     * @param affectedIds ids the LLM may modify, mutable
-     * @param removeIds   ids to be removed, mutable
-     */
     protected void adjustScope(Set<String> affectedIds, Set<String> removeIds) {
         // No-op by default
     }
