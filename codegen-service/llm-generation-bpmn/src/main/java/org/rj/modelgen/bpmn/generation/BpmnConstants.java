@@ -113,6 +113,17 @@ public class BpmnConstants {
         public static final String ID_ATTR = "elementId";
     }
 
+    public static class ExecutionListenerConstants {
+        public static final String ENTRY_SCRIPT_INPUT = "entryScript";
+        public static final String EXIT_SCRIPT_INPUT = "exitScript";
+        public static final String EVENT_START = "start";
+        public static final String EVENT_END = "end";
+        public static final String EXECUTION_LISTENER_ELEMENT = "executionListener";
+        public static final String SCRIPT_ELEMENT = "script";
+        public static final String EVENT_ATTR = "event";
+        public static final String SCRIPT_FORMAT_ATTR = "scriptFormat";
+    }
+
     public static class UserTaskConstants {
         public static final List<String> ATTRIBUTES = List.of("taskName", "taskDescription", "sourceSystemName", "taskPriority", "taskDeadline", "maximumActiveTasks");
     }

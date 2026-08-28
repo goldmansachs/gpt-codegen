@@ -214,6 +214,7 @@ public class BasicBpmnModelGenerator {
     BpmnModelInstance renderElement(AbstractFlowNodeBuilder<B, E> builder, ElementNode element, BpmnComponent elementDefinition) {
         BpmnModelInstance modelInstance = element.render(builder, elementDefinition, getNamespaceUri());
         multiInstanceRenderer.applyIfRepeatable(element, modelInstance, getNamespaceUri());
+        element.applyEntryExitScripts(modelInstance);
         return modelInstance;
     }
 

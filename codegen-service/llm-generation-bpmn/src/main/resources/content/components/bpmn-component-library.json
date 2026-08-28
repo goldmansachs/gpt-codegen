@@ -67,8 +67,25 @@
           "defaultValue": "100",
           "allowedInputSourceTypes": ["CONSTANT", "EXPRESSION"],
           "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. Use it for things like logging, variable initialization, or side effects that must happen right as this step starts. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. Use it for things like logging, cleanup, or variable finalization right as this step ends. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
         }
-
       ],
       "generatedOutputs": [
         {
@@ -231,6 +248,24 @@
               "resolutionStrategy": "INFERRED"
             }
           ]
+        },
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. This is unrelated to inputScript: inputScript (where present) only builds the outgoing HTTP request body for a service call, while entryScript is a general engine-level hook available on every element type - use it for things like logging, variable initialization, or side effects that must happen right as this step starts, never for shaping request data. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. This is unrelated to outputScript: outputScript (where present) only parses/validates the HTTP response from a service call, while exitScript is a general engine-level hook available on every element type - use it for things like logging, cleanup, or variable finalization right as this step ends, never for processing a response body. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
         }
       ],
       "generatedOutputs": [
@@ -254,6 +289,24 @@
           "type": "string",
           "mandatory": true,
           "keyValue": true,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. Use it for things like logging, variable initialization, or side effects that must happen right as this step starts. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. Use it for things like logging, cleanup, or variable finalization right as this step ends. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
           "allowedInputSourceTypes": ["SCRIPT"],
           "resolutionStrategy": "INFERRED"
         }
@@ -362,6 +415,24 @@
           "keyValue": true,
           "defaultValue": "true",
           "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. Use it for things like logging, variable initialization, or side effects that must happen right as this step starts. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. Use it for things like logging, cleanup, or variable finalization right as this step ends. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
         }
       ],
       "generatedOutputs": []
@@ -370,7 +441,26 @@
       "name": "manualTask",
       "description": "A task that should be used when a series of manual actions are to be performed external to the process by humans or to be used as a fallback when other bpmn components nodes do not fulfil the request",
       "usage": "Use manual tasks when the actions require human intervention in external systems outside the process or when explicitly mentioned as a manual task. It can also be used a fallback when other bpmn component nodes do not fulfil the request as a last resort.",
-      "requiredInputs": [],
+      "requiredInputs": [
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. Use it for things like logging, variable initialization, or side effects that must happen right as this step starts. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. Use it for things like logging, cleanup, or variable finalization right as this step ends. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        }
+      ],
       "generatedOutputs": []
     },
     {
@@ -463,6 +553,24 @@
           "keyValue": true,
           "allowedInputSourceTypes": ["SCRIPT"],
           "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. Use it for things like logging, variable initialization, or side effects that must happen right as this step starts. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. This is unrelated to outputScript: outputScript (where present) only parses/validates the HTTP response from a service call, while exitScript is a general engine-level hook available on every element type - use it for things like logging, cleanup, or variable finalization right as this step ends, never for processing a response body. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
         }
       ],
       "generatedOutputs": []
@@ -492,6 +600,24 @@
           "keyValue": true,
           "defaultValue": "",
           "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. Use it for things like logging, variable initialization, or side effects that must happen right as this step starts. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. Use it for things like logging, cleanup, or variable finalization right as this step ends. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
           "resolutionStrategy": "INFERRED"
         }
       ],
@@ -619,6 +745,24 @@
           "keyValue": true,
           "allowedInputSourceTypes": ["SCRIPT"],
           "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. This is unrelated to inputScript: inputScript (where present) only builds the outgoing HTTP request body for a service call, while entryScript is a general engine-level hook available on every element type - use it for things like logging, variable initialization, or side effects that must happen right as this step starts, never for shaping request data. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. This is unrelated to outputScript: outputScript (where present) only parses/validates the HTTP response from a service call, while exitScript is a general engine-level hook available on every element type - use it for things like logging, cleanup, or variable finalization right as this step ends, never for processing a response body. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
         }
       ],
       "generatedOutputs": []
@@ -641,6 +785,24 @@
           "name": "availabilityRuleScript",
           "description": "A Groovy script that specifies control of who can call this Receive Task",
           "alias": "availability",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. Use it for things like logging, variable initialization, or side effects that must happen right as this step starts. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. Use it for things like logging, cleanup, or variable finalization right as this step ends. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
           "type": "string",
           "mandatory": false,
           "keyValue": false,
@@ -1065,6 +1227,24 @@
           "mandatory": true,
           "keyValue": true,
           "allowedInputSourceTypes": ["CONSTANT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "entryScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution arrives at this element, before the element's own work begins. Use it for things like logging, variable initialization, or side effects that must happen right as this step starts. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
+          "resolutionStrategy": "INFERRED"
+        },
+        {
+          "name": "exitScript",
+          "description": "Groovy script that the process engine runs automatically the instant execution finishes this element and is about to leave it. Use it for things like logging, cleanup, or variable finalization right as this step ends. It can be used interchangeably with a standalone scriptTask - prefer a scriptTask for larger, more substantial logic, and reserve entryScript/exitScript for smaller work tied directly to this element.",
+          "type": "string",
+          "mandatory": false,
+          "keyValue": false,
+          "allowedInputSourceTypes": ["SCRIPT"],
           "resolutionStrategy": "INFERRED"
         }
       ],

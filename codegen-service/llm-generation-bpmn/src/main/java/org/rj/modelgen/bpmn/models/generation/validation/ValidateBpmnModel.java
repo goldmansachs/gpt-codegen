@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.EventConstants.*;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.ExecutionListenerConstants.EXIT_SCRIPT_INPUT;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.Patterns.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.SubProcessConfigConstants.SUBPROCESS;
@@ -920,9 +921,27 @@ public class ValidateBpmnModel {
             if (node.getInputs() != null) {
                 var nodePayload = inVars.get(node.getId());
 
+                // exitScript runs after this node's own work completes (e.g. after a serviceTask's outputScript
+                // has stored a value via setVariable(), or after a userTask's completion action), so - unlike
+                // every other input on this node, including entryScript - it also has access to this same
+                // node's own generated outputs (e.g. reasonCode) and anything its OTHER scripts wrote (entryScript,
+                // inputScript, outputScript). exitScript's own writes are deliberately excluded here: including
+                // them would let a read-before-write within exitScript itself pass validation even though nothing
+                // would actually have set that variable yet at runtime.
+                Set<PayloadVariable> otherInputWrites = new HashSet<>();
+                for (ElementNodeInput otherInput : node.getInputs()) {
+                    if (!EXIT_SCRIPT_INPUT.equals(otherInput.getName())) {
+                        extractWrittenVariables(otherInput, otherInputWrites);
+                    }
+                }
+                var nodePayloadWithOwnOutputs = new HashSet<>(Stream.ofNullable(nodePayload).flatMap(Collection::stream).toList());
+                nodePayloadWithOwnOutputs.addAll(otherInputWrites);
+                nodePayloadWithOwnOutputs.addAll(generatedOutputsByElementType.getOrDefault(node.getElementType(), Set.of()));
+
                 String inputPath = "";
                 for (ElementNodeInput input : node.getInputs()) {
-                    validateInput(node, input, inputPath, startingPayload, nodePayload);
+                    boolean isExitScript = EXIT_SCRIPT_INPUT.equals(input.getName());
+                    validateInput(node, input, inputPath, startingPayload, isExitScript ? nodePayloadWithOwnOutputs : nodePayload);
                 }
             }
         }

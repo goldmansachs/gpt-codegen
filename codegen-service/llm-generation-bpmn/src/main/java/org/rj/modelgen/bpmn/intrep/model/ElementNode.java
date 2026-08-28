@@ -6,7 +6,9 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.builder.AbstractFlowNodeBuilder;
 import org.camunda.bpm.model.bpmn.builder.StartEventBuilder;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.xml.instance.DomDocument;
 import org.camunda.bpm.model.xml.instance.DomElement;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.rj.modelgen.bpmn.component.BpmnComponent;
 import org.rj.modelgen.bpmn.component.BpmnComponentLibrary;
 import org.rj.modelgen.bpmn.component.globalvars.library.BpmnGlobalVariableLibrary;
@@ -20,8 +22,10 @@ import org.slf4j.LoggerFactory;
 
 import static org.camunda.bpm.model.bpmn.impl.BpmnModelConstants.ACTIVITI_NS;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.CommonTaskConstants.*;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.ExecutionListenerConstants.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.MultiInstanceConstants.*;
 import static org.rj.modelgen.bpmn.generation.BpmnConstants.NodeTypes.PROCESS_CONFIG;
+import static org.rj.modelgen.bpmn.generation.BpmnConstants.ScriptTaskConstants.SCRIPT_FORMAT_GROOVY;
 import static org.rj.modelgen.bpmn.intrep.model.ElementNodeInput.createInputFromAttribute;
 import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.extractAttributeValue;
 import static org.rj.modelgen.bpmn.intrep.model.common.ElementNodeSharedUtils.getLookupName;
@@ -272,6 +276,13 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
     @JsonIgnore
     protected List<ElementNodeInput> reverseRenderLeafValues(DomElement dom, FlowNode flowNode, String namespace, BpmnComponent.InputVariable iv) {
         String inputName = iv.getName();
+
+        if (ENTRY_SCRIPT_INPUT.equals(inputName) || EXIT_SCRIPT_INPUT.equals(inputName)) {
+            String event = ENTRY_SCRIPT_INPUT.equals(inputName) ? EVENT_START : EVENT_END;
+            String script = extractExecutionListenerScript(flowNode, event);
+            return script != null ? List.of(createInputFromAttribute(inputName, script, true)) : new ArrayList<>();
+        }
+
         String lookupName = getLookupName(iv);
 
         List<ElementNodeInput> result = new ArrayList<>();
@@ -280,6 +291,24 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
             result.add(createInputFromAttribute(inputName, value, true));
         }
         return result;
+    }
+
+    @JsonIgnore
+    private String extractExecutionListenerScript(FlowNode flowNode, String event) {
+        ExtensionElements extensionElements = flowNode.getExtensionElements();
+        if (extensionElements == null) return null;
+
+        for (DomElement listener : extensionElements.getDomElement().getChildElements()) {
+            if (!EXECUTION_LISTENER_ELEMENT.equals(listener.getLocalName())) continue;
+            if (!event.equals(listener.getAttribute(EVENT_ATTR))) continue;
+
+            for (DomElement script : listener.getChildElements()) {
+                if (!SCRIPT_ELEMENT.equals(script.getLocalName())) continue;
+                String text = script.getTextContent();
+                if (text != null && !text.isBlank()) return text;
+            }
+        }
+        return null;
     }
 
     @JsonIgnore
@@ -354,7 +383,34 @@ public class ElementNode implements GraphNode<String, String, ElementConnection>
         baseElement.setAttributeValueNs(namespace, ATTR_NODE_NAME, this.name);
         baseElement.setAttributeValueNs(namespace, ATTR_NODE_DESCRIPTION, this.description);
     }
-    
+
+    @JsonIgnore
+    public void applyEntryExitScripts(BpmnModelInstance modelInstance) {
+        ModelElementInstance instance = modelInstance.getModelElementById(this.id);
+        if (!(instance instanceof BaseElement baseElement)) return;
+
+        findInput(ENTRY_SCRIPT_INPUT).ifPresent(input -> writeExecutionListenerScript(baseElement, EVENT_START, input.getValue()));
+        findInput(EXIT_SCRIPT_INPUT).ifPresent(input -> writeExecutionListenerScript(baseElement, EVENT_END, input.getValue()));
+    }
+
+    @JsonIgnore
+    private void writeExecutionListenerScript(BaseElement baseElement, String event, String scriptBody) {
+        if (scriptBody == null || scriptBody.isBlank()) return;
+
+        DomElement extensionsDom = getExtensionElements(baseElement).getDomElement();
+        DomDocument doc = extensionsDom.getDocument();
+
+        DomElement listener = doc.createElement(ACTIVITI_NS, EXECUTION_LISTENER_ELEMENT);
+        listener.setAttribute(EVENT_ATTR, event);
+
+        DomElement script = doc.createElement(ACTIVITI_NS, SCRIPT_ELEMENT);
+        script.setAttribute(SCRIPT_FORMAT_ATTR, SCRIPT_FORMAT_GROOVY);
+        script.setTextContent(scriptBody);
+
+        listener.appendChild(script);
+        extensionsDom.appendChild(listener);
+    }
+
     // used in reverse rendering for boundary nodes
     @JsonIgnore
     protected static void addInputInReverseRender(List<ElementNodeInput> inputs, String name, String value) {

@@ -182,7 +182,7 @@ public class BpmnScriptUtils {
 
     /**
      * Determines if a value is a simple EXPRESSION or a complex SCRIPT.
-     * EXPRESSION: Single-line with only getVariable() call
+     * EXPRESSION: Single-line with only a getVariable()/getGlobalVariable() call
      * SCRIPT: Multi-line or contains setVariable
      */
     public static boolean isExpression(String value) {
@@ -197,7 +197,7 @@ public class BpmnScriptUtils {
         if (value.contains("setVariable(")) {
             return false;
         }
-        return value.contains("getVariable(");
+        return value.contains("getVariable(") || value.contains("getGlobalVariable(");
     }
 
     public static String formatValue(String inputValue, BpmnComponentLibrary componentLibrary, BpmnGlobalVariableLibrary globalVariableLibrary) {
@@ -405,6 +405,90 @@ public class BpmnScriptUtils {
         return component.getInputVariable(inputName)
                 .map(iv -> iv.getAlias() != null ? iv.getAlias() : iv.getName())
                 .orElse(inputName);
+    }
+
+    // --- Groovy string escaping (for embedding untrusted content in generated Groovy scripts) ---
+
+    private static final Pattern SAFE_INTERPOLATION_EXPRESSION =
+            Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*$");
+
+    // Fully escapes a value for embedding as an inert Groovy string literal - use for any value
+    // that must never execute code. Escapes every quote individually (not just runs of 3) so a
+    // value ending in 1-2 raw quotes can't combine with the """ appended right after to form an
+    // unintended closing run.
+    public static String escapeGroovy(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("$", "\\$");
+    }
+
+    // Escapes a value for embedding in a Groovy GString, leaving ${...} live only when its content
+    // is a safe dotted identifier path - lets caller-supplied text reference payload/response data
+    // without allowing arbitrary Groovy expressions to execute.
+    public static String escapeGroovyWithSafeInterpolation(String s) {
+        String escaped = escapeGroovy(s);
+        StringBuilder result = new StringBuilder(escaped.length());
+        int i = 0;
+        while (i < escaped.length()) {
+            if (escaped.charAt(i) == '\\' && i + 2 < escaped.length()
+                    && escaped.charAt(i + 1) == '$' && escaped.charAt(i + 2) == '{') {
+                int closeBrace = findUnnestedClosingBrace(escaped, i + 3);
+                if (closeBrace != -1) {
+                    String expr = escaped.substring(i + 3, closeBrace);
+                    if (SAFE_INTERPOLATION_EXPRESSION.matcher(expr.trim()).matches()) {
+                        result.append("${").append(expr).append("}");
+                    } else {
+                        result.append(escaped, i, closeBrace + 1);
+                    }
+                    i = closeBrace + 1;
+                    continue;
+                }
+            }
+            result.append(escaped.charAt(i));
+            i++;
+        }
+        return result.toString();
+    }
+
+    // Escapes a value for embedding in a Groovy GString, leaving ANY ${...} placeholder live - only
+    // for fields explicitly marked "Accepts Expression" in the UI.
+    public static String escapeGroovyAsExpression(String s) {
+        String escaped = escapeGroovy(s);
+        StringBuilder result = new StringBuilder(escaped.length());
+        int i = 0;
+        while (i < escaped.length()) {
+            if (escaped.charAt(i) == '\\' && i + 2 < escaped.length()
+                    && escaped.charAt(i + 1) == '$' && escaped.charAt(i + 2) == '{') {
+                result.append('$');
+                i += 2;
+            } else {
+                result.append(escaped.charAt(i));
+                i++;
+            }
+        }
+        return result.toString();
+    }
+
+    private static int findUnnestedClosingBrace(String s, int from) {
+        for (int j = from; j < s.length(); j++) {
+            char c = s.charAt(j);
+            if (c == '{') return -1;
+            if (c == '}') return j;
+        }
+        return -1;
+    }
+
+    public static String quotedGroovyString(String value) {
+        return "(\"\"\"" + escapeGroovy(value) + "\"\"\").toString()";
+    }
+
+    public static String quotedGroovyStringWithSafeInterpolation(String value) {
+        return "(\"\"\"" + escapeGroovyWithSafeInterpolation(value) + "\"\"\").toString()";
+    }
+
+    public static String quotedGroovyExpressionString(String value) {
+        return "(\"\"\"" + escapeGroovyAsExpression(value) + "\"\"\").toString()";
     }
 
 }
